@@ -34,6 +34,7 @@
 #include "rttr/detail/misc/argument_wrapper.h"
 #include "rttr/detail/variant/variant_compare.h"
 
+#include <string>
 #include <type_traits>
 #include <cstddef>
 #include <cstdint>

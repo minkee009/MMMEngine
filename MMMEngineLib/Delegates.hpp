@@ -1,17 +1,9 @@
-/*
-	Improved Fast Delegate Wrapper
-	- Eliminates UB from member function pointer casting
-	- Removes performance overhead from lambda wrapping
-	- Direct integration with SA::delegate system
-*/
-
 #pragma once
 #include "fast_delegate/MultiCastDelegate.h"
 #include <stdexcept>
 
 namespace MMMEngine
 {
-	// Action: void 반환형 델리게이트
 	template<typename... Args>
 	class Action {
 	public:
@@ -21,7 +13,6 @@ namespace MMMEngine
 		Action() = default;
 		~Action() = default;
 
-		// 자유 함수 추가
 		template<void(*Function)(Args...)>
 		void AddListener() {
 			auto delegate = DelegateType::template create<Function>();
@@ -33,7 +24,6 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 멤버 함수 추가 (non-const)
 		template<typename T, void(T::* Method)(Args...)>
 		void AddListener(T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -44,7 +34,6 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 멤버 함수 추가 (const)
 		template<typename T, void(T::* Method)(Args...) const>
 		void AddListener(const T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -55,15 +44,12 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 람다 추가 (제거 불가 - 경고와 함께 제공)
 		template<typename Lambda>
 		void AddListenerLambda(const Lambda& lambda) {
-			// 람다는 중복 체크 및 제거가 불가능함을 명시
 			auto delegate = DelegateType::template create<Lambda>(lambda);
 			m_multicast += delegate;
 		}
 
-		// 자유 함수 제거
 		template<void(*Function)(Args...)>
 		bool RemoveListener() {
 			auto delegate = DelegateType::template create<Function>();
@@ -75,7 +61,6 @@ namespace MMMEngine
 			return true;
 		}
 
-		// 멤버 함수 제거 (non-const)
 		template<typename T, void(T::* Method)(Args...)>
 		bool RemoveListener(T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -87,7 +72,6 @@ namespace MMMEngine
 			return true;
 		}
 
-		// 멤버 함수 제거 (const)
 		template<typename T, void(T::* Method)(Args...) const>
 		bool RemoveListener(const T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -118,13 +102,11 @@ namespace MMMEngine
 	private:
 		MulticastType m_multicast;
 
-		// delegate의 == 연산자를 사용한 중복 체크
 		bool Contains(const DelegateType& delegate) const {
 			return m_multicast == delegate && m_multicast.size() == 1;
 		}
 	};
 
-	// Func: 반환값이 있는 델리게이트
 	template<typename R, typename... Args>
 	class Func {
 	public:
@@ -134,7 +116,6 @@ namespace MMMEngine
 		Func() = default;
 		~Func() = default;
 
-		// 자유 함수 추가
 		template<R(*Function)(Args...)>
 		void AddListener() {
 			auto delegate = DelegateType::template create<Function>();
@@ -145,7 +126,6 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 멤버 함수 추가 (non-const)
 		template<typename T, R(T::* Method)(Args...)>
 		void AddListener(T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -156,7 +136,6 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 멤버 함수 추가 (const)
 		template<typename T, R(T::* Method)(Args...) const>
 		void AddListener(const T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -167,14 +146,12 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 람다 추가 (제거 불가)
 		template<typename Lambda>
 		void AddListenerLambda(const Lambda& lambda) {
 			auto delegate = DelegateType::template create<Lambda>(lambda);
 			m_multicast += delegate;
 		}
 
-		// 자유 함수 제거
 		template<R(*Function)(Args...)>
 		bool RemoveListener() {
 			auto delegate = DelegateType::template create<Function>();
@@ -186,7 +163,6 @@ namespace MMMEngine
 			return true;
 		}
 
-		// 멤버 함수 제거 (non-const)
 		template<typename T, R(T::* Method)(Args...)>
 		bool RemoveListener(T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -198,7 +174,6 @@ namespace MMMEngine
 			return true;
 		}
 
-		// 멤버 함수 제거 (const)
 		template<typename T, R(T::* Method)(Args...) const>
 		bool RemoveListener(const T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -239,7 +214,6 @@ namespace MMMEngine
 		}
 	};
 
-	// Event: 소유자만 Invoke 가능한 델리게이트
 	template<typename OwnerType, typename Signature>
 	class Event;
 
@@ -257,7 +231,6 @@ namespace MMMEngine
 
 		Event(std::nullptr_t) = delete;
 
-		// 자유 함수 추가
 		template<R(*Function)(Args...)>
 		void AddListener() {
 			auto delegate = DelegateType::template create<Function>();
@@ -268,7 +241,6 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 멤버 함수 추가 (non-const)
 		template<typename T, R(T::* Method)(Args...)>
 		void AddListener(T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -279,7 +251,6 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 멤버 함수 추가 (const)
 		template<typename T, R(T::* Method)(Args...) const>
 		void AddListener(const T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -290,14 +261,12 @@ namespace MMMEngine
 			m_multicast += delegate;
 		}
 
-		// 람다 추가 (제거 불가)
 		template<typename Lambda>
 		void AddListenerLambda(const Lambda& lambda) {
 			auto delegate = DelegateType::template create<Lambda>(lambda);
 			m_multicast += delegate;
 		}
 
-		// 자유 함수 제거
 		template<R(*Function)(Args...)>
 		bool RemoveListener() {
 			auto delegate = DelegateType::template create<Function>();
@@ -309,7 +278,6 @@ namespace MMMEngine
 			return true;
 		}
 
-		// 멤버 함수 제거 (non-const)
 		template<typename T, R(T::* Method)(Args...)>
 		bool RemoveListener(T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -321,7 +289,6 @@ namespace MMMEngine
 			return true;
 		}
 
-		// 멤버 함수 제거 (const)
 		template<typename T, R(T::* Method)(Args...) const>
 		bool RemoveListener(const T* instance) {
 			auto delegate = DelegateType::template create<T, Method>(instance);
@@ -351,7 +318,6 @@ namespace MMMEngine
 			return m_multicast == delegate && m_multicast.size() == 1;
 		}
 
-		// 소유자만 호출 가능
 		void Invoke(OwnerType* owner, Args... args) {
 			if (owner != m_owner)
 				throw std::runtime_error("Event invoked by non-owner");

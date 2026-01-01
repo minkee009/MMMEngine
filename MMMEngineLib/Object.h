@@ -1,5 +1,4 @@
 #pragma once
-#define RTTR_DLL
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
 

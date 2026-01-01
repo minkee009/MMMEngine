@@ -11,22 +11,22 @@
 
 namespace MMMEngine
 {
-	// uuid ë¼ì´ë¸ŒëŸ¬ë¦¬ë¥¼ ê°ì‹¸ëŠ” GUID í´ë˜ìŠ¤, í•¨ìˆ˜ í˜¸ì¶œ ì¸í„°í˜ì´ìŠ¤ ì œê³µ (ì •ì )
+	// uuid ¶óÀÌºê·¯¸®¸¦ °¨½Î´Â GUID Å¬·¡½º, ÇÔ¼ö È£Ãâ ÀÎÅÍÆäÀÌ½º Á¦°ø (Á¤Àû)
 	class GUID
 	{
 	private:
 		uuids::uuid m_uuid;
 
 	public:
-		// ê¸°ë³¸ ìƒì„±ì (nil UUID)
+		// ±âº» »ı¼ºÀÚ (nil UUID)
 		GUID() : m_uuid() {}
 
-		// ë‚´ë¶€ uuid ê°ì²´ë¡œë¶€í„° ìƒì„±
+		// ³»ºÎ uuid °´Ã¼·ÎºÎÅÍ »ı¼º
 		explicit GUID(const uuids::uuid& uuid) : m_uuid(uuid) {}
 
-		// ì •ì  íŒ©í† ë¦¬ ë©”ì„œë“œë“¤
+		// Á¤Àû ÆÑÅä¸® ¸Ş¼­µåµé
 
-		// ìƒˆë¡œìš´ ëœë¤ GUID ìƒì„±
+		// »õ·Î¿î ·£´ı GUID »ı¼º
 		static GUID NewGuid() {
 			std::random_device rd;
 			auto seed_data = std::array<int, std::mt19937::state_size>{};
@@ -38,12 +38,12 @@ namespace MMMEngine
 			return GUID(gen());
 		}
 
-		// Nil (ë¹ˆ) GUID ìƒì„±
+		// Nil (ºó) GUID »ı¼º
 		static GUID Empty() {
 			return GUID();
 		}
 
-		// ë¬¸ìì—´ë¡œë¶€í„° GUID íŒŒì‹±
+		// ¹®ÀÚ¿­·ÎºÎÅÍ GUID ÆÄ½Ì
 		static std::optional<GUID> Parse(const std::string& str) {
 			try {
 				auto uuid = uuids::uuid::from_string(str);
@@ -57,7 +57,7 @@ namespace MMMEngine
 			}
 		}
 
-		// ë¬¸ìì—´ë¡œë¶€í„° GUID íŒŒì‹± (ì˜ˆì™¸ ë˜ì§)
+		// ¹®ÀÚ¿­·ÎºÎÅÍ GUID ÆÄ½Ì (¿¹¿Ü ´øÁü)
 		static GUID ParseOrThrow(const std::string& str) {
 			auto result = Parse(str);
 			if (!result.has_value()) {
@@ -66,20 +66,20 @@ namespace MMMEngine
 			return result.value();
 		}
 
-		// ì´ë¦„ ê¸°ë°˜ GUID ìƒì„± (DNS ë„¤ì„ìŠ¤í˜ì´ìŠ¤)
+		// ÀÌ¸§ ±â¹İ GUID »ı¼º (DNS ³×ÀÓ½ºÆäÀÌ½º)
 		static GUID FromName(const std::string& name) {
 			static auto generator = uuids::uuid_name_generator(uuids::uuid::from_string("6ba7b810-9dad-11d1-80b4-00c04fd430c8").value());
 			return GUID(generator(name));
 		}
 
-		// ë³€í™˜ ë©”ì„œë“œë“¤
+		// º¯È¯ ¸Ş¼­µåµé
 
-		// ë¬¸ìì—´ë¡œ ë³€í™˜
+		// ¹®ÀÚ¿­·Î º¯È¯
 		std::string ToString() const {
 			return uuids::to_string(m_uuid);
 		}
 
-		// ëŒ€ë¬¸ì ë¬¸ìì—´ë¡œ ë³€í™˜
+		// ´ë¹®ÀÚ ¹®ÀÚ¿­·Î º¯È¯
 		std::string ToUpperString() const {
 			std::string str = ToString();
 			for (char& c : str) {
@@ -88,14 +88,14 @@ namespace MMMEngine
 			return str;
 		}
 
-		// í•˜ì´í”ˆ ì—†ëŠ” ë¬¸ìì—´ë¡œ ë³€í™˜
+		// ÇÏÀÌÇÂ ¾ø´Â ¹®ÀÚ¿­·Î º¯È¯
 		std::string ToStringWithoutHyphens() const {
 			std::string str = ToString();
 			str.erase(std::remove(str.begin(), str.end(), '-'), str.end());
 			return str;
 		}
 
-		// ë°”ì´íŠ¸ ë°°ì—´ë¡œ ë³€í™˜
+		// ¹ÙÀÌÆ® ¹è¿­·Î º¯È¯
 		std::vector<uint8_t> ToBytes() const {
 			std::vector<uint8_t> bytes;
 			bytes.reserve(16);
@@ -109,19 +109,19 @@ namespace MMMEngine
 			return bytes;
 		}
 
-		// ìƒíƒœ í™•ì¸
+		// »óÅÂ È®ÀÎ
 
-		// Nil (ë¹ˆ) GUIDì¸ì§€ í™•ì¸
+		// Nil (ºó) GUIDÀÎÁö È®ÀÎ
 		bool IsEmpty() const {
 			return m_uuid.is_nil();
 		}
 
-		// ìœ íš¨í•œ GUIDì¸ì§€ í™•ì¸
+		// À¯È¿ÇÑ GUIDÀÎÁö È®ÀÎ
 		bool IsValid() const {
 			return !m_uuid.is_nil();
 		}
 
-		// ë¹„êµ ì—°ì‚°ìë“¤
+		// ºñ±³ ¿¬»êÀÚµé
 
 		bool operator==(const GUID& other) const {
 			return m_uuid == other.m_uuid;
@@ -147,18 +147,18 @@ namespace MMMEngine
 			return !(m_uuid < other.m_uuid);
 		}
 
-		// ìŠ¤íŠ¸ë¦¼ ì¶œë ¥
+		// ½ºÆ®¸² Ãâ·Â
 		friend std::ostream& operator<<(std::ostream& os, const GUID& guid) {
 			os << guid.ToString();
 			return os;
 		}
 
-		// ë‚´ë¶€ uuid ê°ì²´ ì ‘ê·¼
+		// ³»ºÎ uuid °´Ã¼ Á¢±Ù
 		const uuids::uuid& GetUuid() const {
 			return m_uuid;
 		}
 
-		// í•´ì‹œ ì§€ì› (unordered_map/setì—ì„œ ì‚¬ìš©)
+		// ÇØ½Ã Áö¿ø (unordered_map/set¿¡¼­ »ç¿ë)
 		struct Hash {
 			std::size_t operator()(const GUID& guid) const {
 				return std::hash<uuids::uuid>{}(guid.m_uuid);
