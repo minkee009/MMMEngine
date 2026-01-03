@@ -2,7 +2,8 @@
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
 #include "ObjectManager.h"
-#include <cassert>
+#include <stdexcept>
+#include <iostream>
 
 uint64_t MMMEngine::Object::s_nextInstanceID = 1;
 
@@ -33,21 +34,33 @@ RTTR_REGISTRATION
 
 MMMEngine::Object::Object() : m_instanceID(s_nextInstanceID++)
 {
-#ifdef _DEBUG
 	if (!ObjectManager::Get().IsCreatingObject())
 	{
-		assert(false && "Object는 ObjectManager/CreateInstance로만 생성할 수 있습니다.");
-		std::abort();
+		throw std::runtime_error(
+			"Object는 ObjectManager/CreateInstance로만 생성할 수 있습니다.\n"
+			"스택 생성이나 직접 new 사용이 감지되었습니다."
+		);
 	}
-#endif
+
 	m_name = "<Unnamed> [ Instance ID : " + std::to_string(m_instanceID) + " ]";
 	m_guid = GUID::NewGuid();
 }
 
 MMMEngine::Object::~Object()
 {
+	if (!ObjectManager::Get().IsDestroyingObject())
+	{
 #ifdef _DEBUG
-	assert(ObjectManager::Get().IsDestroyingObject() && "Object는 ObjectManager/Destroy로만 파괴할 수 있습니다.");
+		// Debug: 디버거 중단 + 스택 트레이스
+		std::cerr << "\n=== 오브젝트 파괴 오류 ===" << std::endl;
+		std::cerr << "Object는 ObjectManager/Destroy로만 파괴할 수 있습니다." << std::endl;
+		std::cerr << "직접 delete 사용이 감지되었습니다." << std::endl;
+		std::cerr << "\n>>> 호출 스택 확인 <<<\n" << std::endl;
+		__debugbreak();
 #endif
+		// Release와 Debug 모두: 즉시 종료
+		std::cerr << "\nFATAL ERROR: 허용되지 않는 방법으로 오브젝트 파괴" << std::endl;
+		std::abort(); 
+	}
 }
 
