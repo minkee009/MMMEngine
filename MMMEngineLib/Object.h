@@ -166,7 +166,7 @@ namespace MMMEngine
         ObjectPtr<U> As() const
         {
             static_assert(std::is_base_of_v<Object, U>,
-                "As<T>() : T는 Object를 상속받아야 합니다.");
+                "As<U>() : U는 Object를 상속받아야 합니다.");
 
             return ObjectManager::Get().GetPtr<U>(m_ptrID, m_ptrGeneration);
         }

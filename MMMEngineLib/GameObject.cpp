@@ -23,6 +23,14 @@ RTTR_REGISTRATION
    		    });
 }
 
+void MMMEngine::GameObject::RegisterComponent(ObjectPtr<Component> comp)
+{
+}
+
+void MMMEngine::GameObject::UnRegisterComponent(ObjectPtr<Component> comp)
+{
+}
+
 MMMEngine::GameObject::GameObject(std::string name)
 {
 	SetName(name);

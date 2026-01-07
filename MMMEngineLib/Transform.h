@@ -34,6 +34,7 @@ namespace MMMEngine
 		void MarkDirty();
 	protected:
 		Transform();
+		virtual void Initialize() override {};
 	public:
 		virtual ~Transform();
 

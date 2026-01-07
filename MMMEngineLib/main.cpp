@@ -104,6 +104,9 @@ int main()
 	auto a = Object::CreatePtr<RollObject>();
 	if(a) // È¤Àº a.IsValid()
 		a->A();
+	auto s2 = a.Cast<Object>()->GetName();
+	auto s3 = a.As<Object>()->GetName();
+
 
 	auto founds = Object::FindObjectsByType<Object>();
 
