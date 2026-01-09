@@ -6,7 +6,7 @@ namespace MMMEngine
 	class SceneManager : public Singleton<SceneManager>
 	{
 		void StartUp();
-		void Shutdown();
+		void ShutDown();
 		void Update();
 	};
 }

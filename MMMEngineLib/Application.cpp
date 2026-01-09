@@ -6,12 +6,14 @@ MMMEngine::Application::Application()
 	: m_hInstance(GetModuleHandle(NULL))
 	, m_hWnd(NULL)
 	, m_isRunning(false)
+	, m_needResizeWindow(false)
 	, m_windowInfo({ L"MMM Engine Application" , 1600, 900})
 {
 }
 
 MMMEngine::Application::~Application()
 {
+
 }
 
 int MMMEngine::Application::Run()
@@ -27,6 +29,12 @@ int MMMEngine::Application::Run()
 	MSG msg = {};
 	while (m_isRunning && msg.message != WM_QUIT)
 	{
+		if (m_needResizeWindow)
+		{
+			OnResize(this, m_windowInfo.width, m_windowInfo.height);
+			m_needResizeWindow = false;
+		}
+
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -62,6 +70,11 @@ MMMEngine::Application::WindowInfo MMMEngine::Application::GetWindowInfo()
 	return m_windowInfo;
 }
 
+HWND MMMEngine::Application::GetWindowHandle()
+{
+	return m_hWnd;
+}
+
 LRESULT MMMEngine::Application::HandleWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	//#ifdef _DEBUG
@@ -77,17 +90,23 @@ LRESULT MMMEngine::Application::HandleWindowMessage(HWND hWnd, UINT uMsg, WPARAM
 		PostQuitMessage(0);
 		return 0;
 	case WM_SIZE:
-		if (/*m_pD3DContext && */(wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED || wParam == SIZE_MINIMIZED)) {
+		if (wParam == SIZE_MINIMIZED) return 0;
+		if (/*m_pD3DContext && */(wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED)) {
 			RECT clientRect;
 			GetClientRect(hWnd, &clientRect);
-			UINT newWidth = clientRect.right - clientRect.left;
-			UINT newHeight = clientRect.bottom - clientRect.top;
+			LONG newWidth = clientRect.right - clientRect.left;
+			LONG newHeight = clientRect.bottom - clientRect.top;
 
 			// 리사이즈 로직을 D3DContext에 위임
-			if (newWidth > 0 && newHeight > 0) {
-				OnResize(this, newWidth, newHeight);
+			if (newWidth != m_windowInfo.width || newHeight != m_windowInfo.height) {
+				m_windowInfo.width = newWidth;
+				m_windowInfo.height = newHeight;
+				m_needResizeWindow = true;
 			}
 		}
+		break;
+	case SIZE_MINIMIZED:
+		m_needResizeWindow = true;
 		break;
 	default:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);

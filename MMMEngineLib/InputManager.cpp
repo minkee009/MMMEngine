@@ -1,4 +1,5 @@
 #include "InputManager.h"
+#include "TimeManager.h"
 
 void MMMEngine::InputManager::InitKeyCodeMap()
 {
@@ -104,7 +105,7 @@ void MMMEngine::InputManager::StartUp(HANDLE windowHandle)
     InitKeyCodeMap();
 }
 
-void MMMEngine::InputManager::Shutdown()
+void MMMEngine::InputManager::ShutDown()
 {
     m_hWnd = NULL;
     m_keyCodeMap.clear();

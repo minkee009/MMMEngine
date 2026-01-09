@@ -1,6 +1,6 @@
 #pragma once
 #include "Singleton.hpp"
-#include "Input.h"
+#include "MMMInput.h"
 #include <Windows.h>
 #include <map>
 
@@ -40,7 +40,7 @@ namespace MMMEngine
         ~InputManager() = default;
 
         void StartUp(HANDLE windowHandle);
-        void Shutdown();
+        void ShutDown();
         void Update();
     };
 }

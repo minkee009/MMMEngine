@@ -15,6 +15,7 @@ namespace MMMEngine
 			LPCWSTR title;
 			LONG width;
 			LONG height;
+			LONG style;
 		};
 
 		Application();
@@ -31,12 +32,15 @@ namespace MMMEngine
 
 		void SetProcessHandle(HINSTANCE hinstance);
 		WindowInfo GetWindowInfo();
+		HWND GetWindowHandle();
 	protected:
 		LRESULT HandleWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	private:
 		HINSTANCE m_hInstance;
 		HWND m_hWnd;
 		bool m_isRunning;
+
+		bool m_needResizeWindow;
 
 		WindowInfo m_windowInfo;
 

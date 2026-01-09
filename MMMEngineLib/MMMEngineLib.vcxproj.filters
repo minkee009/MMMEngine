@@ -130,6 +130,9 @@
     <Filter Include="헤더 파일\Core\Time API">
       <UniqueIdentifier>{92e9c672-6b84-46be-8699-a0b5f3f8e686}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Core\Time API">
+      <UniqueIdentifier>{dc3fa110-e47b-42bb-905e-25c4efa41aaa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rttr\access_levels.h">
@@ -516,7 +519,7 @@
     <ClInclude Include="rttr\detail\variant_sequential_view\variant_sequential_view_private.h">
       <Filter>RTTR\Detail\VariantSequentialView</Filter>
     </ClInclude>
-    <ClInclude Include="Object.h">
+    <ClInclude Include="MMMObject.h">
       <Filter>헤더 파일\Core\Object API</Filter>
     </ClInclude>
     <ClInclude Include="ObjectManager.h">
@@ -618,10 +621,19 @@
     <ClInclude Include="InputManager.h">
       <Filter>헤더 파일\Core\Input API</Filter>
     </ClInclude>
-    <ClInclude Include="Input.h">
+    <ClInclude Include="MMMInput.h">
       <Filter>헤더 파일\Core\Input API</Filter>
     </ClInclude>
     <ClInclude Include="TimeManager.h">
+      <Filter>헤더 파일\Core\Time API</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>헤더 파일\Core\Resource API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMResource.h">
+      <Filter>헤더 파일\Core\Resource API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMTime.h">
       <Filter>헤더 파일\Core\Time API</Filter>
     </ClInclude>
   </ItemGroup>
@@ -722,7 +734,7 @@
     <ClCompile Include="rttr\detail\variant\variant_compare.cpp">
       <Filter>RTTR\Detail\Variant</Filter>
     </ClCompile>
-    <ClCompile Include="Object.cpp">
+    <ClCompile Include="MMMObject.cpp">
       <Filter>소스 파일\Core\Object API</Filter>
     </ClCompile>
     <ClCompile Include="ObjectSerializer.cpp">
@@ -752,8 +764,11 @@
     <ClCompile Include="InputManager.cpp">
       <Filter>소스 파일\Core\Input API</Filter>
     </ClCompile>
-    <ClCompile Include="Input.cpp">
+    <ClCompile Include="MMMInput.cpp">
       <Filter>소스 파일\Core\Input API</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeManager.cpp">
+      <Filter>소스 파일\Core\Time API</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

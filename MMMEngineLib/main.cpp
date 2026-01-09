@@ -4,6 +4,7 @@
 #include "Application.h"
 #include "GUID.h"
 #include "GameObject.h"
+#include "InputManager.h"
 
 using namespace MMMEngine;
 
@@ -16,7 +17,16 @@ RTTR_REGISTRATION
 	registration::method("f", &f);
 }
 
-void Render() { std::cout << "drawcall" << std::endl; }
+void Update() 
+{
+	InputManager::Get().Update();
+	if (Input::GetKey(Input::KeyCode::A))
+	{
+		std::cout << "A!" << std::endl;
+	}
+}
+
+void Render() {  }
 
 class Test
 {
@@ -58,12 +68,15 @@ int main()
 	Test testObj;
 
 	Action<> act;
-	act.AddListener<&Render>();
 
+	act.AddListener<&Render>();
 	act.RemoveListener<&Render>();
 
 	act.AddListener<Test, &Test::Foo>(&testObj);
 
+
+	Application::Get().OnIntialize.AddListenerLambda([]() { InputManager::Get().StartUp(Application::Get().GetWindowHandle()); });
+	Application::Get().OnUpdate.AddListener<&Update>();
 	Application::Get().OnRender.AddListener<&Render>();
 
 	act.Invoke();
