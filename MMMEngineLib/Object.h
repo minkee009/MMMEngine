@@ -96,6 +96,8 @@ namespace MMMEngine
     class ObjPtr final : public ObjPtrBase
     {
     private:
+        template<typename>
+        friend struct rttr::wrapper_mapper;
         friend class ObjectManager;
         friend class ObjectSerializer;
         template<typename> friend class ObjPtr;
@@ -245,5 +247,29 @@ namespace MMMEngine
         virtual uint32_t GetPtrGeneration() const override { return m_ptrGeneration; }
     };
 }
+
+namespace rttr
+{
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4506 ) // warning C4506: 인라인 함수에 대한 정의가 없습니다.
+#endif
+
+    template<typename T>
+    struct wrapper_mapper<std::reference_wrapper<MMMEngine::ObjPtr<T>>>
+    {
+        using type = std::reference_wrapper<MMMEngine::ObjPtr<T>>;
+        using wrapped_type = MMMEngine::ObjPtr<T>&;
+
+        static wrapped_type get(const type& obj) { return obj.get(); }
+
+        static type create(wrapped_type value) { return std::ref(value); }
+    };
+
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
+}
+
 
 #include "Object.inl"

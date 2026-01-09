@@ -32,6 +32,7 @@ namespace MMMEngine
 		void UnRegisterComponent(const ObjPtr<Component>& comp);
 		void UpdateActiveInHierarchy();
 		void Initialize();
+		std::vector<ObjPtr<Component>> GetComponentsCopy() { return m_components; }
 	protected:
 		GameObject();
 		GameObject(std::string name);

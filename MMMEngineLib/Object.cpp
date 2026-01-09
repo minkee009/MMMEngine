@@ -8,7 +8,6 @@
 
 uint64_t MMMEngine::Object::s_nextInstanceID = 1;
 
-
 RTTR_REGISTRATION
 {
 	using namespace rttr;

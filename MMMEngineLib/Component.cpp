@@ -1,5 +1,19 @@
 #include "Component.h"
 #include "GameObject.h"
+#include "rttr/registration"
+#include "rttr/detail/policies/ctor_policies.h"
+
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<Component>("Component")
+		.property("GameObject", &Component::GetGameObject, &Component::SetGameObject, registration::private_access);
+
+	//registration::class_<ObjPtr<Component>>("ObjPtr<Component>");
+}
+
 
 void MMMEngine::Component::Dispose()
 {

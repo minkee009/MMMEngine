@@ -97,14 +97,26 @@ int main()
 	type class_type = type::get_by_name(ptrType);
 	if (class_type)
 	{
-		auto obj = class_type.create({ std::string{"overload"} }).get_value<ObjPtr<GameObject>>();
+		auto var = class_type.create({ std::string{"overload"} });
+		auto obj = var.get_value<ObjPtr<GameObject>>();
 		std::cout << obj->GetName() << std::endl;
 
 		std::cout << (*obj).GetGUID() << std::endl;
 
+		auto prop = (*obj).get_type().get_property("Components");
+		if (prop)
+		{
+			auto ss = prop.get_value(*obj);
+			auto ssd = ss.get_value<std::vector<ObjPtr<Component>>>();
+
+			auto size1 = ssd.size();
+
+			std::cout << size1 << std::endl;
+		}
+
 		Object::Destroy(obj);
 
-		if (obj)
+		if (!obj->IsDestroyed())
 			std::cout << "Alived!" << std::endl;
 		else
 			std::cout << "Destroyed!" << std::endl;

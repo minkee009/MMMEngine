@@ -13,7 +13,8 @@ RTTR_REGISTRATION
 
 	registration::class_<GameObject>("GameObject")
 		.property("Layer", &GameObject::GetLayer, &GameObject::SetLayer)
-		.property("Tag", &GameObject::GetTag, &GameObject::SetTag);
+		.property("Tag", &GameObject::GetTag, &GameObject::SetTag)
+		.property_readonly("Components", &GameObject::GetAllComponents);
 
 	registration::class_<ObjPtr<GameObject>>("ObjPtr<GameObject>")
 		.constructor(
