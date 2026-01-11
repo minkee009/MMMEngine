@@ -320,8 +320,6 @@
     <ClInclude Include="SerializableEvent.h" />
     <ClInclude Include="Singleton.hpp" />
     <ClInclude Include="StringHelper.h" />
-    <ClInclude Include="TestIO.h" />
-    <ClInclude Include="TestPakBuilder.h" />
     <ClInclude Include="TimeManager.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="ResourceManager.h">
@@ -369,9 +367,6 @@
     <ClCompile Include="rttr\variant_associative_view.cpp" />
     <ClCompile Include="rttr\variant_sequential_view.cpp" />
     <ClCompile Include="StringHelper.cpp" />
-    <ClInclude Include="TestAssetDataBase.h" />
-    <ClCompile Include="TestAssetDataBase.cpp" />
-    <ClCompile Include="TestPakBuilder.cpp" />
     <ClCompile Include="TimeManager.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>

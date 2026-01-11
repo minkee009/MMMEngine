@@ -155,14 +155,6 @@
     <ClCompile Include="FileBytesProvider.cpp" />
     <ClCompile Include="ImporterRegistry.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="main_test2.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="main_test.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="MetaDB.cpp" />
     <ClCompile Include="MetaFile.cpp" />
     <ClCompile Include="PakBuilder.cpp" />

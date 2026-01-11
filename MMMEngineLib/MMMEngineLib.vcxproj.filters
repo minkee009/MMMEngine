@@ -142,15 +142,6 @@
     <Filter Include="헤더 파일\Core\Screen API">
       <UniqueIdentifier>{63578d04-b180-4852-ad1b-7bb967344042}</UniqueIdentifier>
     </Filter>
-    <Filter Include="헤더 파일\Core\Resource API\Test">
-      <UniqueIdentifier>{627f71a2-caaf-4a12-bc44-d71778aa09cd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="소스 파일\Core\Resource API">
-      <UniqueIdentifier>{cf9cf7ad-c0fa-46c7-8c65-307071941d41}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="소스 파일\Core\Resource API\Test">
-      <UniqueIdentifier>{bb9392dc-133a-442c-9412-bf044afd23c2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="헤더 파일\Core\Resource API\Asset">
       <UniqueIdentifier>{23e0feb8-9639-40bb-958f-b55439ae7992}</UniqueIdentifier>
     </Filter>
@@ -675,15 +666,6 @@
     <ClInclude Include="MMMResources.h">
       <Filter>헤더 파일\Core\Resource API</Filter>
     </ClInclude>
-    <ClInclude Include="TestAssetDataBase.h">
-      <Filter>헤더 파일\Core\Resource API\Test</Filter>
-    </ClInclude>
-    <ClInclude Include="TestIO.h">
-      <Filter>헤더 파일\Core\Resource API\Test</Filter>
-    </ClInclude>
-    <ClInclude Include="TestPakBuilder.h">
-      <Filter>헤더 파일\Core\Resource API\Test</Filter>
-    </ClInclude>
     <ClInclude Include="AssetEntry.h">
       <Filter>헤더 파일\Core\Resource API\Asset</Filter>
     </ClInclude>
@@ -817,12 +799,6 @@
     </ClCompile>
     <ClCompile Include="App.cpp">
       <Filter>소스 파일\Utility</Filter>
-    </ClCompile>
-    <ClCompile Include="TestPakBuilder.cpp">
-      <Filter>소스 파일\Core\Resource API\Test</Filter>
-    </ClCompile>
-    <ClCompile Include="TestAssetDataBase.cpp">
-      <Filter>소스 파일\Core\Resource API\Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

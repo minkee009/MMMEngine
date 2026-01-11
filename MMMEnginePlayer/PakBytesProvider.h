@@ -8,7 +8,6 @@ namespace MMMEngine::Player
     {
     public:
         explicit PakBytesProvider(PakFileReader* reader) : m_reader(reader) {}
-
         bool ReadAll(const MMMEngine::AssetEntry& entry, std::vector<uint8_t>& outBytes) override;
 
     private:
