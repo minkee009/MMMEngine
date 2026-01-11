@@ -28,8 +28,8 @@ void Init()
 {
 	InputManager::Get().StartUp(MMMEngine::g_pApp->GetWindowHandle());
 
-	ResourceManager::Get().SetResolver(&Editor::g_pResolver);
-	ResourceManager::Get().SetBytesProvider(&Editor::g_pFilesProvider);
+	ResourceManager::Get().SetResolver(&Editor::g_resolver);
+	ResourceManager::Get().SetBytesProvider(&Editor::g_filesProvider);
 
 	PakAssetDatabase pakDB;
 	if (!pakDB.Mount(L"TestAssets.pak"))
@@ -51,7 +51,7 @@ void Update_A()
 {
 	InputManager::Get().Update();
 
-	if (Input::GetKeyDown(KeyCode::G))
+	if (true)
 	{
 		auto fileName = OpenTextFileDialog();
 		if (!fileName)
@@ -77,7 +77,7 @@ void Update_A()
 		canonicalPathUtf8 = std::string(u8str.begin(), u8str.end());
 #else
 		// C++17
-		canonicalPathUtf8 = src.u8string();
+		canonicalPathUtf8 = src.generic_string();
 #endif
 
 		if (!WriteMetaJson(metaPath, muid, canonicalPathUtf8, 6))
@@ -100,7 +100,7 @@ void Update_B()
 		return;
 
 	// meta에서 읽은 값이라고 가정
-	const fs::path dir = LR"(C:\\Users\\minke\\Documents)"; // TODO: 경로 수정
+	const fs::path dir = LR"(C:/Users/minke/Documents)"; // TODO: 경로 수정
 	const std::wstring suffix = L".txt.meta";
 
 	struct MetaData
@@ -115,7 +115,7 @@ void Update_B()
 	for (const auto& entry : fs::directory_iterator(dir)) {
 		if (!entry.is_regular_file()) continue;
 
-		std::wstring filename = entry.path().filename().wstring();
+		std::wstring filename = entry.path().filename().generic_wstring();
 
 		if (ends_with(filename, suffix)) {
 			// ".txt.meta" 앞부분 추출
