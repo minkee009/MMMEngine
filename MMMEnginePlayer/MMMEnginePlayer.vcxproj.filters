@@ -19,6 +19,9 @@
     <Filter Include="소스 파일\Asset">
       <UniqueIdentifier>{a9b9357f-4d95-4c73-ba57-3b710e5781e6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\PlayerRegistry">
+      <UniqueIdentifier>{df9da915-caba-44ce-819d-ef4efb2391d5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetIndexRuntime.h">
@@ -37,7 +40,7 @@
       <Filter>헤더 파일\Asset</Filter>
     </ClInclude>
     <ClInclude Include="PlayerRegistry.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>헤더 파일\PlayerRegistry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
