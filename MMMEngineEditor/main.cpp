@@ -38,7 +38,7 @@ void Init()
 	}
 
 	PakEntry entry;
-	if (pakDB.TryGetEntry("C:/Users/minke/Documents/556.txt", entry))
+	if (pakDB.TryGetEntry(u8"C:/Users/minke/Documents/556.txt", entry))
 	{
 		std::vector<uint8_t> bytes;
 		pakDB.ReadBytes(entry, bytes);
