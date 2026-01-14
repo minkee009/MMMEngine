@@ -97,8 +97,8 @@ namespace MMMEngine
 
 		ObjPtr<Transform> GetTransform() { return m_transform; }
 
-		//static ObjPtr<GameObject> Find(const std::wstring& name);
-		//static ObjPtr<GameObject> FindWithTag(const std::string& name);
-		//static std::vector<ObjPtr<GameObject>> FindGameObjectsWithTag(const std::string& name);
+		static ObjPtr<GameObject> Find(const std::wstring& name);
+		static ObjPtr<GameObject> FindWithTag(const std::string& name);
+		static std::vector<ObjPtr<GameObject>> FindGameObjectsWithTag(const std::string& name);
 	};
 }
