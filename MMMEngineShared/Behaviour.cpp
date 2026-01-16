@@ -12,6 +12,8 @@ RTTR_REGISTRATION
 	registration::class_<Behaviour>("Behaviour")
 		.property("Enabled", &Behaviour::GetEnabled, &Behaviour::SetEnabled)
 		.property_readonly("IsActiveAndEnabled", &Behaviour::IsActiveAndEnabled);
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Behaviour>>();
 }
 
 

@@ -15,4 +15,7 @@ RTTR_REGISTRATION
 			[]() {
 				return Object::NewObject<MissingScriptBehaviour>();
 			});
+
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<MissingScriptBehaviour>>();
 }

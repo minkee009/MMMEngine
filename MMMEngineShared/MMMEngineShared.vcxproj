@@ -353,6 +353,7 @@
     <ClCompile Include="GlobalRegistry.cpp" />
     <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="MissingScriptBehaviour.cpp" />
+    <ClCompile Include="MUID.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ObjectManager.cpp" />
     <ClCompile Include="Resource.cpp" />
@@ -388,6 +389,7 @@
     <ClCompile Include="rttr\variant.cpp" />
     <ClCompile Include="rttr\variant_associative_view.cpp" />
     <ClCompile Include="rttr\variant_sequential_view.cpp" />
+    <ClCompile Include="rttr_simplemath_registry.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="SceneSerializer.cpp" />

@@ -13,7 +13,10 @@ namespace MMMEngine
 		RTTR_ENABLE(Object)
 		RTTR_REGISTRATION_FRIEND
 		friend class ObjectManager;
+		friend class SceneManager;
+		friend class Object;
 		friend class Scene;
+		friend class SceneSerializer;
 		friend class Component;
 		friend class Transform;
 
@@ -33,7 +36,6 @@ namespace MMMEngine
 		void UpdateActiveInHierarchy();
 		void Initialize();
 		std::vector<ObjPtr<Component>> GetComponentsCopy() { return m_components; }
-		const SceneRef& GetScene() const { return m_scene; }
 		void SetScene(const SceneRef& scene) { m_scene = scene; }
 	protected:
 		GameObject();
@@ -54,6 +56,7 @@ namespace MMMEngine
 		
 		const std::string&	GetTag()		const { return m_tag; }
 		const uint32_t&		GetLayer()		const { return m_layer; }
+		const SceneRef& GetScene() const { return m_scene; }
 
 		template <typename T>
 		ObjPtr<T> AddComponent()
@@ -81,7 +84,7 @@ namespace MMMEngine
 		{
 			static_assert(std::is_base_of<Component, T>::value, "GetComponent()의 T는 Component를 상속받아야 합니다.");
 
-			for (auto comp : m_components)
+			for (auto& comp : m_components)
 			{
 				if (!comp.IsValid() || comp->IsDestroyed())
 					continue;

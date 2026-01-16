@@ -15,6 +15,8 @@ RTTR_REGISTRATION
 		.property_readonly("Transform", &Component::GetTransform);
 
 	//registration::class_<ObjPtr<Component>>("ObjPtr<Component>");
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Component>>();
 }
 
 

@@ -75,6 +75,7 @@ namespace MMMEngine
 
 		ObjPtr<Transform> GetParent() const;
 		ObjPtr<Transform> GetChild(size_t index) const;
+		size_t			  GetChildCount() const;
 
 		void SetParent(ObjPtr<Transform> parent, bool worldPositionStays = true);
 

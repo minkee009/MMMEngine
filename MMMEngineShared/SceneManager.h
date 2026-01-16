@@ -27,7 +27,10 @@ namespace MMMEngine
 	public:
 		const SceneRef GetCurrentScene() const;
 
+		void RegisterGameObjectToDDOL(ObjPtr<GameObject> go);
+
 		Scene* GetSceneRaw(const SceneRef& ref);
+		SceneRef GetSceneRef(const Scene* pScene);
 
 		void ChangeScene(const std::string& name);
 		void ChangeScene(const size_t& id);

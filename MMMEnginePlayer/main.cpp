@@ -29,7 +29,7 @@ void Initialize()
 	InputManager::Get().StartUp(GlobalRegistry::g_pApp->GetWindowHandle());
 	GlobalRegistry::g_pApp->OnWindowSizeChanged.AddListener<InputManager, &InputManager::HandleWindowResize>(&InputManager::Get());
 
-	SceneManager::Get().StartUp(L"Data/", true);
+	SceneManager::Get().StartUp(L"Assets/Scene/EmptyScene.scene", true);
 
 	BehaviourManager::Get().StartUp();
 
@@ -38,7 +38,7 @@ void Initialize()
 	Object::NewObject<GameObject>();
 	Object::NewObject<GameObject>();
 
-	SceneSerializer::Get().Serialize(*SceneManager::Get().GetSceneRaw(SceneManager::Get().GetCurrentScene()), L"Assets/Scene");
+	SceneSerializer::Get().Serialize(*SceneManager::Get().GetSceneRaw(SceneManager::Get().GetCurrentScene()), L"Assets/Scene/EmptyScene.scene");
 }
 
 void Update()
@@ -59,7 +59,6 @@ void Update()
 	}
 
 	BehaviourManager::Get().InitializeBehaviours();    // Awake, OnEnable, Start 메시지 전송 (순차적으로)
-
 
 	TimeManager::Get().ConsumeFixedSteps([&](float fixedDt)
 	{

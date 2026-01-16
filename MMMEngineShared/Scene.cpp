@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "SceneManager.h"
 #include "GameObject.h"
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
@@ -42,6 +43,11 @@ void MMMEngine::Scene::Clear()
 std::vector<MMMEngine::ObjPtr<MMMEngine::GameObject>> MMMEngine::Scene::GetGameObjects()
 {
     return m_gameObjects;
+}
+
+MMMEngine::ObjPtr<MMMEngine::GameObject> MMMEngine::Scene::CreateGameObject(std::string name)
+{
+    return Object::NewObject<GameObject>(SceneManager::Get().GetSceneRef(this), name);
 }
 
 void MMMEngine::Scene::Initialize()

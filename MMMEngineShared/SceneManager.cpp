@@ -1,10 +1,29 @@
 #include "SceneManager.h"
+#include "SceneSerializer.h"
+
+#include "json/json.hpp"
+#include <fstream>
+#include <filesystem>
 
 DEFINE_SINGLETON(MMMEngine::SceneManager)
 
-
 void MMMEngine::SceneManager::LoadScenes(std::wstring rootPath)
 {
+	//std::ifstream file(rootPath, std::ios::binary);
+	//if (!file.is_open())
+	//    return;
+
+	//std::vector<uint8_t> buffer((std::istreambuf_iterator<char>(file)),
+	//    std::istreambuf_iterator<char>());
+	//file.close();
+
+	//nlohmann::json snapshot = nlohmann::json::from_msgpack(buffer);
+
+	//m_scenes.emplace_back(std::move(std::make_unique<Scene>()));
+	//
+	//auto& currentScene = *m_scenes[0].get();
+	//currentScene.m_snapshot = snapshot;
+	//SceneSerializer::Get().Deserialize(currentScene,currentScene.m_snapshot);
 }
 
 void MMMEngine::SceneManager::CreateEmptyScene()
@@ -19,6 +38,19 @@ const MMMEngine::SceneRef MMMEngine::SceneManager::GetCurrentScene() const
 	return { m_currentSceneID , false };
 }
 
+void MMMEngine::SceneManager::RegisterGameObjectToDDOL(ObjPtr<GameObject> go)
+{
+	if (m_dontDestroyOnLoadScene)
+	{
+		m_dontDestroyOnLoadScene->RegisterGameObject(go);
+		go->SetScene({ static_cast<size_t>(-1),true });
+	}
+#ifdef _DEBUG
+	else
+		assert(true && "Dont Destroy On Load 씬이 존재하지 않습니다.");
+#endif;
+}
+
 MMMEngine::Scene* MMMEngine::SceneManager::GetSceneRaw(const SceneRef& ref)
 {
 	if (m_scenes.size() <= ref.id && !ref.id_DDOL)
@@ -28,6 +60,21 @@ MMMEngine::Scene* MMMEngine::SceneManager::GetSceneRaw(const SceneRef& ref)
 		return m_dontDestroyOnLoadScene.get();
 
 	return m_scenes[ref.id].get();
+}
+
+MMMEngine::SceneRef MMMEngine::SceneManager::GetSceneRef(const Scene* pScene)
+{
+	size_t idx = 0;
+	for (const auto& uniqueP : m_scenes)
+	{
+		if (uniqueP.get() == pScene)
+		{
+			return SceneRef{ idx,false };
+		}
+		++idx;
+	}
+
+	return SceneRef{ static_cast<size_t>(-1),false };
 }
 
 void MMMEngine::SceneManager::ChangeScene(const std::string& name)
@@ -47,6 +94,8 @@ void MMMEngine::SceneManager::ChangeScene(const size_t& id)
 
 void MMMEngine::SceneManager::StartUp(std::wstring rootPath, bool allowEmptyScene)
 {
+	m_dontDestroyOnLoadScene = std::make_unique<Scene>();
+
 	// 고정된 경로로 json 바이너리를 읽고 씬파일경로를 불러오 ID맵을 초기화하고 초기씬을 생성함
 	LoadScenes(rootPath);
 
@@ -63,6 +112,8 @@ void MMMEngine::SceneManager::StartUp(std::wstring rootPath, bool allowEmptyScen
 
 void MMMEngine::SceneManager::ShutDown()
 {
+	m_dontDestroyOnLoadScene.reset();
+	m_scenes.clear();
 }
 
 bool MMMEngine::SceneManager::CheckSceneIsChanged()

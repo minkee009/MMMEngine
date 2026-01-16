@@ -12,6 +12,7 @@ namespace MMMEngine
 		RTTR_ENABLE(Object)
 		RTTR_REGISTRATION_FRIEND
 		friend class ObjectManager;
+		friend class SceneSerializer;
 		friend class GameObject;
 
 		ObjPtr<GameObject> m_gameObject;

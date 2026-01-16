@@ -20,13 +20,16 @@ RTTR_REGISTRATION
 	registration::class_<Transform>("Transform")
 		.property("Position", &Transform::GetLocalPosition, setpos)
 		.property("Roation", &Transform::GetLocalRotation, setrot)
-		.property("Scale", &Transform::GetLocalScale, setscale);
+		.property("Scale", &Transform::GetLocalScale, setscale)
+		.property("Parent", &Transform::m_parent, registration::private_access)(rttr::metadata("DONT_SHOW", true));
 
 	registration::class_<ObjPtr<Transform>>("ObjPtr<Transform>")
 		.constructor<>(
 			[]() {
 				return Object::NewObject<Transform>();
 			});
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Transform>>();
 }
 
 void MMMEngine::Transform::AddChild(ObjPtr<Transform> child)
@@ -190,6 +193,11 @@ MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::GetChild(size_t in
 		return ObjPtr<Transform>();
 
 	return m_childs[index];
+}
+
+size_t MMMEngine::Transform::GetChildCount() const
+{
+	return m_childs.size();
 }
 
 void MMMEngine::Transform::SetWorldPosition(const Vector3& pos)

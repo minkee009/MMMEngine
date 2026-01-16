@@ -8,5 +8,6 @@ namespace MMMEngine
 	{
 	public:
 		void Serialize(const Scene& scene, std::wstring path);
+		void Deserialize(Scene& scene, const SnapShot& snapShot);
 	};
 }

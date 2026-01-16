@@ -36,6 +36,8 @@ RTTR_REGISTRATION
 			[](SceneRef scene, const std::string& name) {
 				return Object::NewObject<GameObject>(scene, name);
 			});
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<GameObject>>();
 }
 
 void MMMEngine::GameObject::RegisterComponent(const ObjPtr<Component>& comp)

@@ -16,7 +16,7 @@ namespace MMMEngine
         RTTR_REGISTRATION_FRIEND
 
 		friend class ObjectManager;
-        friend class ObjectSerializer;
+        friend class SceneSerializer;
 
         template<typename T>
         friend struct rttr::wrapper_mapper;

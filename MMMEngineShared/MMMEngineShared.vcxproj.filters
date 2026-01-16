@@ -163,6 +163,9 @@
     <Filter Include="소스 파일\Core\Scene API">
       <UniqueIdentifier>{46632266-5bac-4656-8d00-478461ab2139}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Utility\RTTRRegistry">
+      <UniqueIdentifier>{72b6886a-0c46-4ae0-8d62-ce00537cd485}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rttr\access_levels.h">
@@ -874,6 +877,12 @@
     </ClCompile>
     <ClCompile Include="SceneSerializer.cpp">
       <Filter>소스 파일\Core\Scene API</Filter>
+    </ClCompile>
+    <ClCompile Include="MUID.cpp">
+      <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="rttr_simplemath_registry.cpp">
+      <Filter>소스 파일\Utility\RTTRRegistry</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
