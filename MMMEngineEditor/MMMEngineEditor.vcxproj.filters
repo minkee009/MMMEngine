@@ -90,9 +90,6 @@
     <ClInclude Include="HierarchyWindow.h">
       <Filter>헤더 파일\EditorWindow</Filter>
     </ClInclude>
-    <ClInclude Include="ProjectSelectDialog.h">
-      <Filter>헤더 파일\Project</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -127,9 +124,6 @@
     </ClCompile>
     <ClCompile Include="HierarchyWindow.cpp">
       <Filter>소스 파일\EditorWIndow</Filter>
-    </ClCompile>
-    <ClCompile Include="ProjectSelectDialog.cpp">
-      <Filter>소스 파일\Project</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
