@@ -374,7 +374,8 @@ void MMMEngine::Transform::SetParent(ObjPtr<Transform> parent, bool worldPositio
 
 	MarkDirty();
 	onMatrixUpdate.Invoke(this);  
-	GetGameObject()->UpdateActiveInHierarchy(); // 부모가 바뀌었으므로 Hierarchy 활성화 상태 업데이트
+	if(GetGameObject().IsValid())
+		GetGameObject()->UpdateActiveInHierarchy(); // 부모가 바뀌었으므로 Hierarchy 활성화 상태 업데이트
 }
 
 MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::Find(const std::string& path)

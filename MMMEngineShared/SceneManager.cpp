@@ -5,16 +5,22 @@
 #include "json/json.hpp"
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 
 DEFINE_SINGLETON(MMMEngine::SceneManager)
 
 void MMMEngine::SceneManager::LoadScenes(std::wstring rootPath)
 {
+
 	//rootPath에서 bin을 읽어서 m_sceneNameToID; // <Name , ID>를 초기화
 	auto sceneListPath = rootPath + L"/sceneList.bin";
 	std::ifstream file(sceneListPath, std::ios::binary);
 	if (!file.is_open())
+	{
+		std::wcerr << L"[SceneManager] Failed to open: " << sceneListPath << L"\n";
+		std::wcerr << L"[SceneManager] CWD: " << std::filesystem::current_path().wstring() << L"\n";
 		return;
+	}
 	std::vector<uint8_t> buffer((std::istreambuf_iterator<char>(file)),
 		std::istreambuf_iterator<char>());
 	file.close();
@@ -68,6 +74,9 @@ void MMMEngine::SceneManager::LoadScenes(std::wstring rootPath)
 void MMMEngine::SceneManager::CreateEmptyScene()
 {
 	m_scenes.push_back(std::make_unique<Scene>());
+	m_scenes.back()->SetName("EmptyScene");
+	SnapShot snapShot = SceneSerializer::Get().SerializeToMemory(*m_scenes.back());
+	m_scenes.back()->SetSnapShot(std::move(snapShot));
 	m_currentSceneID = 0;
 }
 
@@ -138,13 +147,12 @@ void MMMEngine::SceneManager::StartUp(std::wstring rootPath, bool allowEmptyScen
 	// 고정된 경로로 json 바이너리를 읽고 씬파일경로를 불러와 ID맵을 초기화하고 초기씬을 생성함
 	LoadScenes(rootPath);
 
-	if (allowEmptyScene)
+	if (m_scenes.empty())
 	{
-		CreateEmptyScene();
-	}
-	else if(m_scenes.empty())
-	{
-		assert(false && "씬리스트가 비어있습니다!, 초기씬 로드에 실패했습니다!");
+		if(!allowEmptyScene)
+			assert(false && "씬리스트가 비어있습니다!, 초기씬 로드에 실패했습니다!");
+		else
+			CreateEmptyScene();
 	}
 
 	m_nextSceneID = 0;
@@ -169,8 +177,7 @@ bool MMMEngine::SceneManager::CheckSceneIsChanged()
 		m_currentSceneID = m_nextSceneID;
 		m_nextSceneID = static_cast<size_t>(-1);
 
-		// todo : SceneSerializer 호출
-		//m_currentSceneID->Initialize();
+		m_scenes[m_currentSceneID]->Initialize();
 		return true;
 	}
 

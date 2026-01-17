@@ -1,8 +1,12 @@
+#define NOMINMAX
 #include "ImGuiEditorContext.h"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
+
+#include "SceneManager.h"
+#include "SceneSerializer.h"
 
 #include "HierarchyWindow.h"
 
@@ -225,6 +229,12 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         if (ImGui::BeginMenu(u8"파일"))
         {
             if (ImGui::MenuItem(u8"끝내기")) p_open = false;
+            if (ImGui::MenuItem(u8"씬 저장"))
+            {
+                auto sceneRef = SceneManager::Get().GetCurrentScene();
+                SceneSerializer::Get().ExtractScenes({ SceneManager::Get().GetSceneRaw(sceneRef) },L"Assets/Scenes");
+                p_open = false;
+            }
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();

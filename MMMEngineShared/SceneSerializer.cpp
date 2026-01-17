@@ -393,12 +393,14 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
     {
         std::string goName = goJson["Name"].get<std::string>();
         std::string goMUID = goJson["MUID"].get<std::string>();
-        std::string goLayer = goJson["Layer"].get<std::string>();
+        uint32_t goLayer = goJson["Layer"].get<uint32_t>();
         std::string goTag = goJson["Tag"].get<std::string>();
 
         ObjPtr<GameObject> go = scene.CreateGameObject(goName);
         scene.RegisterGameObject(go);
         go->SetName(goName);
+        go->SetLayer(goLayer);
+        go->SetTag(goTag);
 
         if (auto parsedGo = Utility::MUID::Parse(goMUID); parsedGo.has_value())
             go->SetMUID(parsedGo.value());
@@ -476,34 +478,79 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
     g_objectTable.clear();
 }
 
-void MMMEngine::SceneSerializer::ExtractScenes(std::vector<Scene*> scenes, std::wstring rootPath)
+SnapShot MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene)
 {
+    json snapshot;
+
+    auto sceneMUID = scene.GetMUID().IsEmpty() ? Utility::MUID::NewMUID() : scene.GetMUID();
+
+    snapshot["MUID"] = sceneMUID.ToString();
+    snapshot["Name"] = scene.GetName();
+    //Utility::StringHelper::WStringToString(Utility::StringHelper::ExtractFileName(path));
+
+    json goArray = json::array();
+
+    for (auto& goPtr : scene.m_gameObjects)
+    {
+        if (!goPtr.IsValid())
+            continue;
+
+        json goJson;
+        goJson["Name"] = goPtr->GetName();
+        goJson["MUID"] = goPtr->GetMUID().ToString();
+        goJson["Layer"] = goPtr->GetLayer();
+        goJson["Tag"] = goPtr->GetTag();
+
+        json compArray = json::array();
+        for (auto& comp : goPtr->GetAllComponents()) // 컴포넌트 리스트 가정
+        {
+            compArray.push_back(SerializeComponent(comp));
+        }
+        goJson["Components"] = compArray;
+
+        goArray.push_back(goJson);
+    }
+
+    snapshot["GameObjects"] = goArray;
+    return snapshot;
+}
+
+void MMMEngine::SceneSerializer::ExtractScenes(const std::vector<Scene*>& scenes,
+    const std::wstring& rootPath)
+{
+    namespace fs = std::filesystem;
+
     nlohmann::json sceneListJson = nlohmann::json::array();
 
-    // for문 순회하면서 { idx, filepath(name + .scene) }를 기록
+    fs::path root(rootPath);
+
     for (size_t i = 0; i < scenes.size(); ++i)
     {
-        auto& scene = scenes[i];
-        auto sceneFilePath = scene->GetName() + ".scene";
+        Scene* scene = scenes[i];
+        if (!scene) continue;
+
+        // "custom1.scene"
+        const std::string sceneFileName = scene->GetName() + ".scene";
 
         nlohmann::json sceneEntry;
         sceneEntry["index"] = i;
-        sceneEntry["filepath"] = sceneFilePath;
-
+        sceneEntry["filepath"] = sceneFileName; // 리스트에는 상대경로(파일명)만 저장
         sceneListJson.push_back(sceneEntry);
 
-        // TODO: rootpath에 .scene파일 직렬화
-        Serialize(*scene, rootPath + Utility::StringHelper::StringToWString(sceneFilePath));
+        // rootpath/custom1.scene
+        fs::path sceneFullPath = root / fs::path(sceneFileName);
+
+        Serialize(*scene, sceneFullPath.wstring());
     }
 
-    // sceneList.json 파일로 저장
-    std::wstring sceneListPath = rootPath + L"/sceneList.bin";
-    std::ofstream outFile(sceneListPath, std::ios::binary);
-    if (outFile.is_open())
+    // rootpath/list.bin (원하는 이름으로)
+    fs::path listFullPath = root / L"sceneList.bin";
+
+    std::ofstream outFile(listFullPath, std::ios::binary);
+    if (outFile)
     {
         std::vector<uint8_t> msgpack = nlohmann::json::to_msgpack(sceneListJson);
-        outFile.write(reinterpret_cast<const char*>(msgpack.data()), msgpack.size());
-        outFile.close();
+        outFile.write(reinterpret_cast<const char*>(msgpack.data()),
+            static_cast<std::streamsize>(msgpack.size()));
     }
 }
-

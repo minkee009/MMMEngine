@@ -27,7 +27,7 @@ void Initialize()
 
 	InputManager::Get().StartUp(hwnd);
 	TimeManager::Get().StartUp();
-	SceneManager::Get().StartUp(L"Assets/Scene", true);
+	SceneManager::Get().StartUp(L"Assets/Scenes", true);
 	app->OnWindowSizeChanged.AddListener<InputManager, &InputManager::HandleWindowResize>(&InputManager::Get());
 
 	ObjectManager::Get().StartUp();
@@ -89,6 +89,7 @@ void Update()
 void Release()
 {
 	GlobalRegistry::g_pApp = nullptr;
+	ImGuiEditorContext::Get().Uninitialize();
 	RenderManager::Get().ShutDown();
 	TimeManager::Get().ShutDown();
 	InputManager::Get().ShutDown();
