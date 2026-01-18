@@ -9,8 +9,10 @@
 #include "SceneSerializer.h"
 
 #include "EditorRegistry.h"
+#include "StringHelper.h"
 
 using namespace MMMEngine::EditorRegistry;
+using namespace MMMEngine::Utility;
 
 #include "SceneListWindow.h"
 #include "HierarchyWindow.h"
@@ -250,7 +252,8 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
             if (ImGui::MenuItem(u8"¾À ÀúÀå"))
             {
                 auto sceneRef = SceneManager::Get().GetCurrentScene();
-                SceneSerializer::Get().ExtractScenes({ SceneManager::Get().GetSceneRaw(sceneRef) },L"Assets/Scenes");
+                auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
+                SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" + StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
                 p_open = false;
             }
 

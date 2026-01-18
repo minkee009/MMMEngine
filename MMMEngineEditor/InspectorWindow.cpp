@@ -94,7 +94,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
 	ImGui::Begin(u8"인스펙터", &g_editor_window_inspector);
 
     // 1. 선택된 게임 오브젝트가 있는지 확인
-    if (g_selectedGameObject != nullptr)
+    if (g_selectedGameObject.IsValid())
     {
         // 2. 오브젝트 이름 출력 및 활성화 상태 체크박스
         char buf[256];

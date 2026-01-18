@@ -4,6 +4,9 @@
 #include "SceneManager.h"
 #include "SceneSerializer.h"
 #include <algorithm>
+#include <windows.h>
+#include <commdlg.h>
+#include <filesystem>
 using namespace MMMEngine::EditorRegistry;
 using namespace MMMEngine;
 using namespace MMMEngine::Utility;
@@ -24,7 +27,7 @@ static bool g_showCreateDialog = false;
 static bool g_showEmptyWarningDialog = false;
 static bool g_showDuplicateNameDialog = false;
 static char g_duplicateNameMsg[256] = "";
-
+static bool g_showLoadDuplicateDialog = false; // 불러오기 중복 경고
 
 static bool IsSceneNameDuplicate(const char* name)
 {
@@ -36,6 +39,93 @@ static bool IsSceneNameDuplicate(const char* name)
             return true;
     }
     return false;
+}
+
+// 파일 경로에서 확장자를 제외한 파일 이름만 추출
+static std::string ExtractSceneNameFromPath(const std::string& filepath)
+{
+    std::filesystem::path p(filepath);
+    return p.stem().string(); // 확장자를 제외한 파일명
+}
+
+static std::string GetExecutablePath()
+{
+    char buffer[MAX_PATH];
+    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    std::filesystem::path exePath(buffer);
+    return exePath.parent_path().string();
+}
+
+// Windows 파일 열기 다이얼로그
+static std::string OpenFileDialog()
+{
+    OPENFILENAMEA ofn;
+    char szFile[260] = { 0 };
+
+    // 실행 경로 + SceneListPath 결합
+    std::string execPath = GetExecutablePath();
+    std::string scenePath = StringHelper::WStringToString(SceneManager::Get().GetSceneListPath());
+    std::filesystem::path initialDir = std::filesystem::path(execPath) / scenePath;
+
+    // 디렉토리가 존재하는지 확인
+    std::string initialDirStr;
+    if (std::filesystem::exists(initialDir))
+    {
+        initialDirStr = initialDir.string();
+    }
+    else
+    {
+        initialDirStr = execPath; // 씬 경로가 없으면 실행 경로만 사용
+    }
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = initialDirStr.c_str();
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (GetOpenFileNameA(&ofn) == TRUE)
+    {
+        return std::string(ofn.lpstrFile);
+    }
+
+    return ""; // 취소된 경우
+}
+
+void ShowLoadDuplicateDialog()
+{
+    if (g_showLoadDuplicateDialog)
+    {
+        ImGui::OpenPopup(u8"경고##warning_scenelist_load");
+
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+        if (ImGui::BeginPopupModal(u8"경고##warning_scenelist_load", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text(u8"불러온 씬의 이름이 이미 존재합니다.");
+            ImGui::Text(u8"다른 씬 파일을 선택해주세요.");
+            if (g_duplicateNameMsg[0] != '\0')
+                ImGui::Text("%s", g_duplicateNameMsg);
+            ImGui::Separator();
+
+            auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x, 0 };
+            if (ImGui::Button(u8"확인", hbuttonsize))
+            {
+                g_showLoadDuplicateDialog = false;
+                memset(g_duplicateNameMsg, 0, sizeof(g_duplicateNameMsg));
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
 }
 
 void ShowDuplicateNameDialog()
@@ -68,6 +158,7 @@ void ShowDuplicateNameDialog()
         }
     }
 }
+
 void ShowEmptyWarningDialog()
 {
     if (g_showEmptyWarningDialog)
@@ -126,11 +217,10 @@ void ShowCreateSceneDialog()
                     // 중복 체크
                     if (IsSceneNameDuplicate(g_newSceneName))
                     {
-                        // **수정: 현재 팝업을 먼저 닫고 경고 팝업을 표시**
                         g_showDuplicateNameDialog = true;
                         snprintf(g_duplicateNameMsg, sizeof(g_duplicateNameMsg), u8"입력한 이름: %s", g_newSceneName);
-                        g_showCreateDialog = false;  // 이 줄 추가
-                        ImGui::CloseCurrentPopup();   // 이 줄 추가
+                        g_showCreateDialog = false;
+                        ImGui::CloseCurrentPopup();
                     }
                     else
                     {
@@ -164,6 +254,7 @@ void ShowCreateSceneDialog()
         }
     }
 }
+
 // 변경사항 적용 함수
 bool ApplySceneListChanges()
 {
@@ -232,6 +323,37 @@ void CheckForChanges()
     }
 
     g_hasChanges = false;
+}
+
+// 씬 파일 불러오기 함수
+void LoadSceneFile()
+{
+    std::string filepath = OpenFileDialog();
+
+    if (filepath.empty())
+    {
+        // 사용자가 취소한 경우
+        return;
+    }
+
+    std::string sceneName = ExtractSceneNameFromPath(filepath);
+
+    // 중복 체크
+    if (IsSceneNameDuplicate(sceneName.c_str()))
+    {
+        g_showLoadDuplicateDialog = true;
+        snprintf(g_duplicateNameMsg, sizeof(g_duplicateNameMsg), u8"중복된 이름: %s", sceneName.c_str());
+        return;
+    }
+
+    // 중복이 없으면 씬 리스트에 추가
+    sceneData newScene;
+    newScene.enable = true;
+    newScene.idx = g_sceneList.empty() ? 0 : g_sceneList.back().idx + 1;
+    newScene.name = sceneName;
+
+    g_sceneList.push_back(newScene);
+    g_hasChanges = true;
 }
 
 void MMMEngine::Editor::SceneListWindow::Render()
@@ -327,7 +449,7 @@ void MMMEngine::Editor::SceneListWindow::Render()
     auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
     if (ImGui::Button(u8"불러오기", hbuttonsize))
     {
-        // 불러오기 기능
+        LoadSceneFile(); // 파일 불러오기 함수 호출
     }
 
     ImGui::SameLine();
@@ -352,7 +474,11 @@ void MMMEngine::Editor::SceneListWindow::Render()
     // 새 씬 생성 다이얼로그 렌더링
     ShowCreateSceneDialog();
 
+    // 중복 이름 경고 다이얼로그 렌더링
     ShowDuplicateNameDialog();
+
+    // 불러오기 중복 경고 다이얼로그 렌더링
+    ShowLoadDuplicateDialog();
 
     // 확인 다이얼로그
     if (g_showConfirmDialog)
