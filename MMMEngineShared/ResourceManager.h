@@ -53,7 +53,7 @@ namespace MMMEngine
 		{
 			static_assert(std::is_base_of_v<Resource, T>, "T는 반드시 Resource를 상속받아야 합니다.");
 
-			ResKey key{ filePath, rttr::type::get<T>().get_name().to_string() };
+			ResKey key{ rttr::type::get<T>().get_name().to_string(), filePath };
 
 			if (auto it = m_cache.find(key); it != m_cache.end())
 				if (auto sp = it->second.lock())

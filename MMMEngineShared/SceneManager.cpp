@@ -9,15 +9,14 @@
 
 DEFINE_SINGLETON(MMMEngine::SceneManager)
 
-void MMMEngine::SceneManager::LoadScenes(std::wstring rootPath)
+void MMMEngine::SceneManager::LoadScenes()
 {
-
 	//rootPath에서 bin을 읽어서 m_sceneNameToID; // <Name , ID>를 초기화
-	auto sceneListPath = rootPath + L"/sceneList.bin";
-	std::ifstream file(sceneListPath, std::ios::binary);
+	auto sceneListfilePath = m_sceneListPath + L"/sceneList.bin";
+	std::ifstream file(sceneListfilePath, std::ios::binary);
 	if (!file.is_open())
 	{
-		std::wcerr << L"[SceneManager] Failed to open: " << sceneListPath << L"\n";
+		std::wcerr << L"[SceneManager] Failed to open: " << sceneListfilePath << L"\n";
 		std::wcerr << L"[SceneManager] CWD: " << std::filesystem::current_path().wstring() << L"\n";
 		return;
 	}
@@ -49,7 +48,7 @@ void MMMEngine::SceneManager::LoadScenes(std::wstring rootPath)
 		m_sceneNameToID[sceneName] = index;
 
 		// Scene 파일 로드
-		auto sceneRootPath = rootPath + L"/" + Utility::StringHelper::StringToWString(filepath);
+		auto sceneRootPath = m_sceneListPath + L"/" + Utility::StringHelper::StringToWString(filepath);
 		std::ifstream sceneFile(sceneRootPath, std::ios::binary);
 		if (!sceneFile.is_open())
 		{
@@ -68,23 +67,37 @@ void MMMEngine::SceneManager::LoadScenes(std::wstring rootPath)
 		// index 위치에 Scene 배치
 		m_scenes[index] = std::make_unique<Scene>();
 		m_scenes[index]->m_snapshot = snapshot;
+		m_scenes[index]->SetName(sceneName);
 	}
 }
 
-void MMMEngine::SceneManager::CreateEmptyScene()
+void MMMEngine::SceneManager::CreateEmptyScene(std::string name)
 {
 	m_scenes.push_back(std::make_unique<Scene>());
-	m_scenes.back()->SetName("EmptyScene");
+	m_scenes.back()->SetName(name);
 	SnapShot snapShot; 
 	SceneSerializer::Get().SerializeToMemory(*m_scenes.back(), snapShot);
 	m_scenes.back()->SetSnapShot(std::move(snapShot));
-	m_currentSceneID = 0;
 }
 
+
+std::vector<MMMEngine::Scene*> MMMEngine::SceneManager::GetAllSceneToRaw()
+{
+	std::vector<Scene*> rawScenes;
+	for (auto& scene : m_scenes)
+		rawScenes.push_back(scene.get());
+
+	return rawScenes;
+}
 
 const MMMEngine::SceneRef MMMEngine::SceneManager::GetCurrentScene() const
 {
 	return { m_currentSceneID , false };
+}
+
+const std::wstring MMMEngine::SceneManager::GetSceneListPath() const
+{
+	return m_sceneListPath;
 }
 
 void MMMEngine::SceneManager::RegisterGameObjectToDDOL(ObjPtr<GameObject> go)
@@ -126,6 +139,92 @@ MMMEngine::SceneRef MMMEngine::SceneManager::GetSceneRef(const Scene* pScene)
 	return SceneRef{ static_cast<size_t>(-1),false };
 }
 
+const std::unordered_map<std::string, size_t>& MMMEngine::SceneManager::GetScenesHash()
+{
+	return m_sceneNameToID;
+}
+
+void MMMEngine::SceneManager::UpdateAndReloadScenes(std::vector<std::string> sceneList)
+{
+	// 현재 씬 배열에 존재하는지 체크, 새로운 것도 체크
+	std::string currentSceneName = m_scenes[m_currentSceneID]->GetName();
+
+	std::unordered_map<std::string, size_t> changedNameToID;
+	std::vector<std::unique_ptr<Scene>> changedScenes;
+	size_t currentIDX = 0;
+	for (const auto& sceneName : sceneList)
+	{
+		changedNameToID[sceneName] = currentIDX++;
+
+		int idx = -1;
+		if (m_sceneNameToID.find(sceneName) != m_sceneNameToID.end())
+		{
+			idx = m_sceneNameToID[sceneName];
+		}
+
+		if (idx != -1)
+		{
+			changedScenes.push_back(std::move(m_scenes[idx]));
+		}
+		else
+		{
+			// 파일 경로 탐색
+			// Scene 파일 로드
+			auto sceneRootPath = m_sceneListPath + L"/" + Utility::StringHelper::StringToWString(sceneName) + L".scene";
+			std::ifstream sceneFile(sceneRootPath, std::ios::binary);
+		
+			if (sceneFile.is_open())
+			{
+				std::vector<uint8_t> sceneBuffer((std::istreambuf_iterator<char>(sceneFile)),
+					std::istreambuf_iterator<char>());
+				nlohmann::json snapshot = nlohmann::json::from_msgpack(sceneBuffer);
+				sceneFile.close();
+				changedScenes.push_back(std::move(std::make_unique<Scene>()));
+				changedScenes.back()->SetSnapShot(std::move(snapshot));
+				changedScenes.back()->SetName(sceneName);
+			}
+			else
+			{
+				// 씬 배열에 빈 씬 추가
+				CreateEmptyScene(sceneName);
+				// 낚아 채기
+				changedScenes.push_back(std::move(m_scenes.back()));
+				m_scenes.pop_back();
+			}
+		}
+	}
+
+	// 해쉬 변경
+	UpdateScenesHash(std::move(changedNameToID));
+	m_scenes = std::move(changedScenes);
+
+	if (!currentSceneName.empty() &&
+		m_sceneNameToID.find(currentSceneName) != m_sceneNameToID.end())
+	{
+		m_currentSceneID = m_sceneNameToID[currentSceneName];
+
+		// GameObject의 Scene 참조 업데이트
+		auto gos = m_scenes[m_currentSceneID]->GetGameObjects();
+		for (auto& go : gos)
+		{
+			if (go.IsValid())
+				go->SetScene({ m_currentSceneID, false });
+		}
+	}
+	else
+	{
+		std::cout << "경고! : 열려있던 씬의 정보가 씬 리스트에서 사라졌습니다. "
+			<< "0번째 씬을 로드합니다." << std::endl;
+		m_currentSceneID = 0;
+		m_nextSceneID = 0;
+	}
+}
+
+void MMMEngine::SceneManager::UpdateScenesHash(std::unordered_map<std::string, size_t>&& nameToID) noexcept
+{
+	m_sceneNameToID = std::move(nameToID);
+}
+
 void MMMEngine::SceneManager::ChangeScene(const std::string& name)
 {
 	auto it = m_sceneNameToID.find(name);
@@ -141,12 +240,13 @@ void MMMEngine::SceneManager::ChangeScene(const size_t& id)
 		m_nextSceneID = id;
 }
 
-void MMMEngine::SceneManager::StartUp(std::wstring rootPath, bool allowEmptyScene)
+void MMMEngine::SceneManager::StartUp(std::wstring sceneListPath, bool allowEmptyScene)
 {
+	m_sceneListPath = sceneListPath;
 	m_dontDestroyOnLoadScene = std::make_unique<Scene>();
 
-	// 고정된 경로로 json 바이너리를 읽고 씬파일경로를 불러와 ID맵을 초기화하고 초기씬을 생성함
-	LoadScenes(rootPath);
+	// 주어진 경로로 씬리스트 바이너리를 읽고 씬파일경로를 불러와 ID맵을 초기화하고 초기씬을 생성함
+	LoadScenes();
 
 	if (m_scenes.empty())
 	{

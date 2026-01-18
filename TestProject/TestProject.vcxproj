@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{42cc6b08-6b44-4080-84f3-354b0da8639e}</ProjectGuid>
-    <RootNamespace>MMMEngineEditor</RootNamespace>
+    <ProjectGuid>{a9e5f733-6b5d-494a-bb8b-106e9c61ba88}</ProjectGuid>
+    <RootNamespace>TestProject</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -70,15 +70,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PublicIncludeDirectories>$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
-    <IntDir>$(Platform)\$(Configuration)\EngineEditor\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PublicIncludeDirectories>$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <IntDir>$(Platform)\$(Configuration)\EngineEditor\</IntDir>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -109,15 +100,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32;_WINDOWS</PreprocessorDefinitions>
-      <ConformanceMode>Default</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)MMMEngineShared\rttr\..;$(SolutionDir)MMMEngineShared\dxtk\Inc;$(SolutionDir)MMMEngineShared\dxtk;$(SolutionDir)MMMEngineShared;$(ProjectDir)imgui-docking\;$(ProjectDir)imgui-docking\backends</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <LanguageStandard_C>Default</LanguageStandard_C>
-      <TreatWChar_tAsBuiltInType />
-      <ForceConformanceInForLoopScope />
-      <RemoveUnreferencedCodeData />
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,9 +115,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32;_WINDOWS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)MMMEngineShared\rttr\..;$(SolutionDir)MMMEngineShared\dxtk\Inc;$(SolutionDir)MMMEngineShared\dxtk;$(SolutionDir)MMMEngineShared;$(ProjectDir)imgui-docking\;$(ProjectDir)imgui-docking\backends</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -140,39 +124,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="EditorRegistry.h" />
-    <ClInclude Include="HierarchyWindow.h" />
-    <ClInclude Include="imgui-docking\backends\imgui_impl_dx11.h" />
-    <ClInclude Include="imgui-docking\backends\imgui_impl_null.h" />
-    <ClInclude Include="imgui-docking\backends\imgui_impl_win32.h" />
-    <ClInclude Include="imgui-docking\imconfig.h" />
-    <ClInclude Include="imgui-docking\imgui.h" />
-    <ClInclude Include="imgui-docking\imgui_internal.h" />
-    <ClInclude Include="imgui-docking\imstb_rectpack.h" />
-    <ClInclude Include="imgui-docking\imstb_textedit.h" />
-    <ClInclude Include="imgui-docking\imstb_truetype.h" />
-    <ClInclude Include="ImGuiEditorContext.h" />
-    <ClInclude Include="InspectorWindow.h" />
-    <ClInclude Include="ProjectManager.h" />
-    <ClInclude Include="Project.h" />
-    <ClInclude Include="SceneListWindow.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="HierarchyWindow.cpp" />
-    <ClCompile Include="imgui-docking\backends\imgui_impl_dx11.cpp" />
-    <ClCompile Include="imgui-docking\backends\imgui_impl_null.cpp" />
-    <ClCompile Include="imgui-docking\backends\imgui_impl_win32.cpp" />
-    <ClCompile Include="imgui-docking\imgui.cpp" />
-    <ClCompile Include="imgui-docking\imgui_demo.cpp" />
-    <ClCompile Include="imgui-docking\imgui_draw.cpp" />
-    <ClCompile Include="imgui-docking\imgui_tables.cpp" />
-    <ClCompile Include="imgui-docking\imgui_widgets.cpp" />
-    <ClCompile Include="ImGuiEditorContext.cpp" />
-    <ClCompile Include="InspectorWindow.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="SceneListWindow.cpp" />
-  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MMMEngineShared\MMMEngineShared.vcxproj">
       <Project>{454319e7-4ace-4099-8e65-570c30e379a3}</Project>

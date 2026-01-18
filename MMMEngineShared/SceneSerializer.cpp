@@ -141,6 +141,7 @@ void MMMEngine::SceneSerializer::Serialize(const Scene& scene, std::wstring path
 		goJson["MUID"] = goPtr->GetMUID().ToString();    
         goJson["Layer"] = goPtr->GetLayer();
         goJson["Tag"] = goPtr->GetTag();
+        goJson["Active"] = goPtr->IsActiveSelf();
 
 		json compArray = json::array();
 		for (auto& comp : goPtr->GetAllComponents()) // 컴포넌트 리스트 가정
@@ -384,7 +385,7 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         scene.SetMUID(parsed.value());
 
     // Scene Name
-    scene.SetName(snapshot["Name"]);
+    scene.SetName(snapshot["Name"].get<std::string>());
 
     const json& gameObjects = snapshot["GameObjects"];
 
@@ -395,12 +396,18 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         std::string goMUID = goJson["MUID"].get<std::string>();
         uint32_t goLayer = goJson["Layer"].get<uint32_t>();
         std::string goTag = goJson["Tag"].get<std::string>();
+        bool active = true;
+        if (goJson.contains("Active"))
+        {
+            active = goJson["Active"].get<bool>();
+        }
 
         ObjPtr<GameObject> go = scene.CreateGameObject(goName);
         scene.RegisterGameObject(go);
         go->SetName(goName);
         go->SetLayer(goLayer);
         go->SetTag(goTag);
+        go->SetActive(active);
 
         if (auto parsedGo = Utility::MUID::Parse(goMUID); parsedGo.has_value())
             go->SetMUID(parsedGo.value());
@@ -498,6 +505,7 @@ void MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene, SnapShot&
         goJson["MUID"] = goPtr->GetMUID().ToString();
         goJson["Layer"] = goPtr->GetLayer();
         goJson["Tag"] = goPtr->GetTag();
+        goJson["Active"] = goPtr->IsActiveSelf();
 
         json compArray = json::array();
         for (auto& comp : goPtr->GetAllComponents()) // 컴포넌트 리스트 가정
@@ -512,6 +520,11 @@ void MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene, SnapShot&
     snapshot["GameObjects"] = goArray;
 }
 
+/// <summary>
+/// 최적화된 단일경로용 바이너리 파일을 만들어줍니다.
+/// </summary>
+/// <param name="scenes"></param>
+/// <param name="rootPath"></param>
 void MMMEngine::SceneSerializer::ExtractScenes(const std::vector<Scene*>& scenes,
     const std::wstring& rootPath)
 {
@@ -540,7 +553,7 @@ void MMMEngine::SceneSerializer::ExtractScenes(const std::vector<Scene*>& scenes
         Serialize(*scene, sceneFullPath.wstring());
     }
 
-    // rootpath/list.bin (원하는 이름으로)
+    // rootpath/sceneList.bin
     fs::path listFullPath = root / L"sceneList.bin";
 
     std::ofstream outFile(listFullPath, std::ios::binary);

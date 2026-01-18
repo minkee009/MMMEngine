@@ -84,8 +84,24 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj, bool allowDrag)
 
 	if (obj->GetTransform()->GetChildCount() == 0) flags |= ImGuiTreeNodeFlags_Leaf;
 	if (g_selectedGameObject == obj) flags |= ImGuiTreeNodeFlags_Selected;
+
+	bool activeSelf = obj->IsActiveInHierarchy();
+
+	if (!activeSelf)
+	{
+		ImVec4 c = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+		c.w *= 0.35f; // 알파만 낮춰서 흐릿하게
+		ImGui::PushStyleColor(ImGuiCol_Text, c);
+	}
+
 	bool open = ImGui::TreeNodeEx(obj->GetName().c_str(), flags);
-	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) g_selectedGameObject = obj;
+
+	if (!activeSelf)
+		ImGui::PopStyleColor();
+
+	// 클릭/선택은 그대로 동작
+	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+		g_selectedGameObject = obj;
 
 	if (allowDrag)
 	{
@@ -117,7 +133,7 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj, bool allowDrag)
 
 void MMMEngine::Editor::HierarchyWindow::Render()
 {
-	if (!g_editor_hierarchy_window)
+	if (!g_editor_window_hierarchy)
 		return;
 
 	ImGuiWindowClass wc;
@@ -135,7 +151,7 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
-	ImGui::Begin(u8"하이어라키", &g_editor_hierarchy_window);
+	ImGui::Begin(u8"하이어라키", &g_editor_window_hierarchy);
 
 	auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
 

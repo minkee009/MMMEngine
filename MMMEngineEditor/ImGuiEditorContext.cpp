@@ -12,6 +12,7 @@
 
 using namespace MMMEngine::EditorRegistry;
 
+#include "SceneListWindow.h"
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
 
@@ -241,18 +242,24 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         if (ImGui::BeginMenu(u8"파일"))
         {
             if (ImGui::MenuItem(u8"끝내기")) p_open = false;
+            if (ImGui::MenuItem(u8"씬 관리"))
+            {
+                g_editor_window_scenelist = true;
+                p_open = false;
+            }
             if (ImGui::MenuItem(u8"씬 저장"))
             {
                 auto sceneRef = SceneManager::Get().GetCurrentScene();
                 SceneSerializer::Get().ExtractScenes({ SceneManager::Get().GetSceneRaw(sceneRef) },L"Assets/Scenes");
                 p_open = false;
             }
+
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu(u8"창"))
         {
-            ImGui::MenuItem(u8"하이어라키", nullptr, &g_editor_hierarchy_window);
-            ImGui::MenuItem(u8"인스펙터", nullptr, &g_editor_inspector_window);
+            ImGui::MenuItem(u8"하이어라키", nullptr, &g_editor_window_hierarchy);
+            ImGui::MenuItem(u8"인스펙터", nullptr, &g_editor_window_inspector);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -268,6 +275,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     style.ScrollbarRounding = 6.0f;
     style.WindowMenuButtonPosition = ImGuiDir_None;
 
+    SceneListWindow::Get().Render();
     HierarchyWindow::Get().Render();
     InspectorWindow::Get().Render();
 }

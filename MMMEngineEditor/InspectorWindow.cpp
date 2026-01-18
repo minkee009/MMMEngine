@@ -77,7 +77,7 @@ void RenderProperties(rttr::instance inst)
 
 void MMMEngine::Editor::InspectorWindow::Render()
 {
-	if (!g_editor_inspector_window)
+	if (!g_editor_window_inspector)
 		return;
 
 	ImGuiWindowClass wc;
@@ -91,7 +91,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
-	ImGui::Begin(u8"인스펙터", &g_editor_inspector_window);
+	ImGui::Begin(u8"인스펙터", &g_editor_window_inspector);
 
     // 1. 선택된 게임 오브젝트가 있는지 확인
     if (g_selectedGameObject != nullptr)
@@ -102,6 +102,14 @@ void MMMEngine::Editor::InspectorWindow::Render()
         if (ImGui::InputText("##ObjName", buf, IM_ARRAYSIZE(buf)))
         {
             g_selectedGameObject->SetName(buf);
+        }
+        ImGui::SameLine();
+
+        bool isActive = g_selectedGameObject->IsActiveSelf();
+
+        if (ImGui::Checkbox(u8"활성화", &isActive))
+        {
+            g_selectedGameObject->SetActive(isActive);
         }
 
         ImGui::Separator();
