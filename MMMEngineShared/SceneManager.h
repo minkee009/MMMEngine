@@ -41,6 +41,7 @@ namespace MMMEngine
 		bool CheckSceneIsChanged();
 
 		std::vector<ObjPtr<GameObject>> GetAllGameObjectInCurrentScene();
+		std::vector<ObjPtr<GameObject>> GetAllGameObjectInDDOL();
 
 		ObjPtr<GameObject> FindWithMUID(const SceneRef& ref, Utility::MUID muid);
 

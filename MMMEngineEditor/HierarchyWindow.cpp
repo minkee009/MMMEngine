@@ -46,7 +46,34 @@ void GiveMuid(std::string type, MUID muid, std::string display)
 	}
 }
 
-void DrawHierarchyMember(ObjPtr<GameObject> obj)
+void DrawDropLine(const char* id, float height = 4.0f)
+{
+	ImVec2 size(ImGui::GetContentRegionAvail().x, height);
+	ImGui::InvisibleButton(id, size);
+
+	if (ImGui::IsItemHovered())
+	{
+		auto* draw = ImGui::GetWindowDrawList();
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
+
+		draw->AddLine(
+			ImVec2(min.x, (min.y + max.y) * 0.5f),
+			ImVec2(max.x, (min.y + max.y) * 0.5f),
+			IM_COL32(80, 160, 255, 255),
+			2.0f
+		);
+	}
+
+	// 여기서 드롭 처리
+	MUID dragged = GetMuid("gameobject_muid");
+	if (dragged.IsValid() && ImGui::IsItemHovered())
+	{
+		g_reparentQueue.push_back({ dragged, std::nullopt /* or target */ });
+	}
+}
+
+void DrawHierarchyMember(ObjPtr<GameObject> obj, bool allowDrag)
 {
 	auto sceneRef = SceneManager::Get().GetCurrentScene();
 
@@ -60,13 +87,17 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj)
 	bool open = ImGui::TreeNodeEx(obj->GetName().c_str(), flags);
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) g_selectedGameObject = obj;
 
-	GiveMuid("gameobject_muid", muid, obj->GetName().c_str());
-
-	MUID dragged_muid = GetMuid("gameobject_muid");
-	if (dragged_muid.IsValid())
+	if (allowDrag)
 	{
-		auto dragged = SceneManager::Get().FindWithMUID(sceneRef, dragged_muid);
-		if (dragged.IsValid()) g_reparentQueue.push_back({ dragged_muid, obj->GetMUID() });
+		GiveMuid("gameobject_muid", muid, obj->GetName().c_str());
+
+		MUID dragged_muid = GetMuid("gameobject_muid");
+		if (dragged_muid.IsValid())
+		{
+			auto dragged = SceneManager::Get().FindWithMUID(sceneRef, dragged_muid);
+			if (dragged.IsValid())
+				g_reparentQueue.push_back({ dragged_muid, obj->GetMUID() });
+		}
 	}
 
 	if (open)
@@ -76,7 +107,7 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj)
 
 		for(size_t i = 0; i < child_size; ++i)
 		{
-			DrawHierarchyMember(pt->GetChild(i)->GetGameObject());
+			DrawHierarchyMember(pt->GetChild(i)->GetGameObject(),allowDrag);
 		}
 		ImGui::TreePop();
 	}
@@ -99,7 +130,7 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 
   	auto sceneRef = SceneManager::Get().GetCurrentScene();
 	auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
-	
+	auto ddolGos = SceneManager::Get().GetAllGameObjectInDDOL();
 
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
@@ -108,7 +139,7 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 
 	auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
 
-	if (ImGui::Button(u8"생성", hbuttonsize)) Object::NewObject<GameObject>();
+	if (ImGui::Button(u8"생성", hbuttonsize)) { Object::NewObject<GameObject>(); }
 	ImGui::SameLine();
 	ImGui::BeginDisabled(g_selectedGameObject == nullptr);
 	if (ImGui::Button(u8"파괴", hbuttonsize)) { Object::Destroy(g_selectedGameObject); g_selectedGameObject = nullptr; }
@@ -116,18 +147,39 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 
 	ImGui::Separator();
 
-	const auto& gameObjects = SceneManager::Get().GetAllGameObjectInCurrentScene();
 
-	for (auto& go : gameObjects)
+	if (ImGui::CollapsingHeader(sceneRaw->GetName().c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		if (go->GetTransform()->GetParent() == nullptr) DrawHierarchyMember(go);
+		const auto& gameObjects = SceneManager::Get().GetAllGameObjectInCurrentScene();
+
+		for (auto& go : gameObjects)
+		{
+			if (go->GetTransform()->GetParent() == nullptr)
+			{
+				DrawHierarchyMember(go,true);
+			}
+		}
+		
+		if(!ddolGos.empty())
+			DrawDropLine("##drop_lastline");
+		else
+		{
+			ImGui::InvisibleButton("##", ImGui::GetContentRegionAvail());
+			MUID muid = GetMuid("gameobject_muid");
+			if (muid.IsValid())
+			{
+				g_reparentQueue.push_back({ muid, std::nullopt }); // root
+			}
+		}
 	}
 
-	ImGui::InvisibleButton("##", ImGui::GetContentRegionAvail());
-	MUID muid = GetMuid("gameobject_muid");
-	if (muid.IsValid())
+
+	if (!ddolGos.empty() && ImGui::CollapsingHeader(u8"Dont Destroy On Load", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		g_reparentQueue.push_back({ muid, std::nullopt }); // root
+		for (auto& go : ddolGos)
+		{
+			if (go->GetTransform()->GetParent() == nullptr) DrawHierarchyMember(go,false);
+		}
 	}
 
 	ImGui::End();

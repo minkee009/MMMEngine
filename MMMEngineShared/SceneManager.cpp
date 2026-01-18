@@ -257,6 +257,11 @@ std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::
 	return m_scenes[m_currentSceneID]->GetGameObjects();
 }
 
+std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::GetAllGameObjectInDDOL()
+{
+	return m_dontDestroyOnLoadScene->GetGameObjects();
+}
+
 std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::FindGameObjectsWithTagFromAllScenes(const std::string& tag)
 {
 	std::vector<ObjPtr<GameObject>> cache;
