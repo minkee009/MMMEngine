@@ -23,6 +23,8 @@ namespace MMMEngine
 	class Transform;
 	class EditorCamera;
 	class Material;
+	class VShader;
+	class PShader;
 	class MMMENGINE_API RenderManager : public Utility::ExportSingleton<RenderManager>
 	{
 		friend class Utility::ExportSingleton<RenderManager>;
@@ -57,6 +59,11 @@ namespace MMMEngine
 
 		// 버퍼 기본색상
 		DirectX::SimpleMath::Vector4 m_ClearColor;
+		
+		// 인풋 레이아웃
+		std::shared_ptr<VShader> m_pDefaultVSShader;
+		std::shared_ptr<PShader> m_pDefaultPSShader;
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout;
 
 		// 카메라 관련
 		ObjPtr<EditorCamera> m_pCamera;
@@ -71,7 +78,10 @@ namespace MMMEngine
 		void InitD3D();
 		void UnInitD3D();
 		void Start();
+
+		void BeginFrame();
 		void Render();
+		void EndFrame();
 
 		const Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_pDevice; }
 	public:

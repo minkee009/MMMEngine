@@ -3,6 +3,9 @@
 #include "Transform.h"
 #include <EditorCamera.h>
 #include <RendererTools.h>
+#include "VShader.h"
+#include "PShader.h"
+#include "ResourceManager.h"
 
 DEFINE_SINGLETON(MMMEngine::RenderManager)
 
@@ -28,15 +31,15 @@ namespace MMMEngine {
         m_rClientWidth = _ClientWidth;
         m_rClientHeight = _ClientHeight;
 
+		// 카메라 생성
+		// WARNING::오브젝트 생성!!
+		// TODO::에디터 구현부로 이 코드 옮기기
+		auto camera = ObjectManager::Get().NewObject<GameObject>("EditorCamera");
+		m_pCamera = camera->AddComponent<EditorCamera>();
+
         // 인스턴스 초기화 뭉탱이
         this->InitD3D();
         this->Start();
-
-        // 카메라 생성
-        // WARNING::오브젝트 생성!!
-        // TODO::에디터 구현부로 이 코드 옮기기
-        auto camera = ObjectManager::Get().NewObject<GameObject>("EditorCamera");
-        m_pCamera = camera->AddComponent<EditorCamera>();
     }
     void RenderManager::InitD3D()
     {
@@ -162,14 +165,21 @@ namespace MMMEngine {
 
         bd.ByteWidth = sizeof(Render_CamBuffer);
         HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pCambuffer.GetAddressOf()));
-    }
 
-	void RenderManager::Render()
-    {
+		// 기본 VSShader 생성 (VS 쉐이더는 매크로 넣지않는 이상 스킨드매쉬 쉐이더가 아님)
+		m_pDefaultVSShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
+		m_pDefaultPSShader = ResourceManager::Get().Load<PShader>(L"Shader/PBR/PS/BRDFShader.hlsl");
+	}
+
+	void RenderManager::BeginFrame()
+	{
 		// Clear
 		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	}
 
+	void RenderManager::Render()
+    {
 		// 캠 버퍼 업데이트
 		auto camTrans = m_pCamera->GetTransform();
 		m_camMat.camPos = (DirectX::SimpleMath::Vector4)camTrans->GetWorldPosition();
@@ -195,8 +205,12 @@ namespace MMMEngine {
 				renderer->Render();
 			}
 		}
+    }
 
+	void RenderManager::EndFrame()
+	{
 		// Present our back buffer to our front buffer
 		m_pSwapChain->Present(0, 0);
-    }
+	}
+
 }

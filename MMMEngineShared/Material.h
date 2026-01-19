@@ -8,32 +8,36 @@
 #include <d3d11_4.h>
 #include "Texture2D.h"
 #include <filesystem>
-#include "Shader.h"
-
+#include "ResourceManager.h"
 
 namespace MMMEngine {
 	using PropertyValue = std::variant<
 		int, float, DirectX::SimpleMath::Vector3, DirectX::SimpleMath::Matrix,
-		std::shared_ptr<MMMEngine::Texture2D>
+		ResPtr<MMMEngine::Texture2D>
 	>;
 
-	class MMMENGINE_API Material
+	class PShader;
+	class VShader;
+	class MMMENGINE_API Material : public Resource
 	{
 	private:
-		std::unordered_map<std::string, PropertyValue> m_properties;
-		std::shared_ptr<Shader> m_pVShader;
-		std::shared_ptr<Shader> m_pPShader;
+		std::unordered_map<std::wstring, PropertyValue> m_properties;
+		ResPtr<VShader> m_pVShader;
+		ResPtr<PShader> m_pPShader;
 
-		void CreateResourceView(std::filesystem::path& _path, ID3D11ShaderResourceView** _out);
+		
 	public:
-		void SetProperty(const std::string& name, const PropertyValue& value);
-		PropertyValue GetProperty(const std::string& name) const;
+		void SetProperty(const std::wstring& name, const PropertyValue& value);
+		PropertyValue GetProperty(const std::wstring& name) const;
 
 		void SetVShader(const std::wstring& _filePath);
 		void SetPShader(const std::wstring& _filePath);
-		std::shared_ptr<Shader> GetShader() const;
-		
-		void LoadTexture(const std::string& _name, const std::wstring& _filePath);
+		ResPtr<VShader> GetVShader() const;
+		ResPtr<PShader> GetPShader() const;
+
+		void LoadTexture(const std::wstring& _name, const std::wstring& _filePath);
+
+		bool LoadFromFilePath(const std::wstring& _filePath) override;
 	};
 }
 

@@ -190,6 +190,12 @@
     <Filter Include="소스 파일\Core\Render API\Resource">
       <UniqueIdentifier>{6b2389a3-5afb-4b2f-ac7d-4b8c86d92fa1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Core\Render API\Renderer">
+      <UniqueIdentifier>{e46f436c-e8ee-434c-b526-196ceb6d57fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Render API\Renderer">
+      <UniqueIdentifier>{284d5cdc-81e6-4563-b6e2-af7346ef182a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rttr\access_levels.h">
@@ -765,11 +771,23 @@
     <ClInclude Include="Material.h">
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
-    <ClInclude Include="Shader.h">
+    <ClInclude Include="VSShader.h">
       <Filter>헤더 파일\Core\Render API\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Texture2D.h">
       <Filter>헤더 파일\Core\Render API\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="SkyboxRenderer.h">
+      <Filter>헤더 파일\Core\Render API\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="PShader.h">
+      <Filter>헤더 파일\Core\Render API\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="resource1.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="PBRRenderer.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -956,6 +974,18 @@
     <ClCompile Include="Texture2D.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
     </ClCompile>
+    <ClCompile Include="SkyboxRenderer.cpp">
+      <Filter>소스 파일\Core\Render API\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="VShader.cpp">
+      <Filter>소스 파일\Core\Render API\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="PShader.cpp">
+      <Filter>소스 파일\Core\Render API\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="PBRRenderer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="rttr\registration">
@@ -973,5 +1003,10 @@
     <None Include="dxtk\Inc\SimpleMath.inl">
       <Filter>DXTK\Inc</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MMMEngineShared.rc">
+      <Filter>리소스 파일</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

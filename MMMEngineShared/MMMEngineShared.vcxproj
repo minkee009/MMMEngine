@@ -200,6 +200,8 @@
     <ClInclude Include="InputKeyCode.h" />
     <ClInclude Include="MMMInput.h" />
     <ClInclude Include="InputManager.h" />
+    <ClInclude Include="PBRRenderer.h" />
+    <ClInclude Include="PShader.h" />
     <ClInclude Include="RendererBase.h" />
     <ClInclude Include="RendererTools.h" />
     <ClInclude Include="RenderManager.h" />
@@ -208,6 +210,7 @@
     <ClInclude Include="MMMTime.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ObjectManager.h" />
+    <ClInclude Include="resource1.h" />
     <ClInclude Include="rttr\access_levels.h" />
     <ClInclude Include="rttr\argument.h" />
     <ClInclude Include="rttr\array_range.h" />
@@ -342,8 +345,9 @@
     <ClInclude Include="SceneSerializer.h" />
     <ClInclude Include="ScriptBehaviour.h" />
     <ClInclude Include="SerializableEvent.h" />
-    <ClInclude Include="Shader.h" />
+    <ClInclude Include="VSShader.h" />
     <ClInclude Include="Singleton.hpp" />
+    <ClInclude Include="SkyboxRenderer.h" />
     <ClInclude Include="StringHelper.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="TimeManager.h" />
@@ -370,6 +374,8 @@
     <ClCompile Include="MUID.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ObjectManager.cpp" />
+    <ClCompile Include="PBRRenderer.cpp" />
+    <ClCompile Include="PShader.cpp" />
     <ClCompile Include="RendererBase.cpp" />
     <ClCompile Include="RendererTools.cpp" />
     <ClCompile Include="RenderManager.cpp" />
@@ -412,6 +418,8 @@
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="SceneSerializer.cpp" />
     <ClCompile Include="ScriptBehaviour.cpp" />
+    <ClCompile Include="VShader.cpp" />
+    <ClCompile Include="SkyboxRenderer.cpp" />
     <ClCompile Include="StringHelper.cpp" />
     <ClCompile Include="Texture2D.cpp" />
     <ClCompile Include="TimeManager.cpp">
@@ -425,6 +433,9 @@
     <None Include="rttr\registration" />
     <None Include="rttr\registration_friend" />
     <None Include="rttr\type" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MMMEngineShared.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
