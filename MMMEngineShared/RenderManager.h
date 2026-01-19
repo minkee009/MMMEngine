@@ -23,8 +23,6 @@ namespace MMMEngine
 	class Transform;
 	class EditorCamera;
 	class Material;
-	class VShader;
-	class PShader;
 	class MMMENGINE_API RenderManager : public Utility::ExportSingleton<RenderManager>
 	{
 		friend class Utility::ExportSingleton<RenderManager>;
@@ -59,11 +57,14 @@ namespace MMMEngine
 
 		// 踰 湲곕낯
 		DirectX::SimpleMath::Vector4 m_ClearColor;
+<<<<<<< HEAD
 		
 		// 명 �댁
 		std::shared_ptr<VShader> m_pDefaultVSShader;
 		std::shared_ptr<PShader> m_pDefaultPSShader;
 		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout;
+=======
+>>>>>>> parent of 417ccbf ([Add] Material Fix, MatSerealizer, ShaderResource)
 
 		// 移대 愿�
 		ObjPtr<EditorCamera> m_pCamera;
@@ -78,10 +79,7 @@ namespace MMMEngine
 		void InitD3D();
 		void UnInitD3D();
 		void Start();
-
-		void BeginFrame();
 		void Render();
-		void EndFrame();
 
 		const Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_pDevice; }
 	public:

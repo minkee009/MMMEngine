@@ -3,9 +3,6 @@
 #include "Transform.h"
 #include <EditorCamera.h>
 #include <RendererTools.h>
-#include "VShader.h"
-#include "PShader.h"
-#include "ResourceManager.h"
 
 DEFINE_SINGLETON(MMMEngine::RenderManager)
 
@@ -31,6 +28,7 @@ namespace MMMEngine {
         m_rClientWidth = _ClientWidth;
         m_rClientHeight = _ClientHeight;
 
+<<<<<<< HEAD
 		// ì¹´ë©”ë¼ ìƒì„±
 		// WARNING::ì˜¤ë¸Œì íŠ¸ ìƒì„±!!
 		// TODO::ì—ë””í„° êµ¬í˜„ë¶€ë¡œ ì´ ì½”ë“œ ì˜®ê¸°ê¸°
@@ -38,8 +36,17 @@ namespace MMMEngine {
 		m_pCamera = camera->AddComponent<EditorCamera>();
 
         // ì¸ìŠ¤í„´ìŠ¤ ì´ˆê¸°í™” ë­‰íƒ±ì´
+=======
+        // ÀÎ½ºÅÏ½º ÃÊ±âÈ­ ¹¶ÅÊÀÌ
+>>>>>>> parent of 417ccbf ([Add] Material Fix, MatSerealizer, ShaderResource)
         this->InitD3D();
         this->Start();
+
+        // Ä«¸Þ¶ó »ý¼º
+        // WARNING::¿ÀºêÁ§Æ® »ý¼º!!
+        // TODO::¿¡µðÅÍ ±¸ÇöºÎ·Î ÀÌ ÄÚµå ¿Å±â±â
+        auto camera = ObjectManager::Get().NewObject<GameObject>("EditorCamera");
+        m_pCamera = camera->AddComponent<EditorCamera>();
     }
     void RenderManager::InitD3D()
     {
@@ -165,6 +172,7 @@ namespace MMMEngine {
 
         bd.ByteWidth = sizeof(Render_CamBuffer);
         HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pCambuffer.GetAddressOf()));
+<<<<<<< HEAD
 
 		// ê¸°ë³¸ VSShader ìƒì„± (VS ì‰ì´ë”ëŠ” ë§¤í¬ë¡œ ë„£ì§€ì•ŠëŠ” ì´ìƒ ìŠ¤í‚¨ë“œë§¤ì‰¬ ì‰ì´ë”ê°€ ì•„ë‹˜)
 		m_pDefaultVSShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
@@ -181,6 +189,17 @@ namespace MMMEngine {
 	void RenderManager::Render()
     {
 		// ìº  ë²„í¼ ì—…ë°ì´íŠ¸
+=======
+    }
+
+	void RenderManager::Render()
+    {
+		// Clear
+		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), m_backColor);
+		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+		// Ä· ¹öÆÛ ¾÷µ¥ÀÌÆ®
+>>>>>>> parent of 417ccbf ([Add] Material Fix, MatSerealizer, ShaderResource)
 		auto camTrans = m_pCamera->GetTransform();
 		m_camMat.camPos = (DirectX::SimpleMath::Vector4)camTrans->GetWorldPosition();
 		m_pCamera->GetViewMatrix(m_camMat.mView);
@@ -205,15 +224,16 @@ namespace MMMEngine {
 				renderer->Render();
 			}
 		}
-    }
 
-	void RenderManager::EndFrame()
-	{
 		// Present our back buffer to our front buffer
 		m_pSwapChain->Present(0, 0);
+<<<<<<< HEAD
 	}
 
 void MMMEngine::RenderManager::EndFrame()
 {
 	m_swapChain->Present(m_syncInterval, 0);
+=======
+    }
+>>>>>>> parent of 417ccbf ([Add] Material Fix, MatSerealizer, ShaderResource)
 }
