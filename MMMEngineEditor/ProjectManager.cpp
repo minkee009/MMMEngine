@@ -201,8 +201,8 @@ namespace MMMEngine
 }
 )";
 
-        fs::path file = scriptsDir / "ExampleBehaviour.cpp";
-        std::ofstream out2(file, std::ios::binary);
+        fs::path file2 = scriptsDir / "ExampleBehaviour.cpp";
+        std::ofstream out2(file2, std::ios::binary);
         if (!out2) return;
 
         // NOTE: ScriptBehaviour.h include는 vcxproj의 AdditionalIncludeDirectories에 의해 해결된다고 가정
@@ -253,13 +253,15 @@ void MMMEngine::ExampleBehaviour::Update()
 
         // fallback
         std::string engineSharedInclude = R"($(ProjectDir)..\..\..\MMMEngineShared)";
-        std::string engineSharedLibDir = R"($(ProjectDir)..\..\..\X64\Debug)";
-        std::string engineSharedLibName = "EngineShared.lib";
+        std::string engineSharedDebugLibDir = R"($(ProjectDir)..\..\..\X64\Debug)";
+        std::string engineSharedReleaseLibDir = R"($(ProjectDir)..\..\..\X64\Release)";
+        std::string engineSharedLibName = "MMMEngineShared.lib";
 
         if (!engineDir.empty())
         {
             engineSharedInclude = engineDir + R"(\MMMEngineShared\)";
-            engineSharedLibDir = engineDir + R"(\X64\Debug)";
+            engineSharedDebugLibDir = engineDir + R"(\X64\Debug)";
+            engineSharedReleaseLibDir = engineDir + R"(\X64\Debug)";
         }
 
         std::ofstream out(vcxprojPath, std::ios::binary);
@@ -337,14 +339,14 @@ void MMMEngine::ExampleBehaviour::Update()
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;USERSCRIPTS_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>false</ConformanceMode>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;MMMENGINE_EXPORTS;RTTR_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>)xml" << engineSharedInclude << R"xml(;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>)xml" << engineSharedLibDir << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>)xml" << engineSharedDebugLibDir << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>)xml" << engineSharedLibName << R"xml(;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -352,17 +354,17 @@ void MMMEngine::ExampleBehaviour::Update()
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>false</ConformanceMode>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;USERSCRIPTS_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;MMMENGINE_EXPORTS;RTTR_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>)xml" << engineSharedInclude << R"xml(;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>)xml" << engineSharedLibDir << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>)xml" << engineSharedReleaseLibDir << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>)xml" << engineSharedLibName << R"xml(;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

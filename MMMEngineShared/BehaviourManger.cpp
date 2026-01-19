@@ -11,12 +11,15 @@ void MMMEngine::BehaviourManager::CheckAndSortBehaviours()
 	}
 }
 
-void MMMEngine::BehaviourManager::StartUp()
+bool MMMEngine::BehaviourManager::StartUp(const std::wstring& userScriptsDLLPath)
 {
+	m_pScriptLoader = std::make_unique<ScriptLoader>();
+	return m_pScriptLoader->LoadScriptDLL(userScriptsDLLPath);
 }
 
 void MMMEngine::BehaviourManager::ShutDown()
 {
+	m_pScriptLoader.release();
 	m_activeBehaviours.clear();
 	m_inactiveBehaviours.clear();
 }
