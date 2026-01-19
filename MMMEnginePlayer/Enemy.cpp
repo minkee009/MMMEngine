@@ -4,7 +4,7 @@
 void MMMEngine::Enemy::Update()
 {
 	auto player = GameObject::Find("player");
-	
+	float dt = Time::GetDeltaTime();
 	if (!playerFind)
 	{
 		float targetX = 0.0f;
@@ -19,7 +19,6 @@ void MMMEngine::Enemy::Update()
 			dx /= dist;
 			dy /= dist;
 
-			float dt = Time::GetDeltaTime();
 			posX += dx * velocity * dt;
 			posY += dy * velocity * dt;
 		}
@@ -35,21 +34,52 @@ void MMMEngine::Enemy::Update()
 		float forwardY = sinf(forwardAngle);
 
 		// Enemy -> Player
-		float dx = playerX - posX;
-		float dy = playerY - posY;
+		float pldx = playerX - posX;
+		float pldy = playerY - posY;
 
-		float dist = sqrtf(dx * dx + dy * dy);
-		if (dist <= 0.0001f)
+		float pldist = sqrtf(pldx * pldx + pldy * pldy);
+		if (pldist <= 0.0001f)
 			return;
 
-		dx /= dist;
-		dy /= dist;
+		pldx /= pldist;
+		pldy /= pldist;
 
-		float dot = forwardX * dx + forwardY * dy;
+		float dot = forwardX * pldx + forwardY * pldy;
 
-		if (dot >= 0.5f || dist<100.0f)
+		if (dot >= 0.5f || pldist < 100.0f)
 		{
 			playerFind = true;
+			attackTimer = 1.0f;
 		}
+	}
+	else
+	{
+		float playerX = player->GetComponent<Player>()->posX;
+		float playerY = player->GetComponent<Player>()->posY;
+
+		float pldx = playerX - posX;
+		float pldy = playerY - posY;
+		float pldist = sqrtf(pldx * pldx + pldy * pldy);
+
+		if (pldist > 5.0f)
+		{
+			pldx /= pldist;
+			pldy /= pldist;
+
+			posX += pldx* velocity* dt;
+			posY += pldy * velocity * dt;
+			attackTimer = 1.0f;
+		}
+		else
+		{
+			attackTimer -= dt;
+			if (attackTimer <= 0.0f)
+			{
+				player->GetComponent<Player>()->Damage(10);
+				attackTimer = 1.0f;
+			}
+		}
+		if (pldist > 100.f)
+			playerFind = false;
 	}
 }

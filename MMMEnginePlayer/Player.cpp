@@ -20,33 +20,4 @@ void MMMEngine::Player::Update()
 	{
 		posY -= velocity * Time::GetDeltaTime();
 	}
-	if (!invincible)
-	{
-		if (normalhit)
-		{
-			HP -= 5;
-			invincible = true;
-			invincibleTimer = 1.5f;
-			normalhit = false;
-		}
-		if (bighit)
-		{
-			HP -= 10;
-			invincible = true;
-			invincibleTimer = 1.5f;
-			bighit = false;
-		}
-	}
-	else
-	{
-		if (invincibleTimer > 0.0f)
-		{
-			invincibleTimer -= Time::GetDeltaTime();
-			if (invincibleTimer <= 0.0f)
-			{
-				invincibleTimer = 0.0f;
-				invincible = false;
-			}
-		}
-	}
 }
