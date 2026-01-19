@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include <iostream>
+#include <filesystem>
 
 #include "GlobalRegistry.h"
 #include "EditorRegistry.h"
@@ -17,7 +18,9 @@
 #include "StringHelper.h"
 #include "ImGuiEditorContext.h"
 #include "BuildManager.h"
+#include "DLLHotLoadHelper.h"
 
+namespace fs = std::filesystem;
 using namespace MMMEngine;
 using namespace MMMEngine::Utility;
 using namespace MMMEngine::Editor;
@@ -141,6 +144,9 @@ void Release()
 	SceneManager::Get().ShutDown();
 	ObjectManager::Get().ShutDown();
 	BehaviourManager::Get().ShutDown();
+
+	fs::path cwd = fs::current_path();
+	DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
 }
 
 int main()
