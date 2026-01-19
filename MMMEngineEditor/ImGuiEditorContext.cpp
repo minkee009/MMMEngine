@@ -19,6 +19,9 @@ using namespace MMMEngine::Utility;
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
 
+#include "ProjectManager.h"
+#include "BuildManager.h"
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void MMMEngine::Editor::ImGuiEditorContext::UpdateInfiniteDrag()
@@ -268,6 +271,16 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
             ImGui::MenuItem(u8"¿ŒΩ∫∆Â≈Õ", nullptr, &g_editor_window_inspector);
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu(u8"∫ÙµÂ"))
+        {
+            if(ImGui::MenuItem(u8"Ω∫≈©∏≥∆Æ ∫ÙµÂ"))
+            {
+                BuildManager::Get().BuildUserScripts(ProjectManager::Get().GetActiveProject().rootPath);
+            }
+            ImGui::MenuItem(u8"«¡∑Œ¡ß∆Æ ∫ÙµÂ");
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMenuBar();
     }
 

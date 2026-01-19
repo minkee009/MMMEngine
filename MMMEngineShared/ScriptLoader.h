@@ -11,5 +11,6 @@ namespace MMMEngine
 		std::unique_ptr<rttr::library> m_pLoadedModule;
 	public:
 		bool LoadScriptDLL(const std::wstring& dllPath);
+		~ScriptLoader();
 	};
 }

@@ -6,6 +6,7 @@
 
 #include "ExportSingleton.hpp"
 #include "Behaviour.h"
+#include "ScriptLoader.h"
 
 namespace MMMEngine
 {
@@ -18,6 +19,7 @@ namespace MMMEngine
 		std::vector<ObjPtr<Behaviour>> m_activeBehaviours; // 활성화된 Behaviour를 저장하는 벡터
 		std::vector<ObjPtr<Behaviour>> m_inactiveBehaviours; // 비활성화된 Behaviour를 저장하는 벡터
 		std::unordered_set<ObjPtr<Behaviour>> m_firstCallBehaviours;
+		std::unique_ptr<ScriptLoader> m_pScriptLoader;
 
 		// Behaviour를 등록하는 함수
 		void RegisterBehaviour(ObjPtr<Behaviour> behaviour);
@@ -61,7 +63,7 @@ namespace MMMEngine
 		}
 
 		void CheckAndSortBehaviours();
-		void StartUp();
+		bool StartUp(const std::wstring& userScriptsDLLPath);
 		void ShutDown();
 	};
 }

@@ -52,6 +52,12 @@
     <Filter Include="소스 파일\Build">
       <UniqueIdentifier>{fad277f4-86f5-4186-b6b1-24ebde931458}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Helper">
+      <UniqueIdentifier>{dfe2ffe3-5f69-486c-8a5a-3dfa4bee71c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Helper">
+      <UniqueIdentifier>{afce7a11-b75e-4d5a-98cc-d4b4f13a637d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EditorRegistry.h">
@@ -111,6 +117,9 @@
     <ClInclude Include="BuildManager.h">
       <Filter>헤더 파일\Build</Filter>
     </ClInclude>
+    <ClInclude Include="DLLHotLoadHelper.h">
+      <Filter>헤더 파일\Helper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -158,8 +167,11 @@
     <ClCompile Include="StartUpProjectWindow.cpp">
       <Filter>소스 파일\EditorWIndow</Filter>
     </ClCompile>
+    <ClCompile Include="DLLHotLoadHelper.cpp">
+      <Filter>소스 파일\Helper</Filter>
+    </ClCompile>
     <ClCompile Include="BuildManager.cpp">
-      <Filter>소스 파일\Project</Filter>
+      <Filter>소스 파일\Build</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
