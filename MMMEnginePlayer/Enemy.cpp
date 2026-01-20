@@ -1,10 +1,15 @@
 #include "Enemy.h"
+#include "Player.h"
 #include "MMMTime.h"
+
+void MMMEngine::Enemy::Initialize()
+{
+	player = GameObject::Find("Player");
+}
 
 void MMMEngine::Enemy::Update()
 {
-	auto player = GameObject::Find("player");
-	float dt = Time::GetDeltaTime();
+	auto pc = player->GetComponent<Player>();
 	if (!playerFind)
 	{
 		float targetX = 0.0f;
@@ -19,8 +24,8 @@ void MMMEngine::Enemy::Update()
 			dx /= dist;
 			dy /= dist;
 
-			posX += dx * velocity * dt;
-			posY += dy * velocity * dt;
+			posX += dx * velocity * Time::GetDeltaTime();
+			posY += dy * velocity * Time::GetDeltaTime();
 		}
 		else
 		{
@@ -28,8 +33,8 @@ void MMMEngine::Enemy::Update()
 			posY = targetY;
 		}
 
-		float playerX = player->GetComponent<Player>()->posX;
-		float playerY = player->GetComponent<Player>()->posY;
+		float playerX = pc->posX;
+		float playerY = pc->posY;
 		float forwardX = cosf(forwardAngle);
 		float forwardY = sinf(forwardAngle);
 
@@ -54,8 +59,8 @@ void MMMEngine::Enemy::Update()
 	}
 	else
 	{
-		float playerX = player->GetComponent<Player>()->posX;
-		float playerY = player->GetComponent<Player>()->posY;
+		float playerX = pc->posX;
+		float playerY = pc->posY;
 
 		float pldx = playerX - posX;
 		float pldy = playerY - posY;
@@ -66,20 +71,22 @@ void MMMEngine::Enemy::Update()
 			pldx /= pldist;
 			pldy /= pldist;
 
-			posX += pldx* velocity* dt;
-			posY += pldy * velocity * dt;
+			posX += pldx * velocity * Time::GetDeltaTime();
+			posY += pldy * velocity * Time::GetDeltaTime();
 			attackTimer = 1.0f;
 		}
 		else
 		{
-			attackTimer -= dt;
+			attackTimer -= Time::GetDeltaTime();
 			if (attackTimer <= 0.0f)
 			{
-				player->GetComponent<Player>()->Damage(10);
+				pc->GetDamage(10);
 				attackTimer = 1.0f;
 			}
 		}
 		if (pldist > 100.f)
 			playerFind = false;
 	}
+	if(HP<=0)
+		Destroy(GetGameObject());
 }
