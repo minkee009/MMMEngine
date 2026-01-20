@@ -7,9 +7,14 @@ namespace fs = std::filesystem;
 
 namespace MMMEngine::Editor
 {
-    void BuildManager::SetProgressCallback(ProgressCallback callback)
+    void BuildManager::SetProgressCallbackString(ProgressCallbackString callback)
     {
-        m_progressCallback = callback;
+        m_progressCallbackString = callback;
+    }
+
+    void BuildManager::SetProgressCallbackPercent(ProgressCallbackPercent callback)
+    {
+        m_progressCallbackPercent = callback;
     }
 
     fs::path BuildManager::FindMSBuild() const
@@ -83,8 +88,8 @@ namespace MMMEngine::Editor
 
         std::string cmd = cmdStream.str();
 
-        if (m_progressCallback)
-            m_progressCallback("빌드 시작: " + std::string(configStr));
+        if (m_progressCallbackString)
+            m_progressCallbackString(u8"빌드 시작: " + std::string(configStr));
 
         // CreateProcess로 실행하고 출력 캡처
         SECURITY_ATTRIBUTES sa;
@@ -135,13 +140,47 @@ namespace MMMEngine::Editor
         char buffer[4096];
         DWORD bytesRead;
 
+        fs::path projectDir = vcxprojPath.parent_path();
+        fs::path scriptsPath = projectDir / "Scripts";
+
+        int totalFiles = 0;
+        int currentFileCount = 0;
+
+        if (fs::exists(scriptsPath) && fs::is_directory(scriptsPath))
+        {
+            for (const auto& entry : fs::recursive_directory_iterator(scriptsPath))
+            {
+                // 디렉토리가 아닌 실제 파일이며, 확장자가 .cpp인 것만 카운트
+                if (fs::is_regular_file(entry) && entry.path().extension() == ".cpp")
+                {
+                    totalFiles++;
+                }
+            }
+        }
+
+        if (totalFiles == 0) totalFiles = 1;
+
         while (ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
         {
+            currentFileCount++;
+            float percent = (static_cast<float>(currentFileCount) / totalFiles) * 100.0f;
+
             buffer[bytesRead] = '\0';
+            std::string chunk(buffer);
             outputStream << buffer;
 
-            if (m_progressCallback)
-                m_progressCallback(std::string(buffer, bytesRead));
+            if (chunk.find(".cpp") != std::string::npos)
+            {
+                currentFileCount++;
+                float percent = (static_cast<float>(currentFileCount) / totalFiles) * 100.0f;
+                if (percent > 100.0f) percent = 100.0f; // 100% 캡핑
+
+                if (m_progressCallbackPercent)
+                    m_progressCallbackPercent(percent);
+            }
+
+            if (m_progressCallbackString)
+                m_progressCallbackString(std::string(buffer, bytesRead));
         }
 
         WaitForSingleObject(pi.hProcess, INFINITE);
@@ -160,12 +199,12 @@ namespace MMMEngine::Editor
         if (output.result == BuildResult::Failed)
             output.errorLog = output.output;
 
-        if (m_progressCallback)
+        if (m_progressCallbackString)
         {
             if (output.result == BuildResult::Success)
-                m_progressCallback("빌드 성공!");
+                m_progressCallbackString(u8"빌드 성공!");
             else
-                m_progressCallback("빌드 실패 (Exit Code: " + std::to_string(exitCode) + ")");
+                m_progressCallbackString(u8"빌드 실패 (Exit Code: " + std::to_string(exitCode) + ")");
         }
 
         return output;
@@ -196,8 +235,8 @@ namespace MMMEngine::Editor
             return output;
         }
 
-        if (m_progressCallback)
-            m_progressCallback("MSBuild 경로: " + msbuildPath.string());
+        if (m_progressCallbackString)
+            m_progressCallbackString(u8"MSBuild 경로: " + msbuildPath.string());
 
         // 3. 빌드 실행
         return ExecuteBuild(msbuildPath, vcxprojPath, config);

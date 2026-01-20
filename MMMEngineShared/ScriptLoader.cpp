@@ -5,7 +5,7 @@
 using namespace rttr;
 using namespace MMMEngine::Utility;
 
-bool MMMEngine::ScriptLoader::LoadScriptDLL(const std::wstring& dllName)
+bool MMMEngine::ScriptLoader::LoadScriptDLL(const std::string& dllName)
 {
     if (m_pLoadedModule)
     {
@@ -13,7 +13,7 @@ bool MMMEngine::ScriptLoader::LoadScriptDLL(const std::wstring& dllName)
         m_pLoadedModule.reset();
     }
 
-    m_pLoadedModule = std::make_unique<rttr::library>(StringHelper::WStringToString(dllName).c_str());
+    m_pLoadedModule = std::make_unique<rttr::library>(dllName.c_str());
 
     if (!m_pLoadedModule->is_loaded() || !m_pLoadedModule->load())
     {

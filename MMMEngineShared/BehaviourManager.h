@@ -49,6 +49,8 @@ namespace MMMEngine
 			}
 		}
 
+		void ReloadUserScripts(const std::string& name);
+
 		template<typename... Args>
 		void AllBroadCastBehaviourMessage(const std::string& messageName, Args&&... args)
 		{
@@ -63,7 +65,7 @@ namespace MMMEngine
 		}
 
 		void CheckAndSortBehaviours();
-		bool StartUp(const std::wstring& userScriptsDLLPath);
+		bool StartUp(const std::string& userScriptsDLLPath);
 		void ShutDown();
 	};
 }

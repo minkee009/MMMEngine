@@ -49,8 +49,10 @@ namespace MMMEngine::Editor
         //);
 
         // 빌드 진행 콜백 설정 (UI 업데이트용)
-        using ProgressCallback = std::function<void(const std::string& message)>;
-        void SetProgressCallback(ProgressCallback callback);
+        using ProgressCallbackString = std::function<void(const std::string& message)>;
+        using ProgressCallbackPercent = std::function<void(const float& message)>;
+        void SetProgressCallbackString(ProgressCallbackString callback);
+        void SetProgressCallbackPercent(ProgressCallbackPercent callback);
 
     private:
         // MSBuild.exe 경로 찾기
@@ -63,6 +65,7 @@ namespace MMMEngine::Editor
             BuildConfiguration config
         ) const;
 
-        ProgressCallback m_progressCallback;
+        ProgressCallbackString m_progressCallbackString;
+        ProgressCallbackPercent m_progressCallbackPercent;
     };
 }

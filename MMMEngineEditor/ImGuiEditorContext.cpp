@@ -18,9 +18,7 @@ using namespace MMMEngine::Utility;
 #include "SceneListWindow.h"
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
-
-#include "ProjectManager.h"
-#include "BuildManager.h"
+#include "ScriptBuildWindow.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -275,7 +273,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         {
             if(ImGui::MenuItem(u8"스크립트 빌드"))
             {
-                BuildManager::Get().BuildUserScripts(ProjectManager::Get().GetActiveProject().rootPath);
+                ScriptBuildWindow::Get().StartBuild();
             }
             ImGui::MenuItem(u8"프로젝트 빌드");
             ImGui::EndMenu();
@@ -299,10 +297,8 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     style.GrabRounding = 6.0f;
     style.ScrollbarRounding = 6.0f;
     style.WindowMenuButtonPosition = ImGuiDir_None;
-
-
        
-
+    ScriptBuildWindow::Get().Render();
     SceneListWindow::Get().Render();
     HierarchyWindow::Get().Render();
     InspectorWindow::Get().Render();
