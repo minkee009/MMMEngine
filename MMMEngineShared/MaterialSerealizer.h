@@ -14,7 +14,7 @@ namespace MMMEngine {
 		PropertyValue property_from_json(const nlohmann::json& j);
 		void to_json(nlohmann::json& j, const MMMEngine::PropertyValue& value);
 	public:
-		void Serealize(ResPtr<Material> _material, std::wstring _path);		// _path는 출력path
+		void Serealize(Material* _material, std::wstring _path);		// _path는 출력path
 		void UnSerealize(Material* _material, std::wstring _path);	// _path는 입력path
 	};
 }

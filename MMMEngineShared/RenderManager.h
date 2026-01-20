@@ -34,12 +34,12 @@ namespace MMMEngine
 		RenderManager() = default;
 		std::map<int, std::vector<std::shared_ptr<RendererBase>>> m_Passes;
 
-    protected:
-        HWND* m_pHwnd = nullptr;	// HWND 포인터
-        UINT m_rClientWidth = 0;
-        UINT m_rClientHeight = 0;
-        float m_backColor[4] = { 0.0f, 0.5f, 0.5f, 1.0f };	// 백그라운드 컬러
-		
+	protected:
+		HWND* m_pHwnd = nullptr;	// HWND 포인터
+		UINT m_rClientWidth = 0;
+		UINT m_rClientHeight = 0;
+		float m_backColor[4] = { 0.0f, 0.5f, 0.5f, 1.0f };	// 백그라운드 컬러
+
 		// 디바이스
 		Microsoft::WRL::ComPtr<ID3D11Device5> m_pDevice;
 
@@ -59,7 +59,7 @@ namespace MMMEngine
 
 		// 버퍼 기본색상
 		DirectX::SimpleMath::Vector4 m_ClearColor;
-		
+
 		// 인풋 레이아웃
 		std::shared_ptr<VShader> m_pDefaultVSShader;
 		std::shared_ptr<PShader> m_pDefaultPSShader;
@@ -73,7 +73,7 @@ namespace MMMEngine
 		// 백버퍼 텍스쳐
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1> m_pBackBuffer = nullptr;		// 백버퍼 텍스처
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> m_pBackSRV = nullptr;	// 백버퍼 SRV
-    public:
+	public:
 		void Initialize(HWND* _hwnd, UINT _ClientWidth, UINT _ClientHeight);
 		void InitD3D();
 		void UnInitD3D();
@@ -86,34 +86,25 @@ namespace MMMEngine
 		const Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_pDevice; }
 	public:
 		template <typename T, typename... Args>
-		std::weak_ptr<RendererBase> AddRenderer(RenderType _passType, Args&&... args);
+		std::weak_ptr<RendererBase> AddRenderer(RenderType _passType, Args&&... args) {
+			std::shared_ptr<T> temp = std::make_shared<T>(std::forward<Args>(args)...);
+			m_Passes[_passType].push_back(temp);
 
-		template <typename T>
-		bool RemoveRenderer(RenderType _passType, std::shared_ptr<T>& _renderer);
-	};
-
-	template <typename T, typename... Args>
-	std::weak_ptr<RendererBase>
-		RenderManager::AddRenderer(RenderType _passType, Args&&... args)
-	{
-		std::shared_ptr<T> temp = std::make_shared<T>(std::forward<Args>(args)...);
-		passes[_passType].push_back(temp);
-
-		return temp;
-	}
-
-	template <typename T>
-	bool RenderManager::RemoveRenderer(RenderType _passType, std::shared_ptr<T>& _renderer)
-	{
-		if (_renderer && (passes.find(_passType) != passes.end())) {
-			auto it = std::find(passes[_passType].begin(), passes[_passType].end(), _renderer);
-
-			if (it != passes[_passType].end()) {
-				passes[_passType].erase(it);
-				return true;
-			}
+			return temp;
 		}
 
-		return false;
-	}
-} 
+		template <typename T>
+		bool RemoveRenderer(MMMEngine::RenderType _passType, std::shared_ptr<T>& _renderer) {
+			if (_renderer && (m_Passes.find(_passType) != m_Passes.end())) {
+				auto it = std::find(m_Passes[_passType].begin(), m_Passes[_passType].end(), _renderer);
+
+				if (it != m_Passes[_passType].end()) {
+					m_Passes[_passType].erase(it);
+					return true;
+				}
+			}
+
+			return false;
+		}
+	};
+}

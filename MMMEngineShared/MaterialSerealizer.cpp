@@ -69,7 +69,7 @@ void MMMEngine::MaterialSerealizer::to_json(json& j, const MMMEngine::PropertyVa
 }
 
 
-void MMMEngine::MaterialSerealizer::Serealize(ResPtr<Material> _material, std::wstring _path)
+void MMMEngine::MaterialSerealizer::Serealize(Material* _material, std::wstring _path)
 {
 	json snapshot;
 	auto matMUID = _material->GetMUID().IsEmpty() ? Utility::MUID::NewMUID() : _material->GetMUID();

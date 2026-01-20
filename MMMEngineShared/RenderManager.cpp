@@ -53,6 +53,7 @@ namespace MMMEngine {
 		swapDesc.SampleDesc.Count = 1;		// MSAA
 		swapDesc.SampleDesc.Quality = 0;	// MSAA 품질수준
 
+
 		// 팩토리 생성
 		Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory;
 		HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory2), (void**)dxgiFactory.GetAddressOf()));

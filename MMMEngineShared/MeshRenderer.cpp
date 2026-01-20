@@ -4,6 +4,7 @@
 #include <RenderManager.h>
 #include <GeoRenderer.h>
 #include "Object.h"
+#include "Transform.h"
 
 MMMEngine::MeshRenderer::MeshRenderer()
 {
