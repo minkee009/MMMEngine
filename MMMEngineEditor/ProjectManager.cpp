@@ -180,13 +180,17 @@ namespace MMMEngine::Editor
 
         // NOTE: ScriptBehaviour.h include는 vcxproj의 AdditionalIncludeDirectories에 의해 해결된다고 가정
         out <<
-            R"(#include "ScriptBehaviour.h"
+            R"(#include "rttr/type"
+#include "ScriptBehaviour.h"
 #include "Export.h"
 
 namespace MMMEngine
 {
     class MMMENGINE_API ExampleBehaviour : public ScriptBehaviour
     {
+    private:
+        RTTR_ENABLE(ScriptBehaviour)
+        RTTR_REGISTRATION_FRIEND
     public:
         ExampleBehaviour()
         {
@@ -218,7 +222,8 @@ RTTR_REGISTRATION
 	using namespace rttr;
 	using namespace MMMEngine;
 
-	registration::class_<ExampleBehaviour>("ExampleBehaviour");
+	registration::class_<ExampleBehaviour>("ExampleBehaviour")
+        (rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<ExampleBehaviour>>()));
 
 	registration::class_<ObjPtr<ExampleBehaviour>>("ObjPtr<ExampleBehaviour>")
 		.constructor(

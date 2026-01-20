@@ -19,6 +19,7 @@ using namespace MMMEngine::Utility;
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
 #include "ScriptBuildWindow.h"
+#include "ConsoleWindow.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -187,9 +188,9 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
     }
     m_isD3D11BackendInit = true;
 
-    return true;
+    ConsoleWindow::Get().Init();
 
-    return false;
+    return true;
 }
 
 void MMMEngine::Editor::ImGuiEditorContext::BeginFrame()
@@ -265,6 +266,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         }
         if (ImGui::BeginMenu(u8"창"))
         {
+            ImGui::MenuItem(u8"콘솔", nullptr, &g_editor_window_console);
             ImGui::MenuItem(u8"하이어라키", nullptr, &g_editor_window_hierarchy);
             ImGui::MenuItem(u8"인스펙터", nullptr, &g_editor_window_inspector);
             ImGui::EndMenu();
@@ -298,6 +300,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     style.ScrollbarRounding = 6.0f;
     style.WindowMenuButtonPosition = ImGuiDir_None;
        
+    ConsoleWindow::Get().Render();
     ScriptBuildWindow::Get().Render();
     SceneListWindow::Get().Render();
     HierarchyWindow::Get().Render();
@@ -319,6 +322,8 @@ void MMMEngine::Editor::ImGuiEditorContext::EndFrame()
 
 void MMMEngine::Editor::ImGuiEditorContext::Uninitialize()
 {
+    ConsoleWindow::Get().Shutdown();
+
     if (m_isD3D11BackendInit)
         ImGui_ImplDX11_Shutdown();
     if (m_isWin32BackendInit)

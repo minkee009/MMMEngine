@@ -741,14 +741,14 @@
     <ClInclude Include="RenderCommand.h">
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
-    <ClInclude Include="ScriptBehaviour.h">
-      <Filter>헤더 파일\Core\Behaviour API\ScriptLoader</Filter>
-    </ClInclude>
-    <ClInclude Include="MissingScriptBehaviour.h">
-      <Filter>헤더 파일\Core\Behaviour API\ScriptLoader</Filter>
-    </ClInclude>
     <ClInclude Include="ScriptLoader.h">
       <Filter>헤더 파일\Core\Behaviour API\ScriptLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="ScriptBehaviour.h">
+      <Filter>헤더 파일\Core\Behaviour API</Filter>
+    </ClInclude>
+    <ClInclude Include="MissingScriptBehaviour.h">
+      <Filter>헤더 파일\Core\Behaviour API</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -914,14 +914,14 @@
     <ClCompile Include="rttr_directxmath_registry.cpp">
       <Filter>소스 파일\Utility\RTTRRegistry</Filter>
     </ClCompile>
-    <ClCompile Include="MissingScriptBehaviour.cpp">
-      <Filter>소스 파일\Core\Behaviour API\ScriptLoader</Filter>
-    </ClCompile>
     <ClCompile Include="ScriptBehaviour.cpp">
-      <Filter>소스 파일\Core\Behaviour API\ScriptLoader</Filter>
+      <Filter>소스 파일\Core\Behaviour API</Filter>
     </ClCompile>
     <ClCompile Include="ScriptLoader.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>소스 파일\Core\Behaviour API\ScriptLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="MissingScriptBehaviour.cpp">
+      <Filter>소스 파일\Core\Behaviour API</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
