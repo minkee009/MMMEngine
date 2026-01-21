@@ -280,11 +280,17 @@ void MMMEngine::Editor::FilesWindow::DrawGridView(const fs::path& root)
     }
 
     // Handle empty space click (deselect)
-    ImGui::InvisibleButton("##emptyspace", ImGui::GetContentRegionAvail());
-    if (ImGui::IsItemClicked())
+    ImVec2 availRegion = ImGui::GetContentRegionAvail();
+    if (availRegion.x > 0.0f && availRegion.y > 0.0f)
     {
-        selectedFileOrDir.clear();
+        ImGui::InvisibleButton("##emptyspace", availRegion);
+        if (ImGui::IsItemClicked())
+        {
+            selectedFileOrDir.clear();
+        }
     }
+        
+   
 
     // Drop target for current directory
     if (ImGui::BeginDragDropTarget())
