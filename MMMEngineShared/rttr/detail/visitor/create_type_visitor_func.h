@@ -25,72 +25,43 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "rttr/parameter_info.h"
+#ifndef RTTR_CREATE_TYPE_VISITOR_FUNC_H_
+#define RTTR_CREATE_TYPE_VISITOR_FUNC_H_
 
-#include "rttr/detail/parameter_info/parameter_info_wrapper_base.h"
-#include "rttr/variant.h"
+#include "rttr/detail/base/core_prerequisites.h"
+#include "rttr/detail/misc/misc_type_traits.h"
+#include "rttr/detail/type/base_classes.h"
+#include "rttr/detail/misc/std_type_traits.h"
 
 namespace rttr
 {
 
-/////////////////////////////////////////////////////////////////////////////////////////
+class visitor;
+class type;
+enum class type_of_visit : bool;
 
-parameter_info::parameter_info(const detail::parameter_info_wrapper_base* wrapper) RTTR_NOEXCEPT
-:   m_wrapper(wrapper)
+namespace detail
 {
 
-}
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename Visitor_List>
+RTTR_INLINE
+enable_if_t<has_base_class_list<T>::value, void>
+visit_type(type_of_visit visit_type, visitor& vi, const type& t);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-type parameter_info::get_type() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_type();
-}
+template<typename T, typename Visitor_List>
+RTTR_INLINE
+enable_if_t<!has_base_class_list<T>::value, void>
+visit_type(type_of_visit visit_type, visitor& vi, const type& t);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-bool parameter_info::has_default_value() const RTTR_NOEXCEPT
-{
-    return m_wrapper->has_default_value();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-variant parameter_info::get_default_value() const
-{
-    return m_wrapper->get_default_value();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-string_view parameter_info::get_name() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_name();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-uint32_t parameter_info::get_index() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_index();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool parameter_info::operator==(const parameter_info& other) const RTTR_NOEXCEPT
-{
-    return (m_wrapper == other.m_wrapper);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool parameter_info::operator!=(const parameter_info& other) const RTTR_NOEXCEPT
-{
-    return (m_wrapper != other.m_wrapper);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-
+} // end namespace detail
 } // end namespace rttr
+
+#include "rttr/detail/visitor/create_type_visitor_func_impl.h"
+
+#endif // RTTR_CREATE_TYPE_VISITOR_FUNC_H_

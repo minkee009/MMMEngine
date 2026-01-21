@@ -320,6 +320,8 @@ void MMMEngine::Editor::InspectorWindow::Render()
 
             std::string typeName = comp->get_type().get_name().to_string();
 
+           // auto ss = comp->get_type();
+
             std::string duplicatePrevantName = typeName + "##" + std::to_string(compCount++);
             if (typeName != "Transform")
             {

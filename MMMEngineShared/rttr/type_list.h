@@ -25,58 +25,24 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "rttr/type.h"
-#include "rttr/detail/type/type_data.h"
+#ifndef RTTR_TYPE_LIST_H_
+#define RTTR_TYPE_LIST_H_
+
+#include "rttr/detail/base/core_prerequisites.h"
 
 namespace rttr
 {
-namespace detail
+/*!
+ * \brief Contains a list of template parameters.
+ *
+ */
+template<typename...T>
+struct type_list
 {
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-static class_data& get_invalid_type_class_data() RTTR_NOEXCEPT
-{
-    static std::unique_ptr<class_data> info = ::rttr::detail::make_unique<class_data>(nullptr, std::vector<type>());
-    return (*info.get());
-}
+    static RTTR_CONSTEXPR_OR_CONST auto size = sizeof...(T); //!< The amount of template parameters
+};
 
 
-/////////////////////////////////////////////////////////////////////////////////////////
-
-static type_data& get_invalid_type_data_impl() RTTR_NOEXCEPT
-{
-    static type_data instance{ nullptr, nullptr,
-                               nullptr,
-                               std::string(""), string_view(),
-                               0, 0,
-                               &create_invalid_variant_policy::create_variant,
-                               &base_classes<void>::get_types,
-                               nullptr,
-                               nullptr,
-                               get_create_wrapper_func<void>(),
-                               &get_invalid_type_class_data,
-                               false,
-                               type_trait_value{0}};
-
-    instance.raw_type_data  = &instance;
-    instance.wrapped_type   = &instance;
-    instance.array_raw_type = &instance;
-
-    return instance;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-type_data* get_invalid_type_data() RTTR_NOEXCEPT
-{
-    static auto instance = &get_invalid_type_data_impl();
-    return instance;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-} // end namespace detail
 } // end namespace rttr
 
-
+#endif // RTTR_TYPE_LIST_H_

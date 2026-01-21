@@ -25,79 +25,75 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "rttr/detail/enumeration/enumeration_helper.h"
-#include "rttr/enumeration.h"
-#include "rttr/argument.h"
+#ifndef RTTR_METHOD_VISITOR_INVOKER_H_
+#define RTTR_METHOD_VISITOR_INVOKER_H_
+
+#include "rttr/detail/base/core_prerequisites.h"
+
 
 namespace rttr
 {
+class method;
+
 namespace detail
 {
 
+struct invalid_type;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
-string_view get_enumeration_name(const argument& arg)
+/*!
+ *
+ */
+template<typename T>
+class method_visitor_invoker
 {
-    return arg.get_type().get_enumeration().value_to_name(arg);
-}
+
+private:
+    using declaring_type_t = typename visitor::method_info<T>::declaring_type;
+
+    template<typename U>
+    using is_global_method = std::is_same<U, invalid_type>;
+
+    template<typename V, typename U>
+    enable_if_t<is_global_method<V>::value, void>
+    call_impl(U& visitor) const
+    {
+        visitor.visit_global_method(m_info);
+    }
+
+    template<typename V, typename U>
+    enable_if_t<!is_global_method<V>::value, void>
+    call_impl(U& visitor) const
+    {
+        visitor.visit_method(m_info);
+    }
+
+public:
+    method_visitor_invoker(const visitor::method_info<T>& info)
+    :   m_info(info)
+    {
+    }
+
+    template<typename U>
+    void call(U& visitor) const
+    {
+        call_impl<declaring_type_t>(visitor);
+    }
+
+private:
+    const visitor::method_info<T>& m_info;
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-bool to_enumeration(string_view from, argument& to)
+template<typename T>
+static method_visitor_invoker<T> make_method_visitor_invoker(const visitor::method_info<T>& info)
 {
-    auto& var_ref = to.get_value<std::reference_wrapper<variant>>();
-    variant& var = var_ref.get();
-    const type enum_type = var.get_value<type>();
-    if (variant var_tmp = enum_type.get_enumeration().name_to_value(from))
-    {
-        var = var_tmp;
-        return var.is_valid();
-    }
-    else
-    {
-        return false;
-    }
+    return method_visitor_invoker<T>(info);
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool to_enumeration(const variant& from, argument& to)
-{
-    auto& var_ref = to.get_value<std::reference_wrapper<variant>>();
-    variant& var = var_ref.get();
-    const type enum_type = var.get_value<type>();
-    const enumeration e = enum_type.get_enumeration();
-    const type underlying_enum_type = e.get_underlying_type();
-    for (const auto& value : e.get_values())
-    {
-        variant var_cpy = value;
-        const bool ret = var_cpy.convert(underlying_enum_type);
-        if (ret && var_cpy == from)
-        {
-            var = value;
-            return var.is_valid();
-        }
-    }
-
-    return false;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool is_variant_with_enum(const argument& arg)
-{
-    if (arg.is_type<std::reference_wrapper<variant>>())
-    {
-        const auto& var = arg.get_value<std::reference_wrapper<variant>>().get();
-        return (var.is_type<type>() && var.get_value<type>().is_enumeration());
-    }
-    else
-    {
-        return false;
-    }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
 
 } // end namespace detail
 } // end namespace rttr
+
+#endif // RTTR_METHOD_VISITOR_INVOKER_H_

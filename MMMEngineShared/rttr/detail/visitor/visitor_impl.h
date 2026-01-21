@@ -25,133 +25,172 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "rttr/enumeration.h"
-#include "rttr/detail/enumeration/enumeration_wrapper_base.h"
-#include "rttr/argument.h"
+#ifndef RTTR_VISITOR_IMPL_H_
+#define RTTR_VISITOR_IMPL_H_
 
-#include <utility>
-
-using namespace std;
 
 namespace rttr
 {
 
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename...Base_Classes>
+void visitor::visit_type_begin(const type_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename...Base_Classes>
+void visitor::visit_type_end(const type_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename...Ctor_Args>
+void visitor::visit_constructor(const constructor_info<T>& info)
+{
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_constructor_function(const constructor_function_info<T>& info)
+{
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_method(const method_info<T>& info)
+{
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_global_method(const method_info<T>& info)
+{
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_property(const property_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_getter_setter_property(const property_getter_setter_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_global_property(const property_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_global_getter_setter_property(const property_getter_setter_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_readonly_property(const property_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+void visitor::visit_global_readonly_property(const property_info<T>& info)
+{
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
 namespace detail
 {
-template<>
-enumeration create_item(const enumeration_wrapper_base* wrapper)
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename... Base_Classes>
+static visitor::type_info<type_list<T, type_list<Base_Classes...>>> make_type_visitor_info(const type& type_info)
 {
-    return enumeration(wrapper);
+    return visitor::type_info<type_list<T, type_list<Base_Classes...>>>{type_info};
 }
 
-template<>
-enumeration create_invalid_item()
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename Policy, typename Acc>
+static visitor::constructor_function_info<type_list<T, Policy, Acc>> make_ctor_info_func(const constructor& ctor, const Acc& acc)
 {
-    static const enumeration_wrapper_base invalid_wrapper;
-    return enumeration(&invalid_wrapper);
+    return visitor::constructor_function_info<type_list<T, Policy, Acc>>{ctor, acc};
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename Policy, typename...Args>
+static visitor::constructor_info<type_list<T, Policy, type_list<Args...>>> make_ctor_info(const constructor& ctor)
+{
+    return visitor::constructor_info<type_list<T, Policy, type_list<Args...>>>{ctor};
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename Policy, typename Acc>
+static visitor::method_info<type_list<T, Policy, Acc>> make_method_info(const method& meth, const Acc& acc)
+{
+    return visitor::method_info<type_list<T, Policy, Acc>>{meth, acc};
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename Policy, typename Acc>
+static visitor::property_info<type_list<T, Policy, Acc>> make_property_info(const property& prop, const Acc& acc)
+{
+    return visitor::property_info<type_list<T, Policy, Acc>>{prop, acc};
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename Policy, typename Getter, typename Setter>
+static visitor::property_getter_setter_info<type_list<T, Policy, Getter, Setter>>
+make_property_getter_setter_info(const property& prop,
+                                 const Getter& getter,
+                                 const Setter& setter)
+{
+    return visitor::property_getter_setter_info<type_list<T, Policy, Getter, Setter>>{prop, getter, setter};
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+struct visitor_list_wrapper
+{
+    using visitor_list = type_list<>;
+};
+
+struct visitor_defined {};
 
 } // end namespace detail
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-enumeration::enumeration(const detail::enumeration_wrapper_base* wrapper) RTTR_NOEXCEPT
-:   m_wrapper(wrapper)
-{
-
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool enumeration::is_valid() const RTTR_NOEXCEPT
-{
-    return m_wrapper->is_valid();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-enumeration::operator bool() const RTTR_NOEXCEPT
-{
-    return m_wrapper->is_valid();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-string_view enumeration::get_name() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_type().get_name();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-type enumeration::get_underlying_type() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_underlying_type();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-type enumeration::get_type() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_type();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-type enumeration::get_declaring_type() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_declaring_type();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-variant enumeration::get_metadata(const variant& key) const
-{
-    return m_wrapper->get_metadata(key);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-array_range<string_view> enumeration::get_names() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_names();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-array_range<variant> enumeration::get_values() const RTTR_NOEXCEPT
-{
-    return m_wrapper->get_values();
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-string_view enumeration::value_to_name(argument value) const
-{
-    return m_wrapper->value_to_name(value);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-variant enumeration::name_to_value(string_view name) const
-{
-    return m_wrapper->name_to_value(name);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool enumeration::operator==(const enumeration& other) const RTTR_NOEXCEPT
-{
-    return (m_wrapper == other.m_wrapper);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool enumeration::operator!=(const enumeration& other) const RTTR_NOEXCEPT
-{
-    return (m_wrapper != other.m_wrapper);
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
 } // end namespace rttr
+
+#endif // RTTR_VISITOR_IMPL_H_

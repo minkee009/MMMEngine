@@ -25,47 +25,53 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "rttr/detail/registration/registration_executer.h"
+#ifndef RTTR_CREATE_TYPE_VISITOR_FUNC_IMPL_H_
+#define RTTR_CREATE_TYPE_VISITOR_FUNC_IMPL_H_
 
-#include <algorithm>
+#include "rttr/detail/base/core_prerequisites.h"
+#include "rttr/visitor.h"
+#include "rttr/detail/visitor/visitor_iterator.h"
+#include "rttr/detail/visitor/type_visitor_invoker.h"
 
 namespace rttr
 {
 namespace detail
 {
 
+
 /////////////////////////////////////////////////////////////////////////////////////////
 
-registration_executer::registration_executer()
+template<typename T, typename Visitor_list, typename...Base_Classes>
+RTTR_INLINE void visit_type_impl(type_of_visit visit_type, visitor& vi, const type& t, type_list<Base_Classes...>)
 {
+    auto obj = make_type_visitor_info<T, Base_Classes...>(t);
+    visitor_iterator<Visitor_list>::visit(vi, make_type_visitor_invoker(obj, visit_type));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-registration_executer::~registration_executer()
+template<typename T, typename Visitor_list>
+RTTR_INLINE
+enable_if_t<has_base_class_list<T>::value, void>
+visit_type(type_of_visit visit_type, visitor& vi, const type& t)
 {
-    for (auto&& item : m_list)
-    {
-        item.second();
-    }
+    visit_type_impl<T, Visitor_list>(visit_type, vi, t, typename T::base_class_list{});
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
-void registration_executer::add_registration_func(const void* key, std::function<void(void)> func)
+template<typename T, typename Visitor_list>
+RTTR_INLINE
+enable_if_t<!has_base_class_list<T>::value, void>
+visit_type(type_of_visit visit_type, visitor& vi, const type& t)
 {
-    auto itr = std::find_if(m_list.begin(), m_list.end(), [key](const item_type& item) { return (item.first == key); });
-    if (itr != m_list.end())
-    {
-        itr->second = std::move(func);
-    }
-    else
-    {
-        m_list.emplace_back(std::make_pair(key, func));
-    }
+    auto obj = make_type_visitor_info<T>(t);
+    visitor_iterator<Visitor_list>::visit(vi, make_type_visitor_invoker(obj, visit_type));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
 } // end namespace detail
 } // end namespace rttr
+
+#endif // RTTR_CREATE_TYPE_VISITOR_FUNC_H_

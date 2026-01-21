@@ -25,24 +25,93 @@
 *                                                                                   *
 *************************************************************************************/
 
-#ifndef RTTR_PCH_H_
-#define RTTR_PCH_H_
+#ifndef RTTR_CONSTRUCTOR_VISITOR_INVOKER_H_
+#define RTTR_CONSTRUCTOR_VISITOR_INVOKER_H_
 
-// std stuff
-#include <map>
-#include <string>
-#include <vector>
-#include <set>
-#include <list>
-#include <iostream>
-#include <limits>
-#include <sstream>
-#include <fstream>
-#include <iomanip>
-#include <tuple>
-#include <algorithm>
-#include <cassert>
-#include <memory>
-#include <type_traits>
+#include "rttr/detail/base/core_prerequisites.h"
+#include "rttr/visitor.h"
 
-#endif // RTTR_PCH_H_
+namespace rttr
+{
+class method;
+
+namespace detail
+{
+
+struct invalid_type;
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/*!
+ *
+ */
+template<typename T>
+class constructor_visitor_invoker
+{
+public:
+    constructor_visitor_invoker(const visitor::constructor_info<T>& info)
+    :   m_info(info)
+    {
+    }
+
+    template<typename U, typename...Ctor_Args>
+    void call_impl(U& visitor, type_list<Ctor_Args...>) const
+    {
+        visitor.template visit_constructor<T, Ctor_Args...>(m_info);
+    }
+
+    template<typename U>
+    void call(U& visitor) const
+    {
+        using ctor_args = typename visitor::constructor_info<T>::ctor_args;
+        call_impl(visitor, ctor_args{});
+    }
+
+private:
+    const visitor::constructor_info<T>& m_info;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+static constructor_visitor_invoker<T> make_ctor_visitor_invoker(const visitor::constructor_info<T>& info)
+{
+    return constructor_visitor_invoker<T>(info);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/*!
+ *
+ */
+template<typename T>
+class constructor_function_visitor_invoker
+{
+public:
+    constructor_function_visitor_invoker(const visitor::constructor_function_info<T>& info)
+    :   m_info(info)
+    {
+    }
+
+    template<typename U>
+    void call(U& visitor) const
+    {
+        visitor.visit_constructor_function(m_info);
+    }
+
+private:
+    const visitor::constructor_function_info<T>& m_info;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+static constructor_function_visitor_invoker<T> make_ctor_visitor_invoker_func(const visitor::constructor_function_info<T>& info)
+{
+    return constructor_function_visitor_invoker<T>(info);
+}
+
+} // end namespace detail
+} // end namespace rttr
+
+#endif // RTTR_CONSTRUCTOR_VISITOR_INVOKER_H_

@@ -25,85 +25,80 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "rttr/detail/variant/variant_compare.h"
-#include "rttr/type.h"
-#include "rttr/variant.h"
+#ifndef RTTR_TYPE_VISITOR_INVOKER_H_
+#define RTTR_TYPE_VISITOR_INVOKER_H_
 
-#include <cmath>
-#include <algorithm>
+#include "rttr/detail/base/core_prerequisites.h"
+#include "rttr/visitor.h"
+#include "rttr/detail/visitor/visitor_iterator.h"
 
 namespace rttr
 {
 namespace detail
 {
 
-/////////////////////////////////////////////////////////////////////////////////////////
-
-static RTTR_INLINE bool is_floating_point(const type& type)
+/*!
+ *
+ */
+template<typename T>
+class type_visitor_invoker
 {
-    return (type == type::get<float>() || type == type::get<double>());
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-static RTTR_INLINE bool almost_equal(double p1, double p2)
-{
-    return (std::abs(p1 - p2) * 1000000000000. <= std::min(std::abs(p1), std::abs(p2)));
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool variant_compare_equal(const variant& lhs, const type& lhs_type, const variant& rhs, const type& rhs_type, bool& ok)
-{
-    ok = true;
-    if (is_floating_point(lhs_type) || is_floating_point(rhs_type))
+public:
+    type_visitor_invoker(const visitor::type_info<T>& info, type_of_visit visit_type)
+    :   m_info(info), m_visit_type(visit_type)
     {
-        return almost_equal(lhs.to_double(), rhs.to_double());
     }
-    else
-    {
-        return (lhs.to_int64() == rhs.to_int64());
-    }
-}
 
-/////////////////////////////////////////////////////////////////////////////////////////
-
-bool variant_compare_less(const variant& lhs, const type& lhs_type, const variant& rhs, const type& rhs_type, bool& ok)
-{
-    ok = true;
-    if (lhs_type.is_arithmetic() && rhs_type.is_arithmetic())
+    template<typename U, typename...Base_Classes>
+    void call_with_base_classes(U& visitor, type_list<Base_Classes...>) const
     {
-        if (is_floating_point(lhs_type) || is_floating_point(rhs_type))
-            return (lhs.to_double() < rhs.to_double());
+        if (m_visit_type == type_of_visit::begin_visit_type)
+            visitor.template visit_type_begin<T, Base_Classes...>(m_info);
         else
-            return (lhs.to_int64() < rhs.to_int64());
+            visitor.template visit_type_end<T, Base_Classes...>(m_info);
     }
-    else
+
+    template<typename U, typename V>
+    enable_if_t<has_base_class_list<typename visitor::type_info<U>::declaring_type>::value, void>
+    call_impl(V& visitor) const
     {
-        variant lhs_tmp;
-        if (lhs.convert(rhs_type, lhs_tmp))
-            return lhs_tmp.compare_less(rhs, ok);
-
-        if (!lhs.is_nullptr() && rhs.is_nullptr())
-            return false;
-
-        // as last try, do a string conversion
-        bool ok1 = false;
-        bool ok2 = false;
-        auto ret = (lhs.to_string(&ok1) < rhs.to_string(&ok2));
-        if (ok1 && ok2)
-        {
-            return ret;
-        }
-        else
-        {
-            ok = false;
-            return false;
-        }
+        using declaring_type_t = typename visitor::type_info<U>::declaring_type;
+        call_with_base_classes(visitor, typename declaring_type_t::base_class_list{});
     }
+
+    template<typename U, typename V>
+    enable_if_t<!has_base_class_list<typename visitor::type_info<U>::declaring_type>::value, void>
+    call_impl(V& visitor) const
+    {
+        if (m_visit_type == type_of_visit::begin_visit_type)
+            visitor.visit_type_begin(m_info);
+        else
+            visitor.visit_type_end(m_info);
+    }
+
+
+    template<typename U>
+    void call(U& visitor) const
+    {
+        call_impl<T>(visitor);
+    }
+
+private:
+    const visitor::type_info<T>& m_info;
+    type_of_visit m_visit_type;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename T>
+static type_visitor_invoker<T> make_type_visitor_invoker(const visitor::type_info<T>& info, type_of_visit visit_type)
+{
+    return type_visitor_invoker<T>(info, visit_type);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
 } // end namespace detail
 } // end namespace rttr
+
+#endif // RTTR_TYPE_VISITOR_INVOKER_H_

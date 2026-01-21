@@ -128,7 +128,8 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 
 	auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
 
-	if (ImGui::Button(u8"积己", hbuttonsize)) { Object::NewObject<GameObject>(); }
+	if (ImGui::Button(u8"积己", hbuttonsize)) 
+	{ Object::NewObject<GameObject>(); }
 	ImGui::SameLine();
 	ImGui::BeginDisabled(g_selectedGameObject == nullptr);
 	if (ImGui::Button(u8"颇鲍", hbuttonsize)) { Object::Destroy(g_selectedGameObject); g_selectedGameObject = nullptr; }
