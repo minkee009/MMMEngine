@@ -3,6 +3,7 @@
 #include "MMMTime.h"
 #include "Snowball.h"
 #include "Player.h"
+#include "Transform.h"
 
 void MMMEngine::SnowballManager::Initialize()
 {
@@ -34,6 +35,7 @@ void MMMEngine::SnowballManager::Update()
 				sc->controlled = false;
 			}
 			matchedSnowball = nullptr;
+			pc->VelocityReturn();
 		}
 	}
 	if (Input::GetKey(KeyCode::Space))
@@ -41,6 +43,7 @@ void MMMEngine::SnowballManager::Update()
 		if (matchedSnowball)
 		{
 			auto scMe = matchedSnowball->GetComponent<Snowball>();
+			auto matchedsnowpos = matchedSnowball->GetTransform()->GetWorldPosition();
 			if (!scMe)
 			{
 				matchedSnowball = nullptr;
@@ -50,7 +53,6 @@ void MMMEngine::SnowballManager::Update()
 			{
 				pc->VelocityDown(scMe->GetScale());
 
-				float myX = scMe->posX, myY = scMe->posY;
 				float myR = scMe->GetScale();
 
 				for (size_t i = 0; i < Snows.size(); ++i)
@@ -60,14 +62,15 @@ void MMMEngine::SnowballManager::Update()
 					if (otherObj == matchedSnowball) continue;
 
 					auto scOther = otherObj->GetComponent<Snowball>();
+					auto othersnowpos = otherObj->GetTransform()->GetWorldPosition();
 					if (!scOther) continue;
 					if (scOther->controlled) continue;
 
-					float dx = scOther->posX - myX;
-					float dy = scOther->posY - myY;
+					float dx = othersnowpos.x - matchedsnowpos.x;
+					float dz = othersnowpos.z - matchedsnowpos.z;
 					float sumR = myR + scOther->GetScale();
 
-					if (dx * dx + dy * dy <= sumR * sumR)
+					if (dx * dx + dz * dz <= sumR * sumR)
 					{
 						scMe->AssembleSnow(otherObj);
 						Snows.erase(Snows.begin() + i);
@@ -88,10 +91,11 @@ void MMMEngine::SnowballManager::Update()
 					auto sc = sObj->GetComponent<Snowball>();
 					if (!sc) continue;
 					if (sc->controlled) continue;
-
-					float dx = sc->posX - pc->posX;
-					float dy = sc->posY - pc->posY;
-					float d2 = dx * dx + dy * dy;
+					auto snowpos = sObj->GetTransform()->GetWorldPosition();
+					auto playerpos = player->GetTransform()->GetWorldPosition();
+					float dx = snowpos.x - playerpos.x;
+					float dz = snowpos.z - playerpos.z;
+					float d2 = dx * dx + dz * dz;
 
 					if (d2 < bestD2)
 					{
@@ -125,11 +129,19 @@ void MMMEngine::SnowballManager::Update()
 						if (created)
 						{
 							auto sc = created->GetComponent<Snowball>();
-
-							sc->posX = pc->posX;
-							sc->posY = pc->posY;
+							auto snowpos = created->GetTransform()->GetWorldPosition();
+							auto snowtr = created->GetTransform();
 							sc->controlled = true;
-
+							auto pTr = player->GetTransform();
+							auto playerpos = pTr->GetWorldPosition();
+							auto pRot = pTr->GetWorldRotation();
+							auto fwd = DirectX::SimpleMath::Vector3::Transform(
+								DirectX::SimpleMath::Vector3::Forward, pRot);
+							fwd.y = 0.0f;
+							if (fwd.LengthSquared() > 1e-8f) fwd.Normalize();
+							float offset = 1.5f;
+							auto pos = playerpos + fwd * offset;
+							snowtr->SetWorldPosition(pos);
 							matchedSnowball = created;
 						}
 						spawnTimer = 0.0f;

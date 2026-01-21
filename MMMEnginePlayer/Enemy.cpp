@@ -1,6 +1,7 @@
 #include "Enemy.h"
 #include "Player.h"
 #include "MMMTime.h"
+#include "Transform.h"
 
 void MMMEngine::Enemy::Initialize()
 {
@@ -10,48 +11,54 @@ void MMMEngine::Enemy::Initialize()
 void MMMEngine::Enemy::Update()
 {
 	auto pc = player->GetComponent<Player>();
+	auto playerpos = player->GetTransform()->GetWorldPosition();
+	auto tr = GetTransform();
+	auto pos = tr->GetWorldPosition();
 	if (!playerFind)
 	{
+		//성 좌표, 나중에 성 좌표계로 수정
 		float targetX = 0.0f;
-		float targetY = 0.0f;
+		float targetZ = 0.0f;
 
-		float dx = targetX - posX;
-		float dy = targetY - posY;
+		float dx = targetX - pos.x;
+		float dz = targetZ - pos.z;
 
-		float dist = std::sqrt(dx * dx + dy * dy);
+		float dist = std::sqrt(dx * dx + dz * dz);
 		if (dist > 0.01f)
 		{
 			dx /= dist;
-			dy /= dist;
+			dz /= dist;
 
-			posX += dx * velocity * Time::GetDeltaTime();
-			posY += dy * velocity * Time::GetDeltaTime();
+			pos.x += dx * velocity * Time::GetDeltaTime();
+			pos.z += dz * velocity * Time::GetDeltaTime();
+			tr->SetWorldPosition(pos);
 		}
 		else
 		{
-			posX = targetX;
-			posY = targetY;
+			pos.x = targetX;
+			pos.z = targetZ;
 		}
+		auto fwd3 = tr->GetWorldMatrix().Forward();   // 또는 WorldMatrix().Forward()
+		fwd3.y = 0.0f;
 
-		float playerX = pc->posX;
-		float playerY = pc->posY;
-		float forwardX = cosf(forwardAngle);
-		float forwardY = sinf(forwardAngle);
+		fwd3.Normalize();
 
-		// Enemy -> Player
-		float pldx = playerX - posX;
-		float pldy = playerY - posY;
+		// 2) Enemy -> Player (XZ)
+		float pldx = playerpos.x - pos.x;
+		float pldz = playerpos.z - pos.z;
 
-		float pldist = sqrtf(pldx * pldx + pldy * pldy);
-		if (pldist <= 0.0001f)
-			return;
+		float dist2 = pldx * pldx + pldz * pldz;
 
-		pldx /= pldist;
-		pldy /= pldist;
+		float dist = sqrtf(dist2);
+		float invDist = 1.0f / dist;
+		pldx *= invDist;
+		pldz *= invDist;
 
-		float dot = forwardX * pldx + forwardY * pldy;
+		// 3) dot = cos(theta)
+		float dot = fwd3.x * pldx + fwd3.z * pldz;
 
-		if (dot >= 0.5f || pldist < 100.0f)
+		// 4) 시야각(예: cos(60deg)=0.5) OR 거리
+		if (dot >= 0.5f || dist < 10.0f)
 		{
 			playerFind = true;
 			attackTimer = 1.0f;
@@ -59,20 +66,18 @@ void MMMEngine::Enemy::Update()
 	}
 	else
 	{
-		float playerX = pc->posX;
-		float playerY = pc->posY;
-
-		float pldx = playerX - posX;
-		float pldy = playerY - posY;
-		float pldist = sqrtf(pldx * pldx + pldy * pldy);
+		float pldx = playerpos.x - pos.x;
+		float pldz = playerpos.z - pos.z;
+		float pldist = sqrtf(pldx * pldx + pldz * pldz);
 
 		if (pldist > 5.0f)
 		{
 			pldx /= pldist;
-			pldy /= pldist;
+			pldz /= pldist;
 
-			posX += pldx * velocity * Time::GetDeltaTime();
-			posY += pldy * velocity * Time::GetDeltaTime();
+			pos.x += pldx * velocity * Time::GetDeltaTime();
+			pos.z += pldz * velocity * Time::GetDeltaTime();
+			tr->SetWorldPosition(pos);
 			attackTimer = 1.0f;
 		}
 		else

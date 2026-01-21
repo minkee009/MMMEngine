@@ -2,28 +2,38 @@
 #include "MMMInput.h"
 #include "Enemy.h"
 #include "MMMTime.h"
+#include "Transform.h"
 
 void MMMEngine::Player::Update()
 {
 	float dx = 0.0f;
-	float dy = 0.0f;
+	float dz = 0.0f;
+	auto tr = GetTransform();
+	auto pos = GetTransform()->GetWorldPosition();
 	if (Input::GetKey(KeyCode::LeftArrow))  dx -= 1.0f;
 	if (Input::GetKey(KeyCode::RightArrow)) dx += 1.0f;
-	if (Input::GetKey(KeyCode::UpArrow))    dy += 1.0f;
-	if (Input::GetKey(KeyCode::DownArrow))  dy -= 1.0f;
-	isMoving = (dx != 0.0f || dy != 0.0f);
-	posX += dx * velocity * Time::GetDeltaTime();
-	posY += dy * velocity * Time::GetDeltaTime();
+	if (Input::GetKey(KeyCode::UpArrow))    dz += 1.0f;
+	if (Input::GetKey(KeyCode::DownArrow))  dz -= 1.0f;
+	isMoving = (dx != 0.0f || dz != 0.0f);
+	pos.x += dx * velocity * Time::GetDeltaTime();
+	pos.z += dz * velocity * Time::GetDeltaTime();
+	tr->SetWorldPosition(pos);
+	if (Input::GetKey(KeyCode::Space)) {
+		targetEnemy = nullptr;
+		attackTimer = 1.0f;
+		return;
+	}
 	float battledist = 5.0f;
 	if (!targetEnemy) {
 		auto enemy = GameObject::FindGameObjectsWithTag("Enemy");
 		for (auto& e : enemy) {
 			auto ec = e->GetComponent<Enemy>();
-			float enemyX = ec->posX;
-			float enemyY = ec->posY;
-			float edx = enemyX - posX;
-			float edy = enemyY - posY;
-			float edist = sqrtf(edx * edx + edy * edy);
+			auto enemypos = e->GetTransform()->GetWorldPosition();
+			float enemyX = enemypos.x;
+			float enemyZ = enemypos.z;
+			float edx = enemyX - pos.x;
+			float edz = enemyZ - pos.z;
+			float edist = sqrtf(edx * edx + edz * edz);
 
 			if (edist < battledist) {
 				targetEnemy = e;
@@ -35,11 +45,12 @@ void MMMEngine::Player::Update()
 	else
 	{
 		auto tec = targetEnemy->GetComponent<Enemy>();
-		float enemyX = tec->posX;
-		float enemyY = tec->posY;
-		float edx = enemyX - posX;
-		float edy = enemyY - posY;
-		float edist = sqrtf(edx * edx + edy * edy);
+		auto tect = targetEnemy->GetTransform();
+		float enemyX = tect->GetWorldPosition().x;
+		float enemyZ = tect->GetWorldPosition().z;
+		float edx = enemyX - pos.x;
+		float edz = enemyZ - pos.z;
+		float edist = sqrtf(edx * edx + edz * edz);
 		if (edist > 5.0f)
 		{
 			targetEnemy = nullptr;
@@ -53,8 +64,5 @@ void MMMEngine::Player::Update()
 			tec->PlayerHitMe();
 			attackTimer = 1.0f;
 		}
-	}
-	if (HP <= 0) {
-		Destroy(GetGameObject());
 	}
 }

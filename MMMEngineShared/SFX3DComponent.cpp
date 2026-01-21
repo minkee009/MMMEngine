@@ -1,4 +1,5 @@
 #include "SFX3DComponent.h"
+#include "Transform.h"
 
 MMMEngine::SFX3DComponent::SFX3DComponent()
 {
@@ -26,12 +27,12 @@ void MMMEngine::SFX3DComponent::UnInitialize()
 	}
 }
 
-void MMMEngine::SFX3DComponent::PlaySFX3D(const std::string& id, float x, float y, float z)
+void MMMEngine::SFX3DComponent::PlaySFX3D(const std::string& id)
 {
 	sfxChannel[AcquireSlot()] = AudioManager::Get().PlaySFX3D(id, x, y, z);
 }
 
-void MMMEngine::SFX3DComponent::PlayLoopSFX3D(const std::string& id, float x, float y, float z, int slot)
+void MMMEngine::SFX3DComponent::PlayLoopSFX3D(const std::string& id, int slot)
 {
 	if (slot > 2 || slot < 0)
 		return;
@@ -70,8 +71,12 @@ int MMMEngine::SFX3DComponent::AcquireSlot()
 	return slot;
 }
 
-void MMMEngine::SFX3DComponent::PosChange(float x, float y, float z)
+void MMMEngine::SFX3DComponent::PosChange()
 {
+	auto transform = GetTransform();
+	x = transform->GetWorldPosition().x;
+	y = transform->GetWorldPosition().y;
+	z = transform->GetWorldPosition().z;
 	FMOD_VECTOR pos = V3(x, y, z);
 	FMOD_VECTOR vel = V3(0.0f, 0.0f, 0.0f);
 	for (int i = 0; i < 5; i++)

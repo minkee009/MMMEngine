@@ -1,6 +1,7 @@
 #include "Snowball.h"
 #include "MMMTime.h"
 #include "Player.h"
+#include "Transform.h"
 
 void MMMEngine::Snowball::Initialize()
 {
@@ -15,10 +16,20 @@ void MMMEngine::Snowball::Update()
 
 void MMMEngine::Snowball::RollSnow()
 {
-	if(scale <= 10.0f || player->GetComponent<Player>()->IsMoving())
+	if(scale <= 10.0f && player->GetComponent<Player>()->IsMoving())
 		scale += Time::GetDeltaTime();
-	posX = player->GetComponent<Player>()->posX;
-	posY = player->GetComponent<Player>()->posY;
+	auto tr = GetTransform();
+	auto pos = GetTransform()->GetWorldPosition();
+	auto pTr = player->GetTransform();
+	auto playerpos = pTr->GetWorldPosition();
+	auto pRot = pTr->GetWorldRotation();
+	auto fwd = DirectX::SimpleMath::Vector3::Transform(
+		DirectX::SimpleMath::Vector3::Forward, pRot);
+	fwd.y = 0.0f;
+	if (fwd.LengthSquared() > 1e-8f) fwd.Normalize();
+	float offset = 1.5f;
+	auto pos = playerpos + fwd * offset;
+	tr->SetWorldPosition(pos);
 }
 
 void MMMEngine::Snowball::AssembleSnow(ObjPtr<GameObject> other)
