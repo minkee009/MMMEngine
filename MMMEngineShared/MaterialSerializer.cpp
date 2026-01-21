@@ -83,8 +83,8 @@ void MMMEngine::MaterialSerializer::Serealize(Material* _material, std::wstring 
 		to_json(props[skey], val);
 	}
 	snapshot["properties"] = props;
-	snapshot["vshader"] = { "file", _material->GetVShader()->GetFilePath() };
-	snapshot["pshader"] = { "file", _material->GetPShader()->GetFilePath() };
+	snapshot["vshader"] = { {"file", _material->GetVShader()->GetFilePath()} };
+	snapshot["pshader"] = { {"file", _material->GetPShader()->GetFilePath()} };
 	
 	std::vector<uint8_t> v = json::to_msgpack(snapshot);
 
@@ -105,7 +105,7 @@ void MMMEngine::MaterialSerializer::Serealize(Material* _material, std::wstring 
 void MMMEngine::MaterialSerializer::UnSerealize(Material* _material, std::wstring _path)
 {
 	// 파일 읽기
-	std::ifstream inFile("data.json", std::ios::binary);
+	std::ifstream inFile(_path, std::ios::binary);
 	if (!inFile.is_open()) {
 		throw std::runtime_error("파일을 열수 없습니다.");
 	}
@@ -116,13 +116,6 @@ void MMMEngine::MaterialSerializer::UnSerealize(Material* _material, std::wstrin
 
 	// MessagePack → JSON 변환
 	nlohmann::json snapshot = nlohmann::json::from_msgpack(buffer);
-
-
-	// Name
-	if (snapshot.contains("name")) {
-		std::wstring ws(snapshot["name"].get<std::string>().begin(), snapshot["name"].get<std::string>().end());
-		_material->SetName(ws);
-	}
 
 	// Properties
 	if (snapshot.contains("properties")) {
@@ -135,13 +128,13 @@ void MMMEngine::MaterialSerializer::UnSerealize(Material* _material, std::wstrin
 
 	// VShader
 	if (snapshot.contains("vshader")) {
-		std::wstring ws(snapshot["vshader"].get<std::string>().begin(), snapshot["vshader"].get<std::string>().end());
+		std::wstring ws = Utility::StringHelper::StringToWString(snapshot["vshader"]["file"].get<std::string>());
 		_material->SetVShader(ws);
 	}
 
 	// PShader
 	if (snapshot.contains("pshader")) {
-		std::wstring ws(snapshot["pshader"].get<std::string>().begin(), snapshot["pshader"].get<std::string>().end());
+		std::wstring ws = Utility::StringHelper::StringToWString(snapshot["pshader"]["file"].get<std::string>());
 		_material->SetPShader(ws);
 	}
 }

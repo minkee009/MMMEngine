@@ -27,6 +27,16 @@ MMMEngine::MeshRenderer::MeshRenderer()
 	REGISTER_BEHAVIOUR_MESSAGE(Update);
 }
 
+MMMEngine::MeshRenderer::~MeshRenderer()
+{
+	// 렌더러 제거 명령
+	for (auto& renderer : renderers) {
+		if (auto locked = renderer.lock()) {
+			RenderManager::Get().RemoveRenderer(RenderType::GEOMETRY, locked);
+		}
+	}
+}
+
 void MMMEngine::MeshRenderer::SetMesh(ResPtr<StaticMesh>& _mesh)
 {
 	mesh = _mesh;

@@ -24,7 +24,6 @@ RTTR_REGISTRATION
 	using namespace rttr;
 
 	registration::class_<MMMEngine::Material>("Material")
-		.property("name", &MMMEngine::Material::GetName, &MMMEngine::Material::SetName)
 		.property_readonly("VShader", &MMMEngine::Material::GetVShader)
 		.property_readonly("PShader", &MMMEngine::Material::GetPShader)
 		.method("GetProperty", &MMMEngine::Material::GetProperty)

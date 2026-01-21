@@ -62,55 +62,7 @@ float SafeTicksPerSecond(double tps)
 	return (tps != 0.0) ? (float)tps : 25.f;
 }
 
-Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<MMMEngine::Mesh_Vertex>& _vertices)
-{
-	// 예외 확인
-	if (_vertices.empty())
-		return nullptr;
 
-	// 출력할 버퍼 생성
-	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
-
-	// 버텍스 버퍼 생성
-	D3D11_BUFFER_DESC bd = {};
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA vbData = {};
-	bd.ByteWidth = UINT(sizeof(MMMEngine::Mesh_Vertex) * _vertices.size());
-	vbData.pSysMem = _vertices.data();
-
-	MMMEngine::HR_T(MMMEngine::RenderManager::Get().GetDevice()->CreateBuffer(&bd, &vbData, buffer.GetAddressOf()));
-
-	return buffer;
-}
-
-Microsoft::WRL::ComPtr<ID3D11Buffer> CreateIndexBuffer(const std::vector<UINT>& _indices)
-{
-	// 출력할 버퍼 생성
-		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
-
-	if (_indices.empty())
-		return nullptr; // 안전 처리
-
-	// 인덱스 버퍼 생성
-	D3D11_BUFFER_DESC bd = {};
-	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.CPUAccessFlags = 0;
-	bd.ByteWidth = UINT(sizeof(UINT) * _indices.size());
-
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = _indices.data();
-
-	MMMEngine::HR_T(
-		MMMEngine::RenderManager::Get().GetDevice()->CreateBuffer(&bd, &ibData, buffer.GetAddressOf())
-	);
-
-	return buffer;
-
-}
 
 MMMEngine::ResPtr<MMMEngine::StaticMesh> MMMEngine::AssimpLoader::ConvertStaticMesh(ModelAsset* _model)
 {
@@ -146,18 +98,6 @@ MMMEngine::ResPtr<MMMEngine::StaticMesh> MMMEngine::AssimpLoader::ConvertStaticM
 			// 메테리얼:메시그룹 등록
 			staticMesh->meshGroupData[sub.materialIndex].push_back((UINT)i);
 		}
-
-		// GPU 버퍼 생성
-		Microsoft::WRL::ComPtr<ID3D11Buffer> vb = CreateVertexBuffer(sub.vertices);
-		Microsoft::WRL::ComPtr<ID3D11Buffer> ib = CreateIndexBuffer(sub.indices);
-
-		if (!vb)
-			throw std::runtime_error("AssimpLoader::Creating VertexBuffer Failed !!");
-		if (!ib)
-			throw std::runtime_error("AssimpLoader::Creating IndexBuffer Failed !!");
-
-		staticMesh->gpuBuffer.vertexBuffers.push_back(vb);
-		staticMesh->gpuBuffer.indexBuffers.push_back(ib);
 	}
 
 	return staticMesh;
@@ -197,13 +137,6 @@ MMMEngine::ResPtr<MMMEngine::SkeletalMesh> MMMEngine::AssimpLoader::ConvertSkele
 			// 메테리얼:메시그룹 등록
 			skeletalMesh->meshGroupData[sub.materialIndex].push_back((UINT)i);
 		}
-
-		// GPU 버퍼 생성
-		Microsoft::WRL::ComPtr<ID3D11Buffer> vb = CreateVertexBuffer(sub.vertices);
-		Microsoft::WRL::ComPtr<ID3D11Buffer> ib = CreateIndexBuffer(sub.indices);
-
-		skeletalMesh->gpuBuffer.vertexBuffers.push_back(vb);
-		skeletalMesh->gpuBuffer.indexBuffers.push_back(ib);
 	}
 
 	// 본 매트릭스, 오프셋 전달
@@ -216,8 +149,6 @@ MMMEngine::ResPtr<MMMEngine::SkeletalMesh> MMMEngine::AssimpLoader::ConvertSkele
 			skeletalMesh->offsetBuffer.BoneMat[i] = bone.offset; // 바인드 포즈 오프셋
 		}
 	}
-
-
 
 	// 애니메이션 클립 전달
 
