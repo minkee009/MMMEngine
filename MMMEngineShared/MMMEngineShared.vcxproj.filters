@@ -103,6 +103,12 @@
     <Filter Include="소스 파일\Core\Behaviour API\ScriptLoader">
       <UniqueIdentifier>{ac9c3fcd-296c-4781-9f20-4ea519460450}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Core\Core Test">
+      <UniqueIdentifier>{64ea75a6-7e6a-4817-801f-f9612da1250c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Core Test">
+      <UniqueIdentifier>{44b49f8c-3077-4d0a-be63-9f9da05c9b52}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Object.h">
@@ -291,6 +297,12 @@
     <ClInclude Include="MissingScriptBehaviour.h">
       <Filter>헤더 파일\Core\Behaviour API</Filter>
     </ClInclude>
+    <ClInclude Include="TextResource.h">
+      <Filter>헤더 파일\Core\Core Test</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetsDatabase.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Object.cpp">
@@ -370,6 +382,9 @@
     </ClCompile>
     <ClCompile Include="MissingScriptBehaviour.cpp">
       <Filter>소스 파일\Core\Behaviour API</Filter>
+    </ClCompile>
+    <ClCompile Include="TextResource.cpp">
+      <Filter>소스 파일\Core\Core Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

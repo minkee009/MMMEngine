@@ -245,7 +245,12 @@ void MMMEngine::Editor::InspectorWindow::Render()
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
-	ImGui::Begin(u8"인스펙터", &g_editor_window_inspector);
+
+    static const char* ICON_HIERARCHY = "\xef\x80\x82";
+
+    std::string title = std::string(ICON_HIERARCHY) + u8" 인스펙터";
+
+	ImGui::Begin(title.c_str(), &g_editor_window_inspector);
 
     // 1. 선택된 게임 오브젝트가 있는지 확인
     if (g_selectedGameObject.IsValid())

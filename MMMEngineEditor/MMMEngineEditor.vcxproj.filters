@@ -141,6 +141,9 @@
     <ClInclude Include="ConsoleStreamBuf.h">
       <Filter>헤더 파일\EditorWindow\ImGuiHelper</Filter>
     </ClInclude>
+    <ClInclude Include="FilesWindow.h">
+      <Filter>헤더 파일\EditorWindow</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -198,6 +201,9 @@
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
     <ClCompile Include="ConsoleWindow.cpp">
+      <Filter>소스 파일\EditorWIndow</Filter>
+    </ClCompile>
+    <ClCompile Include="FilesWindow.cpp">
       <Filter>소스 파일\EditorWIndow</Filter>
     </ClCompile>
   </ItemGroup>

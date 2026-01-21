@@ -124,7 +124,11 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
-	ImGui::Begin(u8"하이어라키", &g_editor_window_hierarchy);
+	static const char* ICON_HIERARCHY = "\xef\x83\x8a";
+
+	std::string title = std::string(ICON_HIERARCHY) + u8" 하이어라키";
+
+	ImGui::Begin(title.c_str(), &g_editor_window_hierarchy);
 
 	auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
 
@@ -154,7 +158,10 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 			DrawDropLine("##drop_lastline");
 		else
 		{
-			ImGui::InvisibleButton("##", ImGui::GetContentRegionAvail());
+			float windowWidth = ImGui::GetContentRegionAvail().x;
+			windowWidth = std::max(0.01f, windowWidth);
+
+			ImGui::InvisibleButton("##", { windowWidth,ImGui::GetContentRegionAvail().y });
 			MUID muid = GetMuid("gameobject_muid");
 			if (muid.IsValid())
 			{
