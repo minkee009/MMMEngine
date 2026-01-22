@@ -25,9 +25,20 @@ void MMMEngine::Player::Update()
 	if (Input::GetKey(KeyCode::UpArrow))    dz += 1.0f;
 	if (Input::GetKey(KeyCode::DownArrow))  dz -= 1.0f;
 	isMoving = (dx != 0.0f || dz != 0.0f);
-	pos.x += dx * velocity * Time::GetDeltaTime();
-	pos.z += dz * velocity * Time::GetDeltaTime();
-	tr->SetWorldPosition(pos);
+	if (isMoving) {
+		float len = sqrtf(dx * dx + dz * dz);
+		dx /= len;
+		dz /= len;
+
+		pos.x += dx * velocity * Time::GetDeltaTime();
+		pos.z += dz * velocity * Time::GetDeltaTime();
+		tr->SetWorldPosition(pos);
+
+		// 회전: +Z가 Forward인 LH 기준 yaw
+		float yaw = atan2f(dx, dz); // 라디안
+		auto rot = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(yaw, 0.0f, 0.0f);
+		tr->SetWorldRotation(rot);
+	}
 	if (Input::GetKey(KeyCode::Space)) {
 		targetEnemy = nullptr;
 		attackTimer = 1.0f;

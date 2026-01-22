@@ -13,7 +13,7 @@ void MMMEngine::Castle::UnInitialize()
 
 void MMMEngine::Castle::Update()
 {
-	if (prevHP < HP)
+	if (prevHP > HP)
 	{
 		fighting = true;
 		NonfightTimer = 5.0f;

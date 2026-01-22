@@ -11,6 +11,7 @@ namespace MMMEngine {
 		void Update();
 		void CoinUp(float t);
 		void GetDamage(int t) { HP -= t; };
+		bool CastleDeath() const { return HP <= 0; }
 	private:
 		int HP = 10;
 		int prevHP;

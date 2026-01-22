@@ -28,14 +28,25 @@ void MMMEngine::Snowball::RollSnow()
 	auto pos = GetTransform()->GetWorldPosition();
 	auto pTr = player->GetTransform();
 	auto playerpos = pTr->GetWorldPosition();
-	auto pRot = pTr->GetWorldRotation();
+	auto playerrot = pTr->GetWorldRotation();
 	auto fwd = DirectX::SimpleMath::Vector3::Transform(
-		DirectX::SimpleMath::Vector3::Forward, pRot);
+		DirectX::SimpleMath::Vector3::Forward, playerrot);
 	fwd.y = 0.0f;
 	if (fwd.LengthSquared() > 1e-8f) fwd.Normalize();
-	float offset = 1.5f;
-	pos = playerpos + fwd * offset;
-	tr->SetWorldPosition(pos);
+	auto target = playerpos + fwd * offset;
+	auto to = target - pos;
+	to.y = 0.0f;
+
+	float dist = to.Length();
+	if (dist > 1e-3f)
+	{
+		auto dir = to / dist;
+		float step = velocity * Time::GetDeltaTime();
+		if (step >= dist) pos = target;
+		else pos += dir * step;
+
+		tr->SetWorldPosition(pos);
+	}
 }
 
 void MMMEngine::Snowball::AssembleSnow(ObjPtr<GameObject> other)

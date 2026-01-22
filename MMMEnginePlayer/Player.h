@@ -13,6 +13,7 @@ namespace MMMEngine {
 		void VelocityDown(float t) { velocity = bestvelocity - t; };
 		void VelocityReturn() { velocity = 20.0f; };
 		bool IsMoving() const{ return isMoving; }
+		bool PlayerDeath() const { return HP <= 0; }
 	private:
 		int HP = 100;
 		float velocity = 20.0f;

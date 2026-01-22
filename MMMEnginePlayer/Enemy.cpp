@@ -26,7 +26,6 @@ void MMMEngine::Enemy::Update()
 	auto pos = tr->GetWorldPosition();
 	if (!playerFind)
 	{
-		//타겟 설정은 이후 건물이 추가되면 성을 포함한 건물들 중 가장 가까운 건물로 설정 추가
 		float targetX = castlepos.x;
 		float targetZ = castlepos.z;
 
@@ -41,14 +40,18 @@ void MMMEngine::Enemy::Update()
 
 			pos.x += dx * velocity * Time::GetDeltaTime();
 			pos.z += dz * velocity * Time::GetDeltaTime();
+			tr->SetWorldPosition(pos);
+
+			// 회전 (이동 방향 바라보기)
+			float yaw = atan2f(dx, dz); // LH(+Z forward)
+			auto rot = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(yaw, 0.0f, 0.0f);
+			tr->SetWorldRotation(rot);
 		}
-		
 		else
 		{
 			attackCastle = true;
 			attackTimer = 1.0f;
 		}
-		tr->SetWorldPosition(pos);
 
 		if (attackCastle)
 		{
@@ -60,27 +63,32 @@ void MMMEngine::Enemy::Update()
 			}
 		}
 
-		//Enemy정면 계산, 실제 테스트 및 transform 설정에 따라 수정 해야함
-		auto fwd3 = tr->GetWorldMatrix().Forward();
+		// Enemy forward (월드 회전 기준)
+		auto fwd3 = DirectX::SimpleMath::Vector3::Transform(
+			DirectX::SimpleMath::Vector3::Forward,
+			tr->GetWorldRotation()
+		);
 		fwd3.y = 0.0f;
-
+		if (fwd3.LengthSquared() < 1e-8f) return;
 		fwd3.Normalize();
 
 		// Enemy -> Player (XZ)
 		float pldx = playerpos.x - pos.x;
 		float pldz = playerpos.z - pos.z;
 
-		float dist2 = sqrtf(pldx * pldx + pldz * pldz);
+		float playerDist2 = pldx * pldx + pldz * pldz;
+		if (playerDist2 < 1e-8f) return;
 
-		float invDist = 1.0f / dist2;
+		float playerDist = sqrtf(playerDist2);
+		float invDist = 1.0f / playerDist;
 		pldx *= invDist;
 		pldz *= invDist;
 
-		// dot = cos(theta)
+		// dot
 		float dot = fwd3.x * pldx + fwd3.z * pldz;
 
-		// 시야각(예: cos(60deg)=0.5) And 거리 And 성 공격 상태 아님
-		if (dot >= 0.5f && dist < 10.0f && !attackCastle)
+		// 시야각 + 거리 + 성 공격 중 아님
+		if (dot >= 0.5f && playerDist < 10.0f && !attackCastle)
 		{
 			playerFind = true;
 			attackTimer = 1.0f;
@@ -100,6 +108,11 @@ void MMMEngine::Enemy::Update()
 			pos.x += pldx * velocity * Time::GetDeltaTime();
 			pos.z += pldz * velocity * Time::GetDeltaTime();
 			tr->SetWorldPosition(pos);
+
+			// 회전 (이동 방향 바라보기)
+			float yaw = atan2f(pldx, pldz); // LH(+Z forward)
+			auto rot = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(yaw, 0.0f, 0.0f);
+			tr->SetWorldRotation(rot);
 			attackTimer = 1.0f;
 		}
 		else
@@ -111,7 +124,7 @@ void MMMEngine::Enemy::Update()
 				attackTimer = 1.0f;
 			}
 		}
-		if (pldist > 100.f)
+		if (pldist > 50.f)
 			playerFind = false;
 	}
 	if(HP<=0)

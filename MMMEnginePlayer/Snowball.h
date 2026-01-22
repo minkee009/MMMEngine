@@ -15,6 +15,8 @@ namespace MMMEngine {
 	private:
 		void RollSnow();
 		float scale = 0.01f;
+		float offset = 1.5f; //눈과 플레이어간의 거리
+		float velocity = 25.0f;
 		ObjPtr<GameObject> player;
 	};
 }

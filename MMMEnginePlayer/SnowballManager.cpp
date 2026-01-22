@@ -169,10 +169,10 @@ void MMMEngine::SnowballManager::MakeSnowball()
 	sc->controlled = true;
 	auto pTr = player->GetTransform();
 	auto playerpos = pTr->GetWorldPosition();
-	auto pRot = pTr->GetWorldRotation();
+	auto playerrot = pTr->GetWorldRotation();
 	//눈덩이 위치 설정, 테스트 후 수정
 	auto fwd = DirectX::SimpleMath::Vector3::Transform(
-		DirectX::SimpleMath::Vector3::Forward, pRot);
+		DirectX::SimpleMath::Vector3::Forward, playerrot);
 	fwd.y = 0.0f;
 	if (fwd.LengthSquared() > 1e-8f) fwd.Normalize();
 	auto pos = playerpos + fwd * offset;
