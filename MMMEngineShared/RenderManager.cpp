@@ -21,7 +21,7 @@ namespace MMMEngine {
 		m_projMatrix = Matrix::Identity;
 	}
 
-	void RenderManager::StartUp(HWND* _hwnd, UINT _ClientWidth, UINT _ClientHeight)
+	void RenderManager::StartUp(HWND _hwnd, UINT _ClientWidth, UINT _ClientHeight)
 	{
 		// 디바이스 생성
 		ComPtr<ID3D11Device> device;
@@ -34,7 +34,7 @@ namespace MMMEngine {
 
 		// hWnd 등록
 		assert(_hwnd != nullptr && "RenderPipe::Initialize : hWnd must not be nullptr!!");
-		m_pHwnd = _hwnd;
+		m_hWnd = _hwnd;
 
 		// 클라이언트 사이즈 등록
 		m_clientWidth = _ClientWidth;
@@ -48,22 +48,28 @@ namespace MMMEngine {
 	{
 		// 스왑체인 속성설정 생성
 		DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
-		swapDesc.BufferCount = 1;
+		swapDesc.BufferCount = 2;
 		swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapDesc.Width = m_clientWidth;
 		swapDesc.Height = m_clientHeight;
 		swapDesc.SampleDesc.Count = 1;		// MSAA
 		swapDesc.SampleDesc.Quality = 0;	// MSAA 품질수준
-		swapDesc.Scaling = DXGI_SCALING_ASPECT_RATIO_STRETCH;
+
+		// DXGI 디바이스
+		ComPtr<IDXGIDevice> dxgiDevice;
+		m_pDevice.As(&dxgiDevice);
+
+		ComPtr<IDXGIAdapter> adapter;
+		dxgiDevice->GetAdapter(&adapter);
 
 		// 팩토리 생성
-		Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory;
-		HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory2), (void**)dxgiFactory.GetAddressOf()));
+		ComPtr<IDXGIFactory2> dxgiFactory;
+		adapter->GetParent(IID_PPV_ARGS(&dxgiFactory));
 
 		// 스왑체인 생성
 		Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
-		HR_T(dxgiFactory->CreateSwapChainForHwnd(m_pDevice.Get(), *m_pHwnd, &swapDesc,
+		HR_T(dxgiFactory->CreateSwapChainForHwnd(m_pDevice.Get(), m_hWnd, &swapDesc,
 			nullptr, nullptr, swapChain.GetAddressOf()));
 		HR_T(swapChain.As(&m_pSwapChain));
 
@@ -79,13 +85,13 @@ namespace MMMEngine {
 		backBuffer->Release();
 
 		// 뷰포트 설정
-		m_defaultViewport = {};
-		m_defaultViewport.TopLeftX = 0.0f;
-		m_defaultViewport.TopLeftY = 0.0f;
-		m_defaultViewport.Width = static_cast<float>(m_clientWidth);
-		m_defaultViewport.Height = static_cast<float>(m_clientHeight);
-		m_defaultViewport.MinDepth = 0.0f;
-		m_defaultViewport.MaxDepth = 1.0f;
+		m_swapViewport = {};
+		m_swapViewport.TopLeftX = 0.0f;
+		m_swapViewport.TopLeftY = 0.0f;
+		m_swapViewport.Width = static_cast<float>(m_clientWidth);
+		m_swapViewport.Height = static_cast<float>(m_clientHeight);
+		m_swapViewport.MinDepth = 0.0f;
+		m_swapViewport.MaxDepth = 1.0f;
 
 		// 뎊스 텍스쳐 생성
 		D3D11_TEXTURE2D_DESC1 depthDesc = {};
@@ -148,27 +154,53 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateRasterizerState2(&rsDesc, m_pDefaultRS.GetAddressOf()));
 		assert(m_pDefaultRS && "RenderPipe::InitD3D : defaultRS not initialized!!");
 	
-		D3D11_TEXTURE2D_DESC1 descTex;
-		ZeroMemory(&descTex, sizeof(descTex));
-		descTex.Width = m_clientWidth;
-		descTex.Height = m_clientHeight;
-		descTex.MipLevels = 1;
-		descTex.ArraySize = 1;
-		descTex.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-		descTex.SampleDesc.Count = 1;
-		descTex.SampleDesc.Quality = 0;
-		descTex.Usage = D3D11_USAGE_DEFAULT;
-		descTex.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-		descTex.CPUAccessFlags = 0;
-		descTex.MiscFlags = 0;
-		HR_T(m_pDevice->CreateTexture2D1(&descTex, NULL, m_pSceneTexture.GetAddressOf()));
+		// === Scene 렌더타겟 초기화 ===
+		D3D11_TEXTURE2D_DESC1 sceneColorDesc = {};
+		sceneColorDesc.Width = m_clientWidth;
+		sceneColorDesc.Height = m_clientHeight;
+		sceneColorDesc.MipLevels = 1;
+		sceneColorDesc.ArraySize = 1;
+		sceneColorDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // HDR 지원 포맷
+		sceneColorDesc.SampleDesc.Count = 1;
+		sceneColorDesc.SampleDesc.Quality = 0;
+		sceneColorDesc.Usage = D3D11_USAGE_DEFAULT;
+		sceneColorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-		// 씬 텍스쳐 렌더 타겟 뷰 생성
-		HR_T(m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), NULL, m_pSceneRTV.GetAddressOf()));
+		// Scene 컬러 텍스처 생성
+		HR_T(m_pDevice->CreateTexture2D1(&sceneColorDesc, nullptr, m_pSceneTexture.GetAddressOf()));
 
-		// 씬 텍스쳐 쉐이더 리소스 뷰 생성
-		HR_T(m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), NULL, m_pSceneSRV.GetAddressOf()));
+		// RTV 생성
+		HR_T(m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), nullptr, m_pSceneRTV.GetAddressOf()));
 
+		// SRV 생성
+		HR_T(m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), nullptr, m_pSceneSRV.GetAddressOf()));
+
+		// Depth/Stencil 버퍼 생성
+		D3D11_TEXTURE2D_DESC1 sceneDepthDesc = {};
+		sceneDepthDesc.Width = m_clientWidth;
+		sceneDepthDesc.Height = m_clientHeight;
+		sceneDepthDesc.MipLevels = 1;
+		sceneDepthDesc.ArraySize = 1;
+		sceneDepthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		sceneDepthDesc.SampleDesc.Count = 1;
+		sceneDepthDesc.SampleDesc.Quality = 0;
+		sceneDepthDesc.Usage = D3D11_USAGE_DEFAULT;
+		sceneDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		sceneDepthDesc.CPUAccessFlags = 0;
+		sceneDepthDesc.MiscFlags = 0;
+
+		HR_T(m_pDevice->CreateTexture2D1(&sceneDepthDesc, nullptr, m_pSceneDSB.GetAddressOf()));
+
+		// DSV 생성
+		HR_T(m_pDevice->CreateDepthStencilView(m_pSceneDSB.Get(), nullptr, m_pSceneDSV.GetAddressOf()));
+
+		// 씬 뷰포트 설정
+		m_sceneViewport.TopLeftX = 0.0f;
+		m_sceneViewport.TopLeftY = 0.0f;
+		m_sceneViewport.Width = static_cast<float>(m_sceneWidth);
+		m_sceneViewport.Height = static_cast<float>(m_sceneHeight);
+		m_sceneViewport.MinDepth = 0.0f;
+		m_sceneViewport.MaxDepth = 1.0f;
 
 		// 기본 VSShader 생성
 		m_pDefaultVSShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
@@ -252,7 +284,7 @@ namespace MMMEngine {
 		m_clientHeight = height;
 
 		// RTV 등록해제
-		m_pDeviceContext->OMSetRenderTargets(1, nullptr, nullptr);
+		m_pDeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 
 		// 기존 RTV/DSV 해제
 		if (m_pRenderTargetView) m_pRenderTargetView->Release();
@@ -270,10 +302,10 @@ namespace MMMEngine {
 
 		// 새 백버퍼 가져오기
 		ID3D11Texture2D1* buffer;
-		HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&buffer));
+		HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), (void**)&buffer));
 
 		// 새 RTV 생성
-		HR_T(m_pDevice->CreateRenderTargetView1(buffer, nullptr, &m_pRenderTargetView));
+		HR_T(m_pDevice->CreateRenderTargetView1(buffer, nullptr, m_pRenderTargetView.GetAddressOf()));
 		buffer->Release();
 
 		// Depth/Stencil 버퍼 생성
@@ -288,23 +320,14 @@ namespace MMMEngine {
 		depthDesc.Usage = D3D11_USAGE_DEFAULT;
 		depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, &m_pDepthStencilBuffer));
-		HR_T(m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer.Get(), nullptr, &m_pDepthStencilView));
-
-		// 뷰포트 갱신
-		m_defaultViewport.Width = static_cast<FLOAT>(width);
-		m_defaultViewport.Height = static_cast<FLOAT>(height);
-		m_defaultViewport.MinDepth = 0.0f;
-		m_defaultViewport.MaxDepth = 1.0f;
-		m_defaultViewport.TopLeftX = 0;
-		m_defaultViewport.TopLeftY = 0;
-		m_pDeviceContext->RSSetViewports(1, &m_defaultViewport);
+		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, m_pDepthStencilBuffer.GetAddressOf()));
+		HR_T(m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer.Get(), nullptr, m_pDepthStencilView.GetAddressOf()));
 	}
 
-	void RenderManager::ResizeSceneSize(int _width, int _height)
+	void RenderManager::ResizeSceneSize(int _width, int _height, int _sceneWidth, int _sceneHeight)
 	{
-		m_sceneWidth = _width;
-		m_sceneHeight = _height;
+		m_sceneWidth = _sceneWidth;
+		m_sceneHeight = _sceneHeight;
 
 		// 기존 리소스 해제
 		if (m_pSceneRTV) { m_pSceneRTV->Release();      m_pSceneRTV = nullptr; }
@@ -326,13 +349,13 @@ namespace MMMEngine {
 		colorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
 		// Scene 컬러 텍스처 생성
-		HR_T(m_pDevice->CreateTexture2D1(&colorDesc, nullptr, &m_pSceneTexture));
+		HR_T(m_pDevice->CreateTexture2D1(&colorDesc, nullptr, m_pSceneTexture.GetAddressOf()));
 
 		// RTV 생성
-		HR_T(m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), nullptr, &m_pSceneRTV));
+		HR_T(m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), nullptr, m_pSceneRTV.GetAddressOf()));
 
 		// SRV 생성 (쉐이더에서 샘플링 가능)
-		HR_T(m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), nullptr, &m_pSceneSRV));
+		HR_T(m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), nullptr, m_pSceneSRV.GetAddressOf()));
 
 		// Depth/Stencil 버퍼 설명
 		D3D11_TEXTURE2D_DESC1 depthDesc = {};
@@ -347,10 +370,35 @@ namespace MMMEngine {
 		depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
 		// Depth/Stencil 텍스처 생성
-		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, &m_pSceneDSB));
+		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, m_pSceneDSB.GetAddressOf()));
 
 		// DSV 생성
-		HR_T(m_pDevice->CreateDepthStencilView(m_pSceneDSB.Get(), nullptr, &m_pSceneDSV));
+		HR_T(m_pDevice->CreateDepthStencilView(m_pSceneDSB.Get(), nullptr, m_pSceneDSV.GetAddressOf()));
+		
+		float sceneAspect = (float)_sceneWidth / (float)_sceneHeight;
+		float backAspect = (float)_width / (float)_height;
+
+		float drawW, drawH;
+
+		if (backAspect > sceneAspect) {
+			drawH = _height;
+			drawW = _width * sceneAspect;
+		}
+		else {
+			drawW = _width;
+			drawH = _width / sceneAspect;
+		}
+
+		float offsetX = (_width - drawW) * 0.5f;
+		float offsetY = (_height - drawH) * 0.5f;
+
+		// 뷰포트 갱신
+		m_sceneViewport.Width = drawW;
+		m_sceneViewport.Height = drawH;
+		m_sceneViewport.MinDepth = 0.0f;
+		m_sceneViewport.MaxDepth = 1.0f;
+		m_sceneViewport.TopLeftX = offsetX;
+		m_sceneViewport.TopLeftY = offsetY;
 	}
 
 	void RenderManager::BeginFrame()
@@ -387,7 +435,7 @@ namespace MMMEngine {
 		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 		m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 
-		m_pDeviceContext->RSSetViewports(1, &m_defaultViewport);
+		m_pDeviceContext->RSSetViewports(1, &m_sceneViewport);
 		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
 		m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pSceneRTV.GetAddressOf()), m_pDepthStencilView.Get());
 
@@ -398,8 +446,9 @@ namespace MMMEngine {
 			}
 		}
 		
-		// 렌더타겟 해제
-		m_pDeviceContext->OMSetRenderTargets(0, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
+		// 씬렌더 해제
+		m_pDeviceContext->RSSetViewports(1, &m_swapViewport);
+		m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
 	}
 
 	void RenderManager::EndFrame()

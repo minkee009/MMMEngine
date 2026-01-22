@@ -41,7 +41,7 @@ namespace MMMEngine
 		DirectX::SimpleMath::Matrix m_viewMatrix;
 		DirectX::SimpleMath::Matrix m_projMatrix;
 	protected:
-		HWND* m_pHwnd = nullptr;	// HWND 포인터
+		HWND m_hWnd;
 
 		UINT m_clientWidth = 0;
 		UINT m_clientHeight = 0;
@@ -68,7 +68,7 @@ namespace MMMEngine
 
 		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pDefaultBS;		// 기본 블랜드 스테이트
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_DefaultRS;	// 기본 레스터라이저 스테이트
-		D3D11_VIEWPORT m_defaultViewport;							// 기본 뷰포트
+		D3D11_VIEWPORT m_swapViewport;							// 기본 뷰포트
 
 		// 씬을 그릴 버퍼 (HDR 처리를 위해 보통 float 포맷 사용)
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1>          m_pSceneTexture;
@@ -76,6 +76,7 @@ namespace MMMEngine
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> m_pSceneSRV;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	  m_pSceneDSV;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1>		  m_pSceneDSB;
+		D3D11_VIEWPORT m_sceneViewport;							// 기본 뷰포트
 
 		// 버퍼 기본색상
 		DirectX::SimpleMath::Vector4 m_ClearColor;
@@ -93,7 +94,7 @@ namespace MMMEngine
 		// 텍스쳐 버퍼인덱스 주는 맵 <propertyName, index> (쉐어드로 옮길것)
 		std::unordered_map<std::wstring, int> m_propertyMap;
 	public:
-		void StartUp(HWND* _hwnd, UINT _ClientWidth, UINT _ClientHeight);
+		void StartUp(HWND _hwnd, UINT _ClientWidth, UINT _ClientHeight);
 		void InitD3D();
 		void ShutDown();
 		void Start();
@@ -104,7 +105,7 @@ namespace MMMEngine
 		void SetProjMatrix(DirectX::SimpleMath::Matrix& _proj);
 
 		void ResizeSwapChainSize(int width, int height);
-		void ResizeSceneSize(int _width, int _height);
+		void ResizeSceneSize(int _width, int _height, int _sceneWidth, int _sceneHeight);
 		void UseBackBuffer(const bool _value) { useBackBuffer = _value; }
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> GetSceneRTV() { return m_pSceneRTV; }
