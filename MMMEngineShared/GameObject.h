@@ -20,8 +20,6 @@ namespace MMMEngine
 		friend class Component;
 		friend class Transform;
 
-		static uint64_t s_go_instanceID;
-
 		SceneRef m_scene = { static_cast<size_t>(-1), false };
 
 		ObjPtr<Transform> m_transform;

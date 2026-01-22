@@ -6,6 +6,8 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <EditorCamera.h>
+#include "RenderManager.h"
 
 DEFINE_SINGLETON(MMMEngine::SceneManager)
 
@@ -85,7 +87,16 @@ void MMMEngine::SceneManager::CreateEmptyScene(std::string name)
 {
 	m_scenes.push_back(std::make_unique<Scene>());
 	m_scenes.back()->SetName(name);
-	SnapShot snapShot; 
+
+	// 카메라 만들기
+	auto camera = ObjectManager::Get().NewObject<GameObject>("EditorCamera");
+	auto camComp = camera->AddComponent<EditorCamera>();
+	RenderManager::Get().SetCamera(camComp);
+
+	//TODO::모델 불러오기 테스트 나중에 삭제해야함
+	onCreateEmptyScene();
+
+	SnapShot snapShot;
 	SceneSerializer::Get().SerializeToMemory(*m_scenes.back(), snapShot);
 	m_scenes.back()->SetSnapShot(std::move(snapShot));
 }
@@ -182,7 +193,7 @@ void MMMEngine::SceneManager::UpdateAndReloadScenes(std::vector<std::string> sce
 			// Scene 파일 로드
 			auto sceneRootPath = m_sceneListPath + L"/" + Utility::StringHelper::StringToWString(sceneName) + L".scene";
 			std::ifstream sceneFile(sceneRootPath, std::ios::binary);
-		
+
 			if (sceneFile.is_open())
 			{
 				std::vector<uint8_t> sceneBuffer((std::istreambuf_iterator<char>(sceneFile)),
@@ -260,7 +271,7 @@ void MMMEngine::SceneManager::StartUp(std::wstring sceneListPath, size_t startSc
 
 	if (m_scenes.empty())
 	{
-		if(!allowEmptyScene)
+		if (!allowEmptyScene)
 			assert(false && "씬리스트가 비어있습니다!, 초기씬 로드에 실패했습니다!");
 		else
 		{
@@ -286,9 +297,9 @@ bool MMMEngine::SceneManager::CheckSceneIsChanged()
 	if (m_nextSceneID != static_cast<size_t>(-1) &&
 		m_nextSceneID < m_scenes.size())
 	{
-		if (m_currentSceneID != static_cast<size_t>(-1) && 
+		if (m_currentSceneID != static_cast<size_t>(-1) &&
 			m_currentSceneID < m_scenes.size())
-		 	m_scenes[m_currentSceneID]->Clear();
+			m_scenes[m_currentSceneID]->Clear();
 
 		m_currentSceneID = m_nextSceneID;
 		m_nextSceneID = static_cast<size_t>(-1);

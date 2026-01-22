@@ -7,6 +7,7 @@
 #include "GameObject.h"
 #include "Scene.h"
 #include "SceneRef.h"
+#include "Delegates.hpp"
 
 namespace MMMEngine
 {
@@ -22,19 +23,23 @@ namespace MMMEngine
 		size_t m_nextSceneID;
 
 		std::unique_ptr<Scene> m_dontDestroyOnLoadScene;
-
+	
 		// todo : json 메세지팩으로 to index, scene snapshot을 Scene생성하면서 로드시키기
 		void LoadScenes(bool allowEmptyScene);
 		void CreateEmptyScene(std::string name = "EmptyScene");
 
 		void UpdateScenesHash(std::unordered_map<std::string, size_t>&& nameToID) noexcept;
 	public:
-	
+
 		//========= 메타 프로그램용 =============//
+			// todo : 삭제해야함
+		Utility::Action<> onCreateEmptyScene;
+
+
 		void RegisterGameObjectToDDOL(ObjPtr<GameObject> go);
 
 		const std::unordered_map<std::string, size_t>& GetScenesHash();
-		
+
 		void UpdateAndReloadScenes(std::vector<std::string> sceneList);
 
 		std::vector<ObjPtr<GameObject>> GetAllGameObjectInCurrentScene();
