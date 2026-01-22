@@ -73,8 +73,6 @@ void Initialize()
 
 	ImGuiEditorContext::Get().Initialize(hwnd, device.Get(), context.Get());
 	app->OnBeforeWindowMessage.AddListener<ImGuiEditorContext, &ImGuiEditorContext::HandleWindowMessage>(&ImGuiEditorContext::Get());
-	
-	AssimpLoader::Get().RegisterModel(L"Assets/Castle.fbx", MMMEngine::ModelType::Static);
 }
 
 void Update_ProjectNotLoaded()
