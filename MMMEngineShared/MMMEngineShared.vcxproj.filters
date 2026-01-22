@@ -270,12 +270,398 @@
     <ClInclude Include="BehaviourManager.h" />
     <ClInclude Include="CapsuleColliderComponent.h" />
     <ClInclude Include="CollisionMatrix.h" />
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="소스 파일\Core">
+      <UniqueIdentifier>{6e95a25c-97cb-4986-92fc-2c2c159e1884}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Object API">
+      <UniqueIdentifier>{15f04ef4-0d77-4cbb-b82e-1ebeb228d8f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core">
+      <UniqueIdentifier>{b7472de8-e436-4e0f-bfe7-6d4d1a14f463}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Object API">
+      <UniqueIdentifier>{30f2f91b-60c1-4b27-b369-eeb01b79f5f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Utility">
+      <UniqueIdentifier>{6bbd6fd2-454b-4946-89b5-785f6376765a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Utility">
+      <UniqueIdentifier>{bb817747-9bed-4c9b-9d18-d3727af467be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DXTK">
+      <UniqueIdentifier>{c1f31de4-7de7-4812-9d2f-5225d890f3e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DXTK\Src">
+      <UniqueIdentifier>{22a3ca23-ec10-4a58-9d4d-c71761373146}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DXTK\Inc">
+      <UniqueIdentifier>{d2942064-b39a-40f4-86b6-3aa64d93dc96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Resource API">
+      <UniqueIdentifier>{9429d884-7bed-4e3a-8a66-6736b614e7c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Scene API">
+      <UniqueIdentifier>{f41342cf-51ab-49c1-a516-6aa1444b9872}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Input API">
+      <UniqueIdentifier>{0541079b-0c19-4d7d-9149-a84c89ebef56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Input API">
+      <UniqueIdentifier>{a1c10f2f-8f28-4dd3-a335-a9ab53d1d169}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Time API">
+      <UniqueIdentifier>{92e9c672-6b84-46be-8699-a0b5f3f8e686}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Time API">
+      <UniqueIdentifier>{dc3fa110-e47b-42bb-905e-25c4efa41aaa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Application API">
+      <UniqueIdentifier>{8cb218df-594c-49d2-9e63-218696dadb13}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Global Registry">
+      <UniqueIdentifier>{93651194-ba3a-4e45-bd12-1fd240cc5473}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Screen API">
+      <UniqueIdentifier>{63578d04-b180-4852-ad1b-7bb967344042}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Common">
+      <UniqueIdentifier>{e296e3ca-bfb6-4f05-a670-78d6d9a801f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Behaviour API">
+      <UniqueIdentifier>{ef8554e5-7448-4e9f-9aab-845d6bd3c5bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Behaviour API">
+      <UniqueIdentifier>{a2261ff3-b7f4-480e-9137-39b33451370d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Resource API">
+      <UniqueIdentifier>{b4e5e7a3-5660-4bc1-8594-1f4c1e227717}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\GlobalRegistry">
+      <UniqueIdentifier>{217c690e-d5d9-466a-adc0-74b9d1005041}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Resource API\Importer">
+      <UniqueIdentifier>{39633105-b094-4f7f-b6a0-edf4b5acd602}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Scene API">
+      <UniqueIdentifier>{46632266-5bac-4656-8d00-478461ab2139}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Utility\RTTRRegistry">
+      <UniqueIdentifier>{72b6886a-0c46-4ae0-8d62-ce00537cd485}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Render API">
+      <UniqueIdentifier>{4061a8ff-da13-4a20-936b-e46a125b386b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Render API">
+      <UniqueIdentifier>{043cb42d-6ea4-4e75-85eb-9a7d6b03d0cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Behaviour API\ScriptLoader">
+      <UniqueIdentifier>{26e64790-fb4f-41a4-ab03-f82ee13aa8ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Behaviour API\ScriptLoader">
+      <UniqueIdentifier>{ac9c3fcd-296c-4781-9f20-4ea519460450}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Core Test">
+      <UniqueIdentifier>{64ea75a6-7e6a-4817-801f-f9612da1250c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Core Test">
+      <UniqueIdentifier>{44b49f8c-3077-4d0a-be63-9f9da05c9b52}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="dxtk\Inc\SimpleMath.inl" />
-    <None Include="Object.inl" />
-    <None Include="rttr\registration" />
-    <None Include="rttr\registration_friend" />
-    <None Include="rttr\type" />
+    <ClInclude Include="Object.h">
+      <Filter>헤더 파일\Core\Object API</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectManager.h">
+      <Filter>헤더 파일\Core\Object API</Filter>
+    </ClInclude>
+    <ClInclude Include="Delegates.hpp">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="MUID.h">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Singleton.hpp">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Component.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Transform.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\Audio.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\BufferHelpers.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\CommonStates.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\DDSTextureLoader.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\DirectXHelpers.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\Effects.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\GamePad.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\GeometricPrimitive.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\GraphicsMemory.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\Keyboard.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\Model.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\Mouse.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\PostProcess.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\PrimitiveBatch.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\ScreenGrab.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\SimpleMath.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\SpriteBatch.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\SpriteFont.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\VertexTypes.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\WICTextureLoader.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="dxtk\Inc\XboxDDSTextureLoader.h">
+      <Filter>DXTK\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="StringHelper.h">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="InputManager.h">
+      <Filter>헤더 파일\Core\Input API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMInput.h">
+      <Filter>헤더 파일\Core\Input API</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeManager.h">
+      <Filter>헤더 파일\Core\Time API</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>헤더 파일\Core\Resource API</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>헤더 파일\Core\Resource API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMTime.h">
+      <Filter>헤더 파일\Core\Time API</Filter>
+    </ClInclude>
+    <ClInclude Include="InputKeyCode.h">
+      <Filter>헤더 파일\Core\Input API</Filter>
+    </ClInclude>
+    <ClInclude Include="InputConstant.h">
+      <Filter>헤더 파일\Core\Input API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMApplication.h">
+      <Filter>헤더 파일\Core\Application API</Filter>
+    </ClInclude>
+    <ClInclude Include="App.h">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalRegistry.h">
+      <Filter>헤더 파일\Core\Global Registry</Filter>
+    </ClInclude>
+    <ClInclude Include="SerializableEvent.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>헤더 파일\Core\Scene API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMResources.h">
+      <Filter>헤더 파일\Core\Resource API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMScreen.h">
+      <Filter>헤더 파일\Core\Screen API</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneManager.h">
+      <Filter>헤더 파일\Core\Scene API</Filter>
+    </ClInclude>
+    <ClInclude Include="Resolution.h">
+      <Filter>헤더 파일\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplayMode.h">
+      <Filter>헤더 파일\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Behaviour.h">
+      <Filter>헤더 파일\Core\Behaviour API</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviourManager.h">
+      <Filter>헤더 파일\Core\Behaviour API</Filter>
+    </ClInclude>
+    <ClInclude Include="Export.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ExportSingleton.hpp">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneRef.h">
+      <Filter>헤더 파일\Core\Scene API</Filter>
+    </ClInclude>
+    <ClInclude Include="MMMSceneManagement.h">
+      <Filter>헤더 파일\Core\Scene API</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneSerializer.h">
+      <Filter>헤더 파일\Core\Scene API</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager.h">
+      <Filter>헤더 파일\Core\Render API</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>헤더 파일\Core\Render API</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderQueue.h">
+      <Filter>헤더 파일\Core\Render API</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderCommand.h">
+      <Filter>헤더 파일\Core\Render API</Filter>
+    </ClInclude>
+    <ClInclude Include="ScriptLoader.h">
+      <Filter>헤더 파일\Core\Behaviour API\ScriptLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="ScriptBehaviour.h">
+      <Filter>헤더 파일\Core\Behaviour API</Filter>
+    </ClInclude>
+    <ClInclude Include="MissingScriptBehaviour.h">
+      <Filter>헤더 파일\Core\Behaviour API</Filter>
+    </ClInclude>
+    <ClInclude Include="TextResource.h">
+      <Filter>헤더 파일\Core\Core Test</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetsDatabase.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Object.cpp">
+      <Filter>소스 파일\Core\Object API</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectManager.cpp">
+      <Filter>소스 파일\Core\Object API</Filter>
+    </ClCompile>
+    <ClCompile Include="dxtk\Src\SimpleMath.cpp">
+      <Filter>DXTK\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Transform.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="StringHelper.cpp">
+      <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="InputManager.cpp">
+      <Filter>소스 파일\Core\Input API</Filter>
+    </ClCompile>
+    <ClCompile Include="TimeManager.cpp">
+      <Filter>소스 파일\Core\Time API</Filter>
+    </ClCompile>
+    <ClCompile Include="Component.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="App.cpp">
+      <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Behaviour.cpp">
+      <Filter>소스 파일\Core\Behaviour API</Filter>
+    </ClCompile>
+    <ClCompile Include="BehaviourManger.cpp">
+      <Filter>소스 파일\Core\Behaviour API</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceManager.cpp">
+      <Filter>소스 파일\Core\Resource API</Filter>
+    </ClCompile>
+    <ClCompile Include="GlobalRegistry.cpp">
+      <Filter>소스 파일\Core\GlobalRegistry</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource.cpp">
+      <Filter>소스 파일\Core\Resource API</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>소스 파일\Core\Scene API</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneManager.cpp">
+      <Filter>소스 파일\Core\Scene API</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneSerializer.cpp">
+      <Filter>소스 파일\Core\Scene API</Filter>
+    </ClCompile>
+    <ClCompile Include="MUID.cpp">
+      <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="rttr_simplemath_registry.cpp">
+      <Filter>소스 파일\Utility\RTTRRegistry</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderManager.cpp">
+      <Filter>소스 파일\Core\Render API</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>소스 파일\Core\Render API</Filter>
+    </ClCompile>
+    <ClCompile Include="rttr_directxmath_registry.cpp">
+      <Filter>소스 파일\Utility\RTTRRegistry</Filter>
+    </ClCompile>
+    <ClCompile Include="ScriptBehaviour.cpp">
+      <Filter>소스 파일\Core\Behaviour API</Filter>
+    </ClCompile>
+    <ClCompile Include="ScriptLoader.cpp">
+      <Filter>소스 파일\Core\Behaviour API\ScriptLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="MissingScriptBehaviour.cpp">
+      <Filter>소스 파일\Core\Behaviour API</Filter>
+    </ClCompile>
+    <ClCompile Include="TextResource.cpp">
+      <Filter>소스 파일\Core\Core Test</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Object.inl">
+      <Filter>헤더 파일\Core\Object API</Filter>
+    </None>
+    <None Include="dxtk\Inc\SimpleMath.inl">
+      <Filter>DXTK\Inc</Filter>
+    </None>
   </ItemGroup>
 </Project>
