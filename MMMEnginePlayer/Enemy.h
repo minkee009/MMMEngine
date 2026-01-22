@@ -7,15 +7,18 @@ namespace MMMEngine {
 	{
 	public:
 		void Initialize() override;
+		void UnInitialize() override;
 		void Update();
 		void GetDamage(int t) { HP -= t; };
-		void PlayerHitMe() { playerFind = true; };
+		void PlayerHitMe();
 	private:
 		int HP = 50;
 		bool playerFind = false;
 		float velocity = 10.0f;
 		float attackTimer = 1.0f;
+		bool attackCastle = false;
 		ObjPtr<GameObject> player;
+		ObjPtr<GameObject> castle;
 	};
 }
 

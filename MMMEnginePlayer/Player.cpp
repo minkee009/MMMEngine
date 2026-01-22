@@ -4,6 +4,16 @@
 #include "MMMTime.h"
 #include "Transform.h"
 
+void MMMEngine::Player::Initialize()
+{
+
+}
+
+void MMMEngine::Player::UnInitialize()
+{
+
+}
+
 void MMMEngine::Player::Update()
 {
 	float dx = 0.0f;
@@ -27,7 +37,6 @@ void MMMEngine::Player::Update()
 	if (!targetEnemy) {
 		auto enemy = GameObject::FindGameObjectsWithTag("Enemy");
 		for (auto& e : enemy) {
-			auto ec = e->GetComponent<Enemy>();
 			auto enemypos = e->GetTransform()->GetWorldPosition();
 			float enemyX = enemypos.x;
 			float enemyZ = enemypos.z;

@@ -6,7 +6,8 @@ namespace MMMEngine {
 	class Player : public ScriptBehaviour
 	{
 	public:
-		void Initialize() override {};
+		void Initialize() override;
+		void UnInitialize() override;
 		void Update();
 		void GetDamage(int t) { HP -= t; };
 		void VelocityDown(float t) { velocity = bestvelocity - t; };
