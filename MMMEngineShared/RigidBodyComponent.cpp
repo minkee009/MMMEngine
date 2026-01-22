@@ -14,7 +14,7 @@ RTTR_REGISTRATION
 
 	registration::class_<RigidBodyComponent>("RigidBodyComponent")
 		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<RigidBodyComponent>>()))
-		//.property("Type", &RigidBodyComponent::GetType , &RigidBodyComponent::SetType)
+		.property("Type", &RigidBodyComponent::GetType , &RigidBodyComponent::SetType)
 		.property("Mass", &RigidBodyComponent::GetMass , &RigidBodyComponent::SetMass)
 		.property("LinearDamping", &RigidBodyComponent::GetLineDamping , &RigidBodyComponent::SetLineDamping)
 		.property("AngularDamping", &RigidBodyComponent::GetAngularDamping , &RigidBodyComponent::SetAngularDamping)
@@ -33,7 +33,7 @@ RTTR_REGISTRATION
 			rttr::value("Static", RigidBodyComponent::Type::Static)
 			);
 	registration::class_<RigidBodyComponent::Desc>("RigidDesc")
-		//.property("Type", &RigidBodyComponent::Desc::type)
+		.property("Type", &RigidBodyComponent::Desc::type)
 		.property("Mass", &RigidBodyComponent::Desc::mass)
 		.property("LinearDamping", &RigidBodyComponent::Desc::linearDamping)
 		.property("AngularDamping", &RigidBodyComponent::Desc::angularDamping)
