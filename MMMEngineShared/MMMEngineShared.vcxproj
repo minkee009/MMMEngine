@@ -161,7 +161,6 @@
     <ClInclude Include="App.h" />
     <ClInclude Include="AssetsDatabase.h" />
     <ClInclude Include="Behaviour.h" />
-    <ClInclude Include="EditorCamera.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="Delegates.hpp" />
     <ClInclude Include="DisplayMode.h" />
@@ -242,7 +241,6 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Behaviour.cpp" />
     <ClCompile Include="BehaviourManger.cpp" />
-    <ClCompile Include="EditorCamera.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="dxtk\Src\SimpleMath.cpp" />
     <ClCompile Include="GameObject.cpp" />

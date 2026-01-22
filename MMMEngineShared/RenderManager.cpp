@@ -1,7 +1,7 @@
 #include "RenderManager.h"
 #include "GameObject.h"
 #include "Transform.h"
-#include <EditorCamera.h>
+//#include <EditorCamera.h>
 #include <RendererTools.h>
 #include "VShader.h"
 #include "PShader.h"
@@ -31,6 +31,7 @@ namespace MMMEngine {
 
 		// 2) 기존 리소스 릴리즈 (ComPtr면 Reset)
 		m_pRenderTargetView.Reset();
+		m_pBackBuffer.Reset();
 
 		m_pSceneSRV.Reset();
 		m_pSceneRTV.Reset();
@@ -328,7 +329,7 @@ namespace MMMEngine {
 	{
 		if (!_cameraComp)
 			return;
-		m_pCamera = _cameraComp;
+		//m_pCamera = _cameraComp;
 	}
 
 	void RenderManager::BeginFrame()
@@ -340,11 +341,14 @@ namespace MMMEngine {
 
 	void RenderManager::Render()
 	{
+		m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), m_pDepthStencilView.Get());
+		return;
+
 		// 카메라 없으면 안해
-		if (!m_pCamera) {
-			m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), m_pDepthStencilView.Get());
-			return;
-		}
+		//if (!m_pCamera) {
+		//	m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), m_pDepthStencilView.Get());
+		//	return;
+		//}
 			
 
 		// Init Queue 처리
@@ -360,9 +364,9 @@ namespace MMMEngine {
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		// 캠 버퍼 업데이트
-		auto camTrans = m_pCamera->GetTransform();
-		m_camMat.camPos = (DirectX::SimpleMath::Vector4)camTrans->GetWorldPosition();
-		m_pCamera->GetViewMatrix(m_camMat.mView);
+		//auto camTrans = m_pCamera->GetTransform();
+		//m_camMat.camPos = (DirectX::SimpleMath::Vector4)camTrans->GetWorldPosition();
+		//m_pCamera->GetViewMatrix(m_camMat.mView);
 		m_camMat.mView = DirectX::XMMatrixTranspose(m_camMat.mView);
 		m_camMat.mProjection = DirectX::XMMatrixTranspose(DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, m_rClientWidth / (FLOAT)m_rClientHeight, 0.01f, 100.0f));
 

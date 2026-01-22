@@ -76,7 +76,7 @@ namespace MMMEngine
 		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pDefaultInputLayout;
 
 		// 카메라 관련
-		ObjPtr<EditorCamera> m_pCamera;
+		//ObjPtr<EditorCamera> m_pCamera;
 		Render_CamBuffer m_camMat;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCambuffer = nullptr;		// 트랜스폼 버퍼
 
