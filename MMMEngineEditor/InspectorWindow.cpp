@@ -60,6 +60,8 @@ void RenderProperties(rttr::instance inst)
         s_lastCachedObject = g_selectedGameObject;
     }
 
+
+
     auto t = inst.get_derived_type();
     rttr::property p = t.get_property("MUID");
     rttr::variant v = p.get_value(inst);
@@ -88,11 +90,19 @@ void RenderProperties(rttr::instance inst)
 
         const std::string name = prop.get_name().to_string();
         const bool readOnly = prop.is_readonly();
+        rttr::type propType = prop.get_type();
 
         if (var.is_type<Vector3>())
         {
             Vector3 v = var.get_value<Vector3>();
             float data[3] = { v.x, v.y, v.z };
+            auto SnapToZero = [](float& v, float eps = 1e-4f)
+                {
+                    if (fabsf(v) < eps) v = 0.0f; // +0로 만들어짐
+                };
+            SnapToZero(data[0]);
+            SnapToZero(data[1]);
+            SnapToZero(data[2]);
 
             if (readOnly) ImGui::BeginDisabled(true);
             bool changed = ImGui::DragFloat3(name.c_str(), data, 0.1f);
@@ -101,6 +111,42 @@ void RenderProperties(rttr::instance inst)
             if (changed && !readOnly)
                 prop.set_value(inst, Vector3(data[0], data[1], data[2]));
         }
+        else if (propType.is_enumeration())
+        {
+            rttr::enumeration enumType = propType.get_enumeration();
+            std::string currentName = enumType.value_to_name(var).to_string();
+
+            if (readOnly) ImGui::BeginDisabled(true);
+
+            if (ImGui::BeginCombo(name.c_str(), currentName.c_str()))
+            {
+                auto enumNames = enumType.get_names();
+                for (const auto& enumName : enumNames)
+                {
+                    std::string enumNameStr = enumName.to_string();
+                    bool isSelected = (enumNameStr == currentName);
+
+                    if (ImGui::Selectable(enumNameStr.c_str(), isSelected))
+                    {
+                        if (!readOnly)
+                        {
+                            rttr::variant newValue = enumType.name_to_value(enumName);
+                            if (newValue.is_valid())
+                            {
+                                prop.set_value(inst, newValue);
+                            }
+                        }
+                    }
+
+                    if (isSelected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            if (readOnly) ImGui::EndDisabled();
+        }
+
         else if (var.is_type<float>())
         {
             float f = var.get_value<float>();
@@ -179,6 +225,13 @@ void RenderProperties(rttr::instance inst)
             }
 
             float data[3] = { g_eulerCache.x, g_eulerCache.y, g_eulerCache.z };
+            auto SnapToZero = [](float& v, float eps = 1e-4f)
+                {
+                    if (fabsf(v) < eps) v = 0.0f; // +0로 만들어짐
+                };
+            SnapToZero(data[0]);
+            SnapToZero(data[1]);
+            SnapToZero(data[2]);
 
             if (readOnly) ImGui::BeginDisabled(true);
             bool changed = ImGui::DragFloat3(name.c_str(), data, 0.1f);
@@ -245,7 +298,12 @@ void MMMEngine::Editor::InspectorWindow::Render()
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
-	ImGui::Begin(u8"인스펙터", &g_editor_window_inspector);
+
+    static const char* ICON_HIERARCHY = "\xef\x80\x82";
+
+    std::string title = std::string(ICON_HIERARCHY) + u8" 인스펙터";
+
+	ImGui::Begin(title.c_str(), &g_editor_window_inspector);
 
     // 1. 선택된 게임 오브젝트가 있는지 확인
     if (g_selectedGameObject.IsValid())
@@ -319,6 +377,8 @@ void MMMEngine::Editor::InspectorWindow::Render()
             bool visible = true;
 
             std::string typeName = comp->get_type().get_name().to_string();
+
+           // auto ss = comp->get_type();
 
             std::string duplicatePrevantName = typeName + "##" + std::to_string(compCount++);
             if (typeName != "Transform")

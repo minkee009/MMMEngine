@@ -92,7 +92,11 @@ namespace MMMEngine::Editor
 
         ImGui::SetNextWindowClass(&wc);
 
-        ImGui::Begin(u8"콘솔",&g_editor_window_console);
+        static const char* ICON_FOLDER = "\xef\x84\xa0";
+
+        std::string title = std::string(ICON_FOLDER) + u8" 콘솔";
+
+        ImGui::Begin(title.c_str(), &g_editor_window_console);
 
         ImGui::Checkbox(u8"자동 스크롤", &m_AutoScroll);
         ImGui::SameLine();
