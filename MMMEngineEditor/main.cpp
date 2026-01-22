@@ -21,7 +21,10 @@
 #include "DLLHotLoadHelper.h"
 
 //t삭제해야함
-#include "AssimpLoader.h"
+//#include "AssimpLoader.h"
+//#include "StaticMesh.h"
+//#include "MeshRenderer.h"
+//#include "EditorCamera.h"
 
 namespace fs = std::filesystem;
 using namespace MMMEngine;
@@ -73,6 +76,21 @@ void Initialize()
 
 	ImGuiEditorContext::Get().Initialize(hwnd, device.Get(), context.Get());
 	app->OnBeforeWindowMessage.AddListener<ImGuiEditorContext, &ImGuiEditorContext::HandleWindowMessage>(&ImGuiEditorContext::Get());
+
+	// TODO::여기에 커스텀 소스 넣기
+	/*fs::path fbxPath(Editor::ProjectManager::Get().GetActiveProject().ProjectRootFS());
+	fbxPath = fbxPath / "Assets/Castle.fbx";
+	AssimpLoader::Get().RegisterModel(fbxPath.wstring(), ModelType::Static);*/
+
+	// 오브젝트 만들기
+	/*fs::path meshPath = Editor::ProjectManager::Get().GetActiveProject().ProjectRootFS();
+	meshPath = meshPath / L"Assets/Castle_StaticMesh";
+	auto meshRes = ResourceManager::Get().Load<StaticMesh>(meshPath.wstring());
+
+	auto object = ObjectManager::Get().NewObject<GameObject>();
+	auto meshComp = object->AddComponent<MeshRenderer>();
+
+	meshComp->SetMesh(meshRes);*/
 }
 
 void Update_ProjectNotLoaded()
