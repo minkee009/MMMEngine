@@ -157,6 +157,14 @@ void MMMEngine::PhysScene::UnregisterRigid(MMMEngine::RigidBodyComponent* rb)
 	if (itR == m_rigids.end())
 		return; // 등록 안 됨
 
+	// GameObject가 유효하지 않으면 컨테이너만 정리하고 반환
+	if (!rb->GetGameObject().IsValid())
+	{
+		m_collidersByRigid.erase(rb);
+		m_rigids.erase(itR);
+		return;
+	}
+
 	// rb에 붙은 콜라이더 전부 detach (컨테이너 정리 포함)
 	auto itList = m_collidersByRigid.find(rb);
 	if (itList != m_collidersByRigid.end())
@@ -173,14 +181,24 @@ void MMMEngine::PhysScene::UnregisterRigid(MMMEngine::RigidBodyComponent* rb)
 	// actor scene에서 제거
 	if (auto* actor = rb->GetPxActor())
 	{
-		m_scene->removeActor(*actor);
+		try
+		{
+			m_scene->removeActor(*actor);
+		}
+		catch (...)
+		{
+			// actor가 이미 해제되었거나 유효하지 않은 경우 무시
+		}
 	}
 
 	// 컨테이너 정리
 	m_collidersByRigid.erase(rb);
 	m_rigids.erase(itR);
 	//actor release는 rb가 하도록
-	rb->DestroyActor();
+	if (rb->GetGameObject().IsValid())
+	{
+		rb->DestroyActor();
+	}
 }
 
 void MMMEngine::PhysScene::AttachCollider(MMMEngine::RigidBodyComponent* rb, MMMEngine::ColliderComponent* col, const CollisionMatrix& matrix)
@@ -390,7 +408,68 @@ void MMMEngine::PhysScene::PushRigidsToPhysics()
 	for (auto* rb : m_rigids)
 	{
 		if (!rb) continue;
+		if (!rb->GetGameObject().IsValid()) continue;
 		rb->PushToPhysics(); // 내부에서 PoseDirty/ForceQueue 처리
 	}
+}
+
+void MMMEngine::PhysScene::ChangeRigidType(MMMEngine::RigidBodyComponent* rb, const CollisionMatrix& matrix)
+{
+	if (!m_scene || !rb) return;
+	if (!rb->HasPendingTypeChange()) return;
+
+	const bool registered = (m_rigids.find(rb) != m_rigids.end());
+
+	//기존 콜라이더 목록 확보 (포인터 복사만)
+	std::vector<ColliderComponent*> cols;
+	if (auto it = m_collidersByRigid.find(rb); it != m_collidersByRigid.end())
+		cols = it->second;
+
+	//기존 actor scene에서 제거
+	if (registered)
+	{
+		if (auto* oldActor = rb->GetPxActor())
+			m_scene->removeActor(*oldActor);
+	}
+
+	//기존 actor 파괴
+	rb->DestroyActor();
+
+
+	//새 actor 생성
+	auto& physics = PhysicX::Get().GetPhysics();
+	rb->SetType_Internal();
+	rb->CreateActor(&physics, rb->GetRequestedPos(), rb->GetRequestedRot());
+
+	auto* newActor = rb->GetPxActor();
+	if (!newActor) return;
+
+	//콜라이더 다시 attach (컨테이너는 건드리지 말고, actor에 shape만 attach)
+	for (auto* col : cols)
+	{
+		if (!col) continue;
+
+		auto* shape = col->GetPxShape();
+		if (!shape) continue; // 정책상 여기서 BuildShape를 할지, 그냥 스킵할지 결정
+
+		// 필터 재적용
+		uint32_t layer = col->GetEffectiveLayer();
+		col->SetFilterData(matrix.MakeSimFilter(layer), matrix.MakeQueryFilter(layer));
+
+		// actor에 shape만 붙이기 (rb->AttachCollider(관리형) 대신)
+		rb->AttachShapeOnly(shape);
+	}
+
+	//씬에 다시 등록
+	if (registered)
+	{
+		m_scene->addActor(*newActor);
+		m_scene->resetFiltering(*newActor);
+	}
+
+	//질량/관성 재계산은 dynamic일 때만
+	if (auto* dyn = newActor->is<physx::PxRigidDynamic>())
+		physx::PxRigidBodyExt::updateMassAndInertia(*dyn, rb->GetMass());
+	rb->OffPendingType();
 }
 

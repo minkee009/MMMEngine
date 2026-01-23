@@ -221,6 +221,33 @@ void MMMEngine::PhysxManager::RequestUpdateCollider(MMMEngine::ColliderComponent
     m_DirtyColliders.insert(col);
 }
 
+void MMMEngine::PhysxManager::RequestChangeRigidType(MMMEngine::RigidBodyComponent* rb)
+{
+    if (!rb) return;
+
+    // Unregister 예정이면 타입 바꿀 의미가 없음 (어차피 사라짐)
+    if (m_PendingUnreg.find(rb) != m_PendingUnreg.end())
+        return;
+
+    //같은 rb에 대한 이전 ChangeRigidType 요청이 있으면 제거 (마지막 요청만 남김)
+    for (auto it = m_Commands.begin(); it != m_Commands.end(); )
+    {
+        if (it->type == CmdType::ChangeRigid && it->new_rb == rb)
+            it = m_Commands.erase(it);
+        else
+            ++it;
+    }
+
+    // 정책: 타입 변경은 "actor 재생성"이라, 기존 Attach/Detach이 뒤섞이면 위험
+    //    - 가장 안전한 정책은: 타입 변경 요청 시점에 rb 관련 Attach/Detach을 정리하거나
+    //    - 혹은 Flush 순서를 ChangeRigidType -> Attach/Detach로 강제하는 것
+    //
+    // 여기서는 "Flush 순서 강제"로 가는 게 보통 더 낫다.
+    // 따라서 여기서는 지우지 않고, FlushCommands_PreStep에서 ChangeRigidType을 먼저 처리하게 만든다.
+
+    m_Commands.push_back({ CmdType::ChangeRigid, rb, nullptr });
+}
+
 MMMEngine::RigidBodyComponent* MMMEngine::PhysxManager::GetOrCreateRigid(ObjPtr<GameObject> go)
 {
     if (!go.IsValid()) return nullptr;
@@ -243,6 +270,18 @@ bool MMMEngine::PhysxManager::HasAnyCollider(ObjPtr<GameObject> go) const
 // actor생성 및 acotr를 추가하는 작업 / shape생성 밑 붙이는 작업 / shape 교체등을 여기서 한다
 void MMMEngine::PhysxManager::FlushCommands_PreStep()
 {
+    //ChangeRigidType 먼저 처리하도록
+    for (auto it = m_Commands.begin(); it != m_Commands.end(); )
+    {
+        if (it->type == CmdType::ChangeRigid)
+        {
+            m_PhysScene.ChangeRigidType(it->new_rb, m_CollisionMatrix);
+            it = m_Commands.erase(it);
+        }
+        else ++it;
+    }
+
+
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         switch (it->type)
@@ -394,6 +433,12 @@ void MMMEngine::PhysxManager::EraseCommandsForCollider(MMMEngine::ColliderCompon
         else
             ++it;
     }
+}
+
+void MMMEngine::PhysxManager::NotifyRigidTypeChanged(RigidBodyComponent* rb)
+{
+    if (!rb) return;
+    RequestChangeRigidType(rb); // 내부 커맨드 큐 적재
 }
 
 void MMMEngine::PhysxManager::UnbindScene()

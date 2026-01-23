@@ -7,7 +7,7 @@
 #include "Delegates.hpp"
 #include <iostream>
 
-
+using namespace DirectX::SimpleMath;
 
 namespace MMMEngine {
 	class ColliderComponent;
@@ -135,6 +135,14 @@ namespace MMMEngine {
 
 		physx::PxRigidActor* GetPxActor() const;
 
+
+		Vector3 GetRequestedPos() { return m_RequestedPos; }
+		Quaternion GetRequestedRot() { return m_RequestedRot; }
+		void AttachShapeOnly(physx::PxShape* shape);
+		void SetType_Internal();
+		bool HasPendingTypeChange();
+		void OffPendingType();
+
 	private:
 		Desc m_Desc;
 
@@ -191,6 +199,11 @@ namespace MMMEngine {
 
 		void BindTeleport();
 
+		//settype¿ëÇÔ¼ö
+		bool m_TypeChangePending = false;
+		Type m_RequestedType = Type::Dynamic;
+		Vector3 m_RequestedPos{};
+		Quaternion m_RequestedRot{};
 	private:
 		physx::PxForceMode::Enum ToPxForceMode(ForceMode mode);
 

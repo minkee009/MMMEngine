@@ -84,6 +84,8 @@ namespace MMMEngine
 		//현재 씬에 등록된 rigid들에 대해 pushtophysics 호출용
 		void PushRigidsToPhysics();
 
+		void ChangeRigidType(MMMEngine::RigidBodyComponent* col, const CollisionMatrix& matrix);
+
 		const std::vector<MMMEngine::PhysXSimulationCallback::ContactEvent>& GetFrameContacts() const { return m_frameContacts; }
 		const std::vector<PhysXSimulationCallback::TriggerEvent>& GetFrameTriggers() const { return m_frameTriggers; }
 

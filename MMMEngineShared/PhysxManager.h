@@ -42,6 +42,9 @@ namespace MMMEngine
 		// 값 변경 
 		void NotifyColliderChanged(ColliderComponent* col);
 
+		// 타입 변경
+		void NotifyRigidTypeChanged(RigidBodyComponent* rb);
+
 		void UnbindScene();
 		
 		void DispatchPhysicsEvents();
@@ -74,6 +77,7 @@ namespace MMMEngine
 
 		void RequestUpdateCollider(MMMEngine::ColliderComponent* col);
 
+		void RequestChangeRigidType(MMMEngine::RigidBodyComponent* rb);
 
 		// 자동 rigid 생성 헬퍼함수
 		MMMEngine::RigidBodyComponent* GetOrCreateRigid(ObjPtr<GameObject> go);
@@ -99,6 +103,7 @@ namespace MMMEngine
 			AttachCol,      //이 RigidBody에 이 Collider에 붙여라  //actor->attachShape(shape)
 			DetachCol,      //이 Collider를 actor에서 뗴어라       //actor->detachShape(shape)
 			RebuildCol,     //이 Collider의 shape를 다시 만들어라 //새 geometry로 BuildShape -> 다시 attach
+			ChangeRigid		//RigidBody의 타입은 변경하라
 		};
 
 		struct Command

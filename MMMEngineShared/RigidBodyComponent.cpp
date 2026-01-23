@@ -170,7 +170,7 @@ void MMMEngine::RigidBodyComponent::DestroyActor()
 void MMMEngine::RigidBodyComponent::PushToPhysics()
 {
 	if (!m_Actor) return;
-
+	if (!GetGameObject().IsValid()) return;
 	PushPoseIfDirty();
 	PushStateChanges();
 	PushForces();
@@ -443,6 +443,27 @@ physx::PxRigidActor* MMMEngine::RigidBodyComponent::GetPxActor() const
 	return m_Actor;
 }
 
+void MMMEngine::RigidBodyComponent::AttachShapeOnly(physx::PxShape* shape)
+{
+	if (!m_Actor || !shape) return;
+	m_Actor->attachShape(*shape);
+}
+
+void MMMEngine::RigidBodyComponent::SetType_Internal()
+{
+	m_Desc.type = m_RequestedType;
+}
+
+bool MMMEngine::RigidBodyComponent::HasPendingTypeChange()
+{
+	return m_TypeChangePending;
+}
+
+void MMMEngine::RigidBodyComponent::OffPendingType()
+{
+	m_TypeChangePending = false;
+}
+
 
 
 void MMMEngine::RigidBodyComponent::BindTeleport()
@@ -493,40 +514,29 @@ void MMMEngine::RigidBodyComponent::SetType(Type newType)
 
 	if (m_Actor)
 	{
-		if (auto* t_dynamic = m_Actor->is<physx::PxRigidDynamic>())
-		{
-			auto px = t_dynamic->getGlobalPose();
-			temp_Position = ToVec(px.p);
-			temp_Quarter = ToQuat(px.q);
-		}
-		else
-		{
-			auto px = m_Actor->getGlobalPose();
-			temp_Position = ToVec(px.p);
-			temp_Quarter = ToQuat(px.q);
-		}
+		auto px = m_Actor->getGlobalPose();
+		temp_Position = ToVec(px.p);
+		temp_Quarter = ToQuat(px.q);
+	}
+	else if (auto tr = GetTransform())
+	{
+		temp_Position = tr->GetWorldPosition();
+		temp_Quarter = tr->GetWorldRotation();
 	}
 	else
 	{
-		if (auto tr = GetTransform())
-		{
-			temp_Position = tr->GetWorldPosition();
-			temp_Quarter = tr->GetWorldRotation();
-		}
-		else
-		{
-			temp_Position = Vector3{ 0,0,0 };
-			temp_Quarter = Quaternion::Identity;
-		}
+		temp_Position = Vector3{ 0,0,0 };
+		temp_Quarter = Quaternion::Identity;
 	}
 
-	//타입 변경
-	m_Desc.type = newType;
+	m_RequestedType = newType;
+	m_RequestedPos = temp_Position;
+	m_RequestedRot = temp_Quarter;
+	m_TypeChangePending = true;
 
+	// wake는 '나중에' 씬에 들어간 뒤에 처리되게 플래그만
+	m_WakeRequested = true;
 
-	m_Physics = &(MMMEngine::PhysicX::Get().GetPhysics());
-	if (!m_Physics) return;
-	//Actor 재생성
-	DestroyActor();
-	CreateActor(m_Physics, temp_Position, temp_Quarter);
+	// 매니저에 처리 요청
+	MMMEngine::PhysxManager::Get().NotifyRigidTypeChanged(this);
 }

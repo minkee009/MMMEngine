@@ -152,11 +152,11 @@ void Update()
 				return;*/
 
 			MMMEngine::PhysxManager::Get().StepFixed(fixedDt);
+			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 			//PhysicsManager::Get()->PreSyncPhysicsWorld();
 			//PhysicsManager::Get()->PreApplyTransform();
 			//PhysicsManager::Get()->Simulate(fixedDt);
 			//PhysicsManager::Get()->ApplyTransform();
-			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 		});
 
 	RenderManager::Get().BeginFrame();

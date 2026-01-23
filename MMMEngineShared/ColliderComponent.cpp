@@ -64,11 +64,20 @@ void MMMEngine::ColliderComponent::ApplyShapeModeFlags()
 void MMMEngine::ColliderComponent::SetOverrideLayer(bool enable)
 {
     m_OverrideLayer = enable;
+    if (m_Shape)
+    {
+        // PhysxManager를 통해 필터 재적용 요청
+        //PhysxManager::Get().RequestReapplyFilters();
+    }
 }
 
 void MMMEngine::ColliderComponent::SetLayer(uint32_t layer)
 {
     m_LayerOverride = layer;
+    if (m_Shape)
+    {
+        //PhysxManager::Get().RequestReapplyFilters();
+    }
 }
 
 uint32_t MMMEngine::ColliderComponent::GetEffectiveLayer()
