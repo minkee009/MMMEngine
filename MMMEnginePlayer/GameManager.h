@@ -11,6 +11,8 @@ namespace MMMEngine {
 		void Update();
 	private:
 		bool GameOver = false;
+		bool nowSetting = true;
+		float settingTimer = 30.0f;
 		ObjPtr<GameObject> player;
 		ObjPtr<GameObject> castle;
 	};

@@ -1,8 +1,11 @@
 #pragma once
 #include "ScriptBehaviour.h"
-#include "MMMApplication.h"
+#include <DirectXMath.h>
+#include <SimpleMath.h>
 
 namespace MMMEngine {
+	class Transform;
+	class SnowballManager;
 	class Player : public ScriptBehaviour
 	{
 	public:
@@ -12,14 +15,37 @@ namespace MMMEngine {
 		void GetDamage(int t) { HP -= t; };
 		void VelocityDown(float t) { velocity = bestvelocity - t; };
 		void VelocityReturn() { velocity = 20.0f; };
-		bool IsMoving() const{ return isMoving; }
+		bool IsScoopMoving() const{ return scoopHeld&&isMoving; }
 		bool PlayerDeath() const { return HP <= 0; }
+		bool AttachSnowball(ObjPtr<GameObject> snow);
+		void DetachedSnowball();
+		void MakeSnowballAndAttach();
 	private:
-		int HP = 100;
-		float velocity = 20.0f;
-		float bestvelocity = 20.0f;
-		float attackTimer = 1.0f;
+		void HandleMovement();
+		void HandleTargeting();
+		void HandleAttack();
+		void ClearTarget();
+		void HandleScoopInput();
+
+		int HP = 100; //플레이어 체력
+		float velocity = 20.0f; //플레이어 속도
+		float bestvelocity = 20.0f; // 플레이어 기본 속도
+		float yawRad = 0.0f;                         // 현재 yaw
+		float turnSpeedRad = DirectX::XM_PI * 2.0f;  // 360deg/s (원하는 값으로 튜닝)
+		float battledist = 5.0f; //플레이어 적 공격 거리
+		int atk = 10; //플레이어 공격력
+		float attackTimer = 0.0f;
+		float attackDelay = 1.0f; //플레이어 공격 간격
+		float snowSpawnTimer = 0.0f;
+		float snowSpawnDelay = 0.2f;
+		float pickupRange = 1.0f; //눈 픽업 거리
+		ObjPtr<GameObject> matchedSnowball = nullptr;
 		ObjPtr<GameObject> targetEnemy = nullptr;
+		float offset = 1.5f; //눈과 플레이어간의 거리
 		bool isMoving = false;
+		bool scoopHeld = false;
+		ObjPtr<Transform> tr;
+		DirectX::SimpleMath::Vector3 pos;
+		DirectX::SimpleMath::Quaternion rot;
 	};
 }

@@ -3,23 +3,74 @@
 #include "Enemy.h"
 #include "MMMTime.h"
 #include "Transform.h"
+#include "Snowball.h"
+#include "SnowballManager.h"
+
+static float WrapPi(float a)
+{
+	while (a > DirectX::XM_PI)  a -= DirectX::XM_2PI;
+	while (a < -DirectX::XM_PI) a += DirectX::XM_2PI;
+	return a;
+}
+
+// 기본은 '최단각'으로 돌되, 정확히 180도 근처면 오른쪽으로 강제
+static float StepYaw(float current, float target, float maxStep)
+{
+	float diff = WrapPi(target - current); // [-pi, pi]
+
+	// 180도 근처(반전)면 오른쪽(시계방향)으로 돌게 강제
+	// 여기서 오른쪽을 +yaw로 정의했을 때: diff가 -pi 근처면 +2pi로 바꿔서 +pi로 만들어줌
+	const float eps = 0.01f;
+	if (fabsf(fabsf(diff) - DirectX::XM_PI) < eps)
+	{
+		if (diff < 0.0f) diff += DirectX::XM_2PI; // -pi -> +pi
+	}
+
+	// 최단각 회전(일반 케이스)
+	float step = std::clamp(diff, -maxStep, +maxStep);
+	return WrapPi(current + step);
+}
 
 void MMMEngine::Player::Initialize()
 {
+	tr = GetTransform();
+	targetEnemy = nullptr;
+	matchedSnowball = nullptr;
+	auto fwd = tr->GetWorldMatrix().Forward(); // 보통 월드 기준 forward
+	// fwd = (x, y, z)
 
+	// +Z가 전방인 LH 기준 yaw 계산
+	yawRad = atan2f(fwd.x, fwd.z);
+	yawRad = WrapPi(yawRad);
 }
 
 void MMMEngine::Player::UnInitialize()
 {
-
+	if (targetEnemy)
+		targetEnemy = nullptr;
+	if (matchedSnowball)
+		matchedSnowball = nullptr;
 }
 
 void MMMEngine::Player::Update()
 {
+	if (!tr) return;
+	pos = tr->GetWorldPosition();
+	rot = tr->GetWorldRotation();
+	HandleMovement();
+	if (Input::GetKey(KeyCode::Space)) {
+		//스페이스 누른상태면 공격불가, 눈 생성 및 굴리기 로직은 별도의 코드에 있기 때문에 삽관련 애니메이션만 추가
+		ClearTarget();
+		return;
+	}
+	HandleTargeting();
+	HandleAttack();
+}
+
+void MMMEngine::Player::HandleMovement()
+{
 	float dx = 0.0f;
 	float dz = 0.0f;
-	auto tr = GetTransform();
-	auto pos = GetTransform()->GetWorldPosition();
 	if (Input::GetKey(KeyCode::LeftArrow))  dx -= 1.0f;
 	if (Input::GetKey(KeyCode::RightArrow)) dx += 1.0f;
 	if (Input::GetKey(KeyCode::UpArrow))    dz += 1.0f;
@@ -34,55 +85,128 @@ void MMMEngine::Player::Update()
 		pos.z += dz * velocity * Time::GetDeltaTime();
 		tr->SetWorldPosition(pos);
 
-		// 회전: +Z가 Forward인 LH 기준 yaw
-		float yaw = atan2f(dx, dz); // 라디안
-		auto rot = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(yaw, 0.0f, 0.0f);
+		float desiredYaw = atan2f(dx, dz); // 목표 yaw
+		float maxStep = turnSpeedRad * Time::GetDeltaTime();
+
+		yawRad = StepYaw(yawRad, desiredYaw, maxStep);
+
+		auto rot = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(yawRad, 0.0f, 0.0f);
 		tr->SetWorldRotation(rot);
 	}
-	if (Input::GetKey(KeyCode::Space)) {
-		targetEnemy = nullptr;
-		attackTimer = 1.0f;
+}
+
+void MMMEngine::Player::HandleTargeting()
+{
+
+	if (targetEnemy)
+	{
+		auto tect = targetEnemy->GetTransform();
+		float edx = tect->GetWorldPosition().x - pos.x;
+		float edz = tect->GetWorldPosition().z - pos.z;
+		float edist = sqrtf(edx * edx + edz * edz);
+
+		if (edist > battledist) {
+			ClearTarget();
+		}
 		return;
 	}
-	float battledist = 5.0f;
-	if (!targetEnemy) {
-		auto enemy = GameObject::FindGameObjectsWithTag("Enemy");
-		for (auto& e : enemy) {
-			auto enemypos = e->GetTransform()->GetWorldPosition();
-			float enemyX = enemypos.x;
-			float enemyZ = enemypos.z;
-			float edx = enemyX - pos.x;
-			float edz = enemyZ - pos.z;
-			float edist = sqrtf(edx * edx + edz * edz);
 
-			if (edist < battledist) {
-				targetEnemy = e;
-				battledist = edist;
-			}
-		};
-		attackTimer = 1.0f;
-	}
-	else
-	{
-		auto tec = targetEnemy->GetComponent<Enemy>();
-		auto tect = targetEnemy->GetTransform();
-		float enemyX = tect->GetWorldPosition().x;
-		float enemyZ = tect->GetWorldPosition().z;
-		float edx = enemyX - pos.x;
-		float edz = enemyZ - pos.z;
+	auto enemy = GameObject::FindGameObjectsWithTag("Enemy");
+	float bestdist = battledist;
+	for (auto& e : enemy) {
+		auto enemypos = e->GetTransform()->GetWorldPosition();
+		float edx = enemypos.x - pos.x;
+		float edz = enemypos.z - pos.z;
 		float edist = sqrtf(edx * edx + edz * edz);
-		if (edist > 5.0f)
-		{
-			targetEnemy = nullptr;
-			attackTimer = 1.0f;
+		if (edist < bestdist) {
+			targetEnemy = e;
+			bestdist = edist;
+		}
+	}
+}
+
+void MMMEngine::Player::HandleAttack()
+{
+	if (!targetEnemy) return;
+	auto tec = targetEnemy->GetComponent<Enemy>();
+	if (!tec) { ClearTarget(); return; }
+	//애니메이션이 아직 없어서 별도의 타이머로 동작. 공격모션 추가 후 수정
+	attackTimer += Time::GetDeltaTime();
+	if (attackTimer >= attackDelay)
+	{
+		tec->GetDamage(atk);
+		tec->PlayerHitMe();
+		attackTimer = 0.0f;
+	}
+}
+
+void MMMEngine::Player::ClearTarget()
+{
+	targetEnemy = nullptr;
+	attackTimer = 0.0f;
+}
+
+bool MMMEngine::Player::AttachSnowball(ObjPtr<GameObject> snow)
+{
+	if (!snow) return false;
+
+	if (matchedSnowball == snow) return true;
+	if (matchedSnowball) DetachedSnowball();
+
+	matchedSnowball = snow;
+	auto sc = matchedSnowball->GetComponent<Snowball>();
+	if (sc) sc->SetControlled(true);
+	return true;
+}
+
+void MMMEngine::Player::DetachedSnowball()
+{
+	if (!matchedSnowball) return;
+	
+	auto sc = matchedSnowball->GetComponent<Snowball>();
+	if (sc) sc->SetControlled(false);
+
+	matchedSnowball = nullptr;
+}
+
+void MMMEngine::Player::HandleScoopInput()
+{
+	if (Input::GetKeyDown(KeyCode::Space))
+	{
+		scoopHeld = true;
+		ClearTarget();
+
+		if (matchedSnowball) return;
+
+		auto nearest = SnowballManager::instance->FindNearestSnowball(pos, pickupRange);
+		if (nearest) {
+			AttachSnowball(nearest);
+			snowSpawnTimer = 0.0f;
 			return;
 		}
-		attackTimer -= Time::GetDeltaTime();
-		if (attackTimer <= 0.0f)
-		{
-			tec->GetDamage(10);
-			tec->PlayerHitMe();
-			attackTimer = 1.0f;
+		snowSpawnTimer += Time::GetDeltaTime();
+		if (snowSpawnTimer >= snowSpawnDelay) {
+			MakeSnowballAndAttach();
+			snowSpawnTimer = 0.0f;
 		}
 	}
+}
+
+void MMMEngine::Player::MakeSnowballAndAttach()
+{
+	auto obj = NewObject<GameObject>();
+	obj->AddComponent<Snowball>();
+	obj->SetTag("Snowball");
+	SnowballManager::instance->Snows.push_back(obj);
+
+	auto sc = obj->GetComponent<Snowball>();
+	auto snowtr = obj->GetTransform();
+	sc->SetControlled(true);
+	//눈덩이 위치 설정, 테스트 후 수정
+	auto fwd = DirectX::SimpleMath::Vector3::Transform(
+		DirectX::SimpleMath::Vector3::Forward, rot);
+	fwd.y = 0.0f;
+	if (fwd.LengthSquared() > 1e-8f) fwd.Normalize();
+	auto snowpos = pos + fwd * offset;
+	snowtr->SetWorldPosition(snowpos);
 }

@@ -13,28 +13,33 @@ void MMMEngine::Castle::UnInitialize()
 
 void MMMEngine::Castle::Update()
 {
+	AutoHeal();
+}
+
+void MMMEngine::Castle::AutoHeal()
+{
 	if (prevHP > HP)
 	{
 		fighting = true;
-		NonfightTimer = 5.0f;
+		NonfightTimer = 0.0f;
 	}
 	prevHP = HP;
 	if (fighting)
 	{
-		NonfightTimer -= Time::GetDeltaTime();
-		if (NonfightTimer <= 0.0f)
+		NonfightDelay += Time::GetDeltaTime();
+		if (NonfightTimer >= NonfightDelay)
 		{
 			fighting = false;
-			healTimer = 1.0f;
+			healTimer = 0.0f;
 		}
 	}
-	else if (HP < 10)
+	else if (HP < maxHP)
 	{
-		healTimer -= Time::GetDeltaTime();
-		if (healTimer <= 0.0f)
+		healTimer += Time::GetDeltaTime();
+		if (healTimer >= healDelay)
 		{
-			HP = std::min(HP + 3, 10);
-			healTimer = 1.0f;
+			HP = std::min(HP + 3, maxHP);
+			healTimer = 0.0f;
 		}
 	}
 }
