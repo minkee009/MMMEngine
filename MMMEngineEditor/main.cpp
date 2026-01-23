@@ -14,16 +14,34 @@
 #include "SceneManager.h"
 #include "ObjectManager.h"
 #include "ProjectManager.h"
+#include "PhysxManager.h"
 
 #include "StringHelper.h"
 #include "ImGuiEditorContext.h"
 #include "BuildManager.h"
 #include "DLLHotLoadHelper.h"
+#include "PhysX.h"
 
 namespace fs = std::filesystem;
 using namespace MMMEngine;
 using namespace MMMEngine::Utility;
 using namespace MMMEngine::Editor;
+
+void AfterProjectLoaded()
+{
+	// ìœ ì € ìŠ¤í¬ë¦½íŠ¸ ë¶ˆëŸ¬ì˜¤ê¸°
+	fs::path cwd = fs::current_path();
+	DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
+
+	fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
+
+	fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
+
+	BehaviourManager::Get().StartUp(dllPath.stem().u8string());
+
+	// ë¦¬ì†ŒìŠ¤ ë§¤ë‹ˆì € ë¶€íŒ…
+	ResourceManager::Get().StartUp(projectPath.generic_wstring() + L"/");
+}
 
 void Initialize()
 {
@@ -37,29 +55,22 @@ void Initialize()
 	
 	TimeManager::Get().StartUp();
 
-	// ÀÌÀü¿¡ Ä×´ø ÇÁ·ÎÁ§Æ® ¿ì¼± È®ÀÎ
+	// ì´ì „ì— ì¼°ë˜ í”„ë¡œì íŠ¸ ìš°ì„  í™•ì¸
 	EditorRegistry::g_editor_project_loaded = ProjectManager::Get().Boot();
 	if (EditorRegistry::g_editor_project_loaded)
 	{
-		// Á¸ÀçÇÏ´Â °æ¿ì ¾ÀÀ» Ã³À½À¸·Î ½ºÅ¸Æ®
+		// ì¡´ìž¬í•˜ëŠ” ê²½ìš° ì”¬ì„ ì²˜ìŒìœ¼ë¡œ ìŠ¤íƒ€íŠ¸
 		auto currentProject = ProjectManager::Get().GetActiveProject();
 		SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
 		app->SetWindowTitle(L"MMMEditor [ " + Utility::StringHelper::StringToWString(currentProject.rootPath) + L" ]");
 		ObjectManager::Get().StartUp();
 
-		// À¯Àú ½ºÅ©¸³Æ® ºÒ·¯¿À±â
-		{
-			fs::path cwd = fs::current_path();
-			DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
 
-			fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
-
-			fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
-
-			BehaviourManager::Get().StartUp(dllPath.stem().u8string());
-		}
+		// ê²½ë¡œ ë¶€íŒ…
+		AfterProjectLoaded();
 		
 		BuildManager::Get().SetProgressCallbackString([](const std::string& progress) { std::cout << progress.c_str() << std::endl; });
+
 	}
 
 	RenderManager::Get().StartUp(hwnd, windowInfo.width, windowInfo.height);
@@ -70,6 +81,11 @@ void Initialize()
 
 	ImGuiEditorContext::Get().Initialize(hwnd, device.Get(), context.Get());
 	app->OnBeforeWindowMessage.AddListener<ImGuiEditorContext, &ImGuiEditorContext::HandleWindowMessage>(&ImGuiEditorContext::Get());
+
+	MMMEngine::PhysicX::Get().Initialize();
+	SceneManager::Get().onSceneInitBefore.AddListenerLambda([]() { 
+		MMMEngine::PhysxManager::Get().BindScene(SceneManager::Get().GetCurrentSceneRaw());
+		});
 }
 
 void Update_ProjectNotLoaded()
@@ -92,19 +108,10 @@ void Update_ProjectNotLoaded()
 
 		ObjectManager::Get().StartUp();
 
-		// À¯Àú ½ºÅ©¸³Æ® ºÒ·¯¿À±â
-		{
-			fs::path cwd = fs::current_path();
-			DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
 
-			fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
-
-			fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
-
-			BehaviourManager::Get().StartUp(dllPath.stem().u8string());
-		}
+		// ê²½ë¡œ ë¶€íŒ…
+		AfterProjectLoaded();
 	
-
 		BuildManager::Get().SetProgressCallbackString([](const std::string& progress) { std::cout << progress << std::endl; });
 		return;
 	}
@@ -138,12 +145,13 @@ void Update()
 
 	TimeManager::Get().ConsumeFixedSteps([&](float fixedDt)
 		{
-			if (!EditorRegistry::g_editor_scene_playing)
-				return;
+			/*if (!EditorRegistry::g_editor_scene_playing)
+				return;*/
 
+			MMMEngine::PhysxManager::Get().StepFixed(fixedDt);
+			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 			//PhysicsManager::Get()->PreSyncPhysicsWorld();
 			//PhysicsManager::Get()->PreApplyTransform();
-			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 			//PhysicsManager::Get()->Simulate(fixedDt);
 			//PhysicsManager::Get()->ApplyTransform();
 		});
@@ -162,6 +170,7 @@ void Update()
 
 void Release()
 {
+	PhysxManager::Get().UnbindScene();
 	GlobalRegistry::g_pApp = nullptr;
 	ImGuiEditorContext::Get().Uninitialize();
 	RenderManager::Get().ShutDown();

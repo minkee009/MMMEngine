@@ -1,6 +1,122 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="Behaviour.cpp" />
+    <ClCompile Include="BehaviourManger.cpp" />
+    <ClCompile Include="Component.cpp" />
+    <ClCompile Include="dxtk\Src\SimpleMath.cpp" />
+    <ClCompile Include="GameObject.cpp" />
+    <ClCompile Include="GlobalRegistry.cpp" />
+    <ClCompile Include="InputManager.cpp" />
+    <ClCompile Include="MissingScriptBehaviour.cpp" />
+    <ClCompile Include="MUID.cpp" />
+    <ClCompile Include="Object.cpp" />
+    <ClCompile Include="ObjectManager.cpp" />
+    <ClCompile Include="RenderManager.cpp" />
+    <ClCompile Include="Resource.cpp" />
+    <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="rttr_directxmath_registry.cpp" />
+    <ClCompile Include="rttr_simplemath_registry.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="SceneSerializer.cpp" />
+    <ClCompile Include="ScriptBehaviour.cpp" />
+    <ClCompile Include="ScriptLoader.cpp" />
+    <ClCompile Include="StringHelper.cpp" />
+    <ClCompile Include="TimeManager.cpp" />
+    <ClCompile Include="Transform.cpp" />
+    <ClCompile Include="CapsuleColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="ColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="CollisionMatrix.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsEventCallback.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsFilter.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysScene.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysX.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysxHelper.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysxManager.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="RigidBodyComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="App.h" />
+    <ClInclude Include="Behaviour.h" />
+    <ClInclude Include="Component.h" />
+    <ClInclude Include="Delegates.hpp" />
+    <ClInclude Include="DisplayMode.h" />
+    <ClInclude Include="dxtk\Inc\Audio.h" />
+    <ClInclude Include="dxtk\Inc\BufferHelpers.h" />
+    <ClInclude Include="dxtk\Inc\CommonStates.h" />
+    <ClInclude Include="dxtk\Inc\DDSTextureLoader.h" />
+    <ClInclude Include="dxtk\Inc\DirectXHelpers.h" />
+    <ClInclude Include="dxtk\Inc\Effects.h" />
+    <ClInclude Include="dxtk\Inc\GamePad.h" />
+    <ClInclude Include="dxtk\Inc\GeometricPrimitive.h" />
+    <ClInclude Include="dxtk\Inc\GraphicsMemory.h" />
+    <ClInclude Include="dxtk\Inc\Keyboard.h" />
+    <ClInclude Include="dxtk\Inc\Model.h" />
+    <ClInclude Include="dxtk\Inc\Mouse.h" />
+    <ClInclude Include="dxtk\Inc\PostProcess.h" />
+    <ClInclude Include="dxtk\Inc\PrimitiveBatch.h" />
+    <ClInclude Include="dxtk\Inc\ScreenGrab.h" />
+    <ClInclude Include="dxtk\Inc\SimpleMath.h" />
+    <ClInclude Include="dxtk\Inc\SpriteBatch.h" />
+    <ClInclude Include="dxtk\Inc\SpriteFont.h" />
+    <ClInclude Include="dxtk\Inc\VertexTypes.h" />
+    <ClInclude Include="dxtk\Inc\WICTextureLoader.h" />
+    <ClInclude Include="dxtk\Inc\XboxDDSTextureLoader.h" />
+    <ClInclude Include="Export.h" />
+    <ClInclude Include="ExportSingleton.hpp" />
+    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="GlobalRegistry.h" />
+    <ClInclude Include="MissingScriptBehaviour.h" />
+    <ClInclude Include="MMMApplication.h" />
+    <ClInclude Include="MMMResources.h" />
+    <ClInclude Include="MMMSceneManagement.h" />
+    <ClInclude Include="MMMScreen.h" />
+    <ClInclude Include="MUID.h" />
+    <ClInclude Include="InputConstant.h" />
+    <ClInclude Include="InputKeyCode.h" />
+    <ClInclude Include="MMMInput.h" />
+    <ClInclude Include="InputManager.h" />
+    <ClInclude Include="RenderManager.h" />
+    <ClInclude Include="Resolution.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="MMMTime.h" />
+    <ClInclude Include="Object.h" />
+    <ClInclude Include="ObjectManager.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="SceneRef.h" />
+    <ClInclude Include="SceneSerializer.h" />
+    <ClInclude Include="ScriptBehaviour.h" />
+    <ClInclude Include="ScriptLoader.h" />
+    <ClInclude Include="SerializableEvent.h" />
+    <ClInclude Include="Singleton.hpp" />
+    <ClInclude Include="StringHelper.h" />
+    <ClInclude Include="TimeManager.h" />
+    <ClInclude Include="Transform.h" />
+    <ClInclude Include="ResourceManager.h" />
+    <ClInclude Include="BehaviourManager.h" />
     <Filter Include="소스 파일">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
@@ -133,6 +249,36 @@
     <Filter Include="소스 파일\Core\Core Test">
       <UniqueIdentifier>{44b49f8c-3077-4d0a-be63-9f9da05c9b52}</UniqueIdentifier>
     </Filter>
+    <ClInclude Include="CapsuleColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="ColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionMatrix.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsEventCallback.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsFilter.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysScene.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysX.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysxHelper.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysxManager.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="RigidBodyComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Object.h">
@@ -354,9 +500,6 @@
     <ClInclude Include="TextResource.h">
       <Filter>헤더 파일\Core\Core Test</Filter>
     </ClInclude>
-    <ClInclude Include="AssetsDatabase.h">
-      <Filter>헤더 파일\Core</Filter>
-    </ClInclude>
     <ClInclude Include="ResourceSerializer.h">
       <Filter>헤더 파일\Core\Render API\Tool</Filter>
     </ClInclude>
@@ -507,5 +650,13 @@
     <ResourceCompile Include="MMMEngineShared.rc">
       <Filter>리소스 파일</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="헤더 파일\Core\Physics API">
+      <UniqueIdentifier>{7210efdf-bb0c-4a09-8874-d36d7238e32e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Physcis API">
+      <UniqueIdentifier>{e66850de-f491-4f75-9843-c4ad5567a533}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
