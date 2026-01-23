@@ -42,6 +42,10 @@ namespace MMMEngine
 		//시뮬레이션을 한 프레임 진행시키는 함수 //simulate 계산 시작, fetchResults 계산이 끝날때까지 대기 //멀티스레드
 		void Step(float dt);
 
+		void PullRigidsFromPhysics();
+
+		void DrainEvents();
+
 		//PxRigidActor를 PxScene에 등록 // add한순간부터 물리가 적용
 		void AddActor(physx::PxActor& actor);
 		//Scene에서 actor를 빼는 함수  //Scene에서 빠지면 더이상 시뮬안함
@@ -71,10 +75,14 @@ namespace MMMEngine
 
 		void ReapplyFilters(const CollisionMatrix& matrix);
 
+		//콜리더 크기 변경
 		void UpdateColliderGeometry(MMMEngine::ColliderComponent* col);
 
+		//콜리더 재부착
 		void RebuildCollider(MMMEngine::ColliderComponent* col, const CollisionMatrix& matrix);
 
+		//현재 씬에 등록된 rigid들에 대해 pushtophysics 호출용
+		void PushRigidsToPhysics();
 
 		const std::vector<MMMEngine::PhysXSimulationCallback::ContactEvent>& GetFrameContacts() const { return m_frameContacts; }
 		const std::vector<PhysXSimulationCallback::TriggerEvent>& GetFrameTriggers() const { return m_frameTriggers; }

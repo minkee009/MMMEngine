@@ -3,12 +3,13 @@
 #include "PhysicsFilter.h"
 #include "Transform.h"
 #include "CollisionMatrix.h"
+#include "GameObject.h"
 
 bool MMMEngine::PhysScene::Create(const PhysSceneDesc& desc)
 {
 	m_desc = desc;
 
-	//Dispatcher(thread ¼³Á¤)
+	//Dispatcher(thread ì„¤ì •)
 	uint32_t threads = (m_desc.cpuThreadCount == 0) ? 2u : m_desc.cpuThreadCount;
 	m_dispatcher = physx::PxDefaultCpuDispatcherCreate(threads);
 
@@ -54,7 +55,7 @@ void MMMEngine::PhysScene::Destroy()
 		for (auto* rb : rigidsCopy)
 			UnregisterRigid(rb);
 
-		// ³²¾Æ ÀÖÀ» ¼ö ÀÖ´Â ÄÁÅ×ÀÌ³Ê °­Á¦ Á¤¸®
+		// ë‚¨ì•„ ìˆì„ ìˆ˜ ìˆëŠ” ì»¨í…Œì´ë„ˆ ê°•ì œ ì •ë¦¬
 		m_ownerByCollider.clear();
 		m_collidersByRigid.clear();
 		m_rigids.clear();
@@ -80,16 +81,29 @@ void MMMEngine::PhysScene::Step(float dt)
 
 	m_scene->simulate(dt);
 	m_scene->fetchResults(true);
+}
 
-	// PhysX -> Engine Transform µ¿±âÈ­¸¦ ¿©±â¼­ ÇÑ´Ù¸é ÀÌºÎºĞ¿¡ ³ÖÀ¸¸éµÊ
-	// PullFromPhysics´Â ¹«Á¶°Ç fetchResults ÀÌÈÄ¿¡¸¸ ÇÏ¸é µÈ´Ù
-	/*for (auto* rb : m_rigids)
+void MMMEngine::PhysScene::PullRigidsFromPhysics()
+{
+	// ì—¬ê¸°ì„œëŠ” "ìœ íš¨í•œ rb + ìœ íš¨í•œ actor"ë§Œ Pull
+	for (auto* rb : m_rigids)
 	{
-		if (rb) rb->PullFromPhysics();
-	}*/
+		if (!rb) continue;
 
-	//Äİ¹éÀÌº¥Æ® drain ( ºñ¿ì±â )
-	m_frameContacts.clear(); m_frameTriggers.clear();
+		// ObjPtrë¼ë©´ IsValid()ê°€ ì•ˆì „ì¥ì¹˜ ì—­í• . (ëŒ•ê¸€ë§ì´ë©´ ì´ì¡°ì°¨ ìœ„í—˜í•  ìˆ˜ ìˆëŠ”ë°,
+		// ìµœì¢…ì ìœ¼ë¡œëŠ” rb ì œê±°ê°€ Notify/Unregisterë¥¼ í†µí•´ ë“¤ì–´ì˜¤ê²Œ ë§Œë“œëŠ” ê²Œ ë§ë‹¤.)
+		if (!rb->GetGameObject().IsValid()) continue;
+
+		if (!rb->GetPxActor()) continue;
+
+		rb->PullFromPhysics();
+	}
+}
+
+void MMMEngine::PhysScene::DrainEvents()
+{
+	m_frameContacts.clear();
+	m_frameTriggers.clear();
 
 	m_callback.DrainContacts(m_frameContacts);
 	m_callback.DrainTriggers(m_frameTriggers);
@@ -109,30 +123,28 @@ void MMMEngine::PhysScene::RemoveActor(physx::PxActor& actor)
 
 void MMMEngine::PhysScene::RegisterRigid(MMMEngine::RigidBodyComponent* rb)
 {
-	if (!m_scene) return;
-	if (!rb) return;
+	if (!m_scene || !rb) return;
+	if (m_rigids.find(rb) != m_rigids.end()) return;
 
-	// ÀÌ¹Ì µî·ÏµÇ¾î ÀÖÀ¸¸é Áßº¹ ¹æÁö
-	if (m_rigids.find(rb) != m_rigids.end())
-		return;
+	auto go = rb->GetGameObject();
+	if (!go.IsValid()) return;
 
+	// rb ë‚´ë¶€ Transform í¬ì¸í„° ë°”ì¸ë”©ì„ í™•ì •
+	//rb->BindTransform(&go->GetTransform()); // ë„¤ ì—”ì§„ APIì— ë§ê²Œ
 
-	// actor°¡ ¾øÀ¸¸é »ı¼º (actor°¡ ¾ø´Ù -> ³»ºÎÀûrigid¸¦ µî·ÏÇÒ¶§ÀÓ -> transformÀº ¸Å´ÏÀú¿¡¼­ ÀÚµ¿À¸·Î ¼³Á¤ÇÏµµ·Ï ÇÔ )
-	// »ç¿ëÀÚ°¡ rigid¾øÀÌ colliderºÎÅÍ »ı¼ºÀ»ÇßÀ»¶§ ¸Å´ÏÀú¿¡¼­ ÀÌ¸¦ ÆÇ´ÜÇÏ°í ³»ºÎÀû rigid¸¦ ¸Å´ÏÀú¿¡¼­ °ü¸® ¹× ¾×ÅÍ»ı¼º/µî·ÏÀº scene¸¦ ÅëÇØ¼­ÇÔ
+	// actor ì—†ìœ¼ë©´ ìƒì„± (Transformì€ go ê¸°ì¤€)
 	if (rb->GetPxActor() == nullptr)
 	{
-		Vector3 t_pos = rb->GetTransform()->GetWorldPosition();
-		Quaternion t_quater = rb->GetTransform()->GetWorldRotation();
-		 rb->CreateActor(&PhysicX::Get().GetPhysics(), t_pos, t_quater);
+		auto& tr = go->GetTransform();
+		rb->CreateActor(&PhysicX::Get().GetPhysics(),
+			tr->GetWorldPosition(),
+			tr->GetWorldRotation());
 	}
 
 	auto* actor = rb->GetPxActor();
 	if (!actor) return;
 
-	// PxScene¿¡ Ãß°¡
 	m_scene->addActor(*actor);
-
-	// ÄÁÅ×ÀÌ³Ê µî·Ï
 	m_rigids.insert(rb);
 }
 
@@ -143,13 +155,13 @@ void MMMEngine::PhysScene::UnregisterRigid(MMMEngine::RigidBodyComponent* rb)
 
 	auto itR = m_rigids.find(rb);
 	if (itR == m_rigids.end())
-		return; // µî·Ï ¾È µÊ
+		return; // ë“±ë¡ ì•ˆ ë¨
 
-	// rb¿¡ ºÙÀº Äİ¶óÀÌ´õ ÀüºÎ detach (ÄÁÅ×ÀÌ³Ê Á¤¸® Æ÷ÇÔ)
+	// rbì— ë¶™ì€ ì½œë¼ì´ë” ì „ë¶€ detach (ì»¨í…Œì´ë„ˆ ì •ë¦¬ í¬í•¨)
 	auto itList = m_collidersByRigid.find(rb);
 	if (itList != m_collidersByRigid.end())
 	{
-		// detach Áß¿¡ º¤ÅÍ°¡ ¹Ù²ğ ¼ö ÀÖÀ¸´Ï º¹»ç
+		// detach ì¤‘ì— ë²¡í„°ê°€ ë°”ë€” ìˆ˜ ìˆìœ¼ë‹ˆ ë³µì‚¬
 		auto cols = itList->second;
 		for (auto* col : cols)
 		{
@@ -158,87 +170,64 @@ void MMMEngine::PhysScene::UnregisterRigid(MMMEngine::RigidBodyComponent* rb)
 		}
 	}
 
-	// actor scene¿¡¼­ Á¦°Å
+	// actor sceneì—ì„œ ì œê±°
 	if (auto* actor = rb->GetPxActor())
 	{
 		m_scene->removeActor(*actor);
 	}
 
-	// ÄÁÅ×ÀÌ³Ê Á¤¸®
+	// ì»¨í…Œì´ë„ˆ ì •ë¦¬
 	m_collidersByRigid.erase(rb);
 	m_rigids.erase(itR);
-	//actor release´Â rb°¡ ÇÏµµ·Ï
+	//actor releaseëŠ” rbê°€ í•˜ë„ë¡
 	rb->DestroyActor();
 }
-
-//void MMMEngine::PhysScene::SwapRigid(MMMEngine::RigidBodyComponent* oldRb, MMMEngine::RigidBodyComponent* newRb, const CollisionMatrix& matrix)
-//{
-//	//oldRb¿¡ ºÙÀº collider ¸ñ·ÏÀ» º¹»ç
-//	auto it = m_collidersByRigid.find(oldRb);
-//	std::vector<ColliderComponent*> cols;
-//	if (it != m_collidersByRigid.end())
-//		cols = it->second;
-//
-//	//oldRb¿¡¼­ ÀüºÎ detach
-//	for (auto* col : cols)
-//		DetachCollider(oldRb, col);
-//
-//	//oldRb unregister (actor Á¦°Å)
-//	UnregisterRigid(oldRb);
-//
-//	//newRb register
-//	RegisterRigid(newRb);
-//
-//	//collider¸¦ newRb¿¡ attach
-//	for (auto* col : cols)
-//		AttachCollider(newRb, col, matrix);
-//}
 
 void MMMEngine::PhysScene::AttachCollider(MMMEngine::RigidBodyComponent* rb, MMMEngine::ColliderComponent* col, const CollisionMatrix& matrix)
 {
 	if (!m_scene) return;
 	if (!rb || !col) return;
 
-	// rb°¡ µî·Ï ¾È µÅÀÖÀ¸¸é ¸ÕÀú µî·Ï
+	// rbê°€ ë“±ë¡ ì•ˆ ë¼ìˆìœ¼ë©´ ë¨¼ì € ë“±ë¡
 	if (m_rigids.find(rb) == m_rigids.end())
 	{
 		//AttachCollider called for unregistered rigid. RegisterRigid must be called first.
-		assert(false && "actor°¡ ¹Ìµî·Ï »óÅÂÀÔ´Ï´Ù actor¸¦ ¸ÕÀú µî·ÏÇÏ°í collider¸¦ ºÙ¿©¾ßÇÕ´Ï´Ù");
+		assert(false && "actorê°€ ë¯¸ë“±ë¡ ìƒíƒœì…ë‹ˆë‹¤ actorë¥¼ ë¨¼ì € ë“±ë¡í•˜ê³  colliderë¥¼ ë¶™ì—¬ì•¼í•©ë‹ˆë‹¤");
 		return;
 	}
 
-	//colÀÌ ÀÌ¹Ì ´Ù¸¥ rb¿¡ ºÙ¾îÀÖÀ¸¸é ¸ÕÀú detach
+	//colì´ ì´ë¯¸ ë‹¤ë¥¸ rbì— ë¶™ì–´ìˆìœ¼ë©´ ë¨¼ì € detach
 	auto itOwner = m_ownerByCollider.find(col);
 	if (itOwner != m_ownerByCollider.end())
 	{
 		if (itOwner->second == rb)
 		{
-			// ÀÌ¹Ì °°Àº rb¿¡ ºÙ¾îÀÖÀ½ ¡æ Áßº¹ attach ¹æÁö
+			// ì´ë¯¸ ê°™ì€ rbì— ë¶™ì–´ìˆìŒ â†’ ì¤‘ë³µ attach ë°©ì§€
 			return;
 		}
 		else
 		{
-			//ÇØ´ç collider°¡ ´Ù¸¥ rb¿¡ ºÙ¾îÀÖÀ½
-			std::cout << "ÇØ´ç collider´Â ´Ù¸¥ rb¿¡ ºÙ¾îÀÖ´ø colliderÀÓ È®ÀÎÇÊ¿ä" << std::endl;
+			//í•´ë‹¹ colliderê°€ ë‹¤ë¥¸ rbì— ë¶™ì–´ìˆìŒ
+			std::cout << "í•´ë‹¹ colliderëŠ” ë‹¤ë¥¸ rbì— ë¶™ì–´ìˆë˜ colliderì„ í™•ì¸í•„ìš”" << std::endl;
 			DetachCollider(itOwner->second, col);
 		}
 	}
 
-	// shape ¾øÀ¸¸é »ı¼º(¶Ç´Â rebuild)
+	// shape ì—†ìœ¼ë©´ ìƒì„±(ë˜ëŠ” rebuild)
 	if (col->GetPxShape() == nullptr)
 	{
-		assert(false && "Shape°¡ ¾ø´Â »óÅÂ ·ÎÁ÷ È®ÀÎÀÌ ÇÊ¿ä");
+		assert(false && "Shapeê°€ ì—†ëŠ” ìƒíƒœ ë¡œì§ í™•ì¸ì´ í•„ìš”");
 	}
 
 
 
-	// ÀÚ½Ä Äİ¶óÀÌ´õ ·ÎÄÃÆ÷Áî ¹İ¿µÀÌ ÇÊ¿äÇÏ¸é ¿©±â¼­ setLocalPose ÇØÁà¾ß ÇÔ
-	// ¿¹: shape->setLocalPose( ToPxTrans(colLocalOffsetPos, colLocalOffsetRot) );
-	// (colÀÌ rb ±âÁØ ·ÎÄÃ¿ÀÇÁ¼ÂÀ» °è»êÇÒ ¼ö ÀÖ´Â ÇÔ¼ö°¡ ÇÊ¿ä)
-	// Todo: ·ÎÄÃÆ÷Áî ¹İ¿µÀÌ ÇÊ¿äÇÏ´Ù¸é ¿©±â¼­ ÄÚµå ÀÛ¼º
+	// ìì‹ ì½œë¼ì´ë” ë¡œì»¬í¬ì¦ˆ ë°˜ì˜ì´ í•„ìš”í•˜ë©´ ì—¬ê¸°ì„œ setLocalPose í•´ì¤˜ì•¼ í•¨
+	// ì˜ˆ: shape->setLocalPose( ToPxTrans(colLocalOffsetPos, colLocalOffsetRot) );
+	// (colì´ rb ê¸°ì¤€ ë¡œì»¬ì˜¤í”„ì…‹ì„ ê³„ì‚°í•  ìˆ˜ ìˆëŠ” í•¨ìˆ˜ê°€ í•„ìš”)
+	// Todo: ë¡œì»¬í¬ì¦ˆ ë°˜ì˜ì´ í•„ìš”í•˜ë‹¤ë©´ ì—¬ê¸°ì„œ ì½”ë“œ ì‘ì„±
 
 
-	// ÇÊÅÍ Àû¿ë
+	// í•„í„° ì ìš©
 	auto* shape = col->GetPxShape();
 	if (!shape) return;
 
@@ -250,11 +239,11 @@ void MMMEngine::PhysScene::AttachCollider(MMMEngine::RigidBodyComponent* rb, MMM
 
 	col->SetFilterData(matrix.MakeSimFilter(layer), matrix.MakeQueryFilter(layer));
 
-	// rb(actor)¿¡ attach
+	// rb(actor)ì— attach
 	rb->AttachCollider(col);
 	m_scene->resetFiltering(*rb->GetPxActor());
 
-	// ÄÁÅ×ÀÌ³Ê °»½Å
+	// ì»¨í…Œì´ë„ˆ ê°±ì‹ 
 	m_ownerByCollider[col] = rb;
 
 	auto& vec = m_collidersByRigid[rb];
@@ -267,10 +256,10 @@ void MMMEngine::PhysScene::DetachCollider(MMMEngine::RigidBodyComponent* rb, MMM
 {
 	if (!rb || !col) return;
 
-	// ¼ÒÀ¯ÀÚ°¡ ´Ù¸£¸é ownerByCollider ±âÁØÀ¸·Î Á¤Á¤
+	// ì†Œìœ ìê°€ ë‹¤ë¥´ë©´ ownerByCollider ê¸°ì¤€ìœ¼ë¡œ ì •ì •
 	auto itOwner = m_ownerByCollider.find(col);
 	if (itOwner == m_ownerByCollider.end())
-		return; // attach »óÅÂ ¾Æ´Ô
+		return; // attach ìƒíƒœ ì•„ë‹˜
 
 	if (itOwner->second != rb)
 	{
@@ -280,10 +269,10 @@ void MMMEngine::PhysScene::DetachCollider(MMMEngine::RigidBodyComponent* rb, MMM
 		rb = itOwner->second;
 	}
 
-	// rb(actor)¿¡¼­ detach
+	// rb(actor)ì—ì„œ detach
 	rb->DetachCollider(col);
 
-	// ÄÁÅ×ÀÌ³Ê Á¤¸®
+	// ì»¨í…Œì´ë„ˆ ì •ë¦¬
 	m_ownerByCollider.erase(col);
 
 	auto itList = m_collidersByRigid.find(rb);
@@ -316,7 +305,7 @@ void MMMEngine::PhysScene::ReapplyFilters(const CollisionMatrix& matrix)
 		touchedRigids.insert(rb);
 	}
 
-	// resetFilteringÀº rb(=actor) ´ÜÀ§·Î 1¹ø¾¿¸¸
+	// resetFilteringì€ rb(=actor) ë‹¨ìœ„ë¡œ 1ë²ˆì”©ë§Œ
 	for (auto* rb : touchedRigids)
 	{
 		if (!rb) continue;
@@ -327,67 +316,81 @@ void MMMEngine::PhysScene::ReapplyFilters(const CollisionMatrix& matrix)
 	}
 }
 
+//colliderí¬ê¸° ë³€ê²½ì‹œ ë§¤ë‹ˆì €ë¡œë¶€í„° ëª…ë ¹ë°›ëŠ” í•¨ìˆ˜
 void MMMEngine::PhysScene::UpdateColliderGeometry(MMMEngine::ColliderComponent* col)
 {
 	if (!m_scene) return;
 	if (!col) return;
-
 	if (!col->IsGeometryDirty()) return;
 
 	physx::PxShape* shape = col->GetPxShape();
-	if (!shape) return;
+	if (!shape)
+	{
+#ifdef _DEBUG
+		OutputDebugStringA("[PhysScene] UpdateColliderGeometry: shape is null. skipped.\n");
+#endif
+		return;
+	}
 
-	//const bool ok = col->UpdateShapeGeometry();
-//
-//	if (ok)
-//	{
-//		col->SetGeometryDirty(false);
-//	}
-//#ifdef _DEBUG
-//	else
-//	{
-//		OutputDebugStringA("[PhysScene] UpdateColliderGeometry: UpdateShapeGeometry failed.\n");
-//	}
-//#endif
+	const bool ok = col->UpdateShapeGeometry();
+
+	if (ok)
+	{
+		col->SetGeometryDirty(false);
+		col->RefreshCommonProps();
+	}
+
+#ifdef _DEBUG
+	OutputDebugStringA("[PhysScene] UpdateColliderGeometry: UpdateShapeGeometry failed.\n");
+#endif
 }
 
 void MMMEngine::PhysScene::RebuildCollider(MMMEngine::ColliderComponent* col, const CollisionMatrix& matrix)
 {
 	if (!m_scene || !col) return;
 
-	//owner rb Ã£±â (attach »óÅÂ°¡ ¾Æ´Ï¶ó¸é ownerByCollider¿¡ ¾øÀ» ¼ö ÀÖÀ½)
+	//owner rb ì°¾ê¸° (attach ìƒíƒœê°€ ì•„ë‹ˆë¼ë©´ ownerByColliderì— ì—†ì„ ìˆ˜ ìˆìŒ)
 	MMMEngine::RigidBodyComponent* rb = nullptr;
 	if (auto it = m_ownerByCollider.find(col); it != m_ownerByCollider.end())
 		rb = it->second;
 
-	//»õ shape »ı¼º (ColliderComponent ÂÊ¿¡¼­ »ı¼º/º¸À¯ Æ÷ÀÎÅÍ °»½Å)
-	//    - ¿©±â¼­ "±âÁ¸ shape release¸¦ ´©°¡ ÇÏ´À³Ä" Á¤Ã¥ÀÌ Áß¿äÇÔ.
-	//    - ÃßÃµ: ColliderComponent°¡ ÀÚ½ÅÀÇ old shape¸¦ releaseÇÏ°í »õ·Î ¸¸µç Æ÷ÀÎÅÍ·Î ±³Ã¼.
-	//      (PhysScene´Â detach/attach¸¸ Ã¥ÀÓ)
+	//ìƒˆ shape ìƒì„± (ColliderComponent ìª½ì—ì„œ ìƒì„±/ë³´ìœ  í¬ì¸í„° ê°±ì‹ )
+	//    - ì—¬ê¸°ì„œ "ê¸°ì¡´ shape releaseë¥¼ ëˆ„ê°€ í•˜ëŠëƒ" ì •ì±…ì´ ì¤‘ìš”í•¨.
+	//    - ì¶”ì²œ: ColliderComponentê°€ ìì‹ ì˜ old shapeë¥¼ releaseí•˜ê³  ìƒˆë¡œ ë§Œë“  í¬ì¸í„°ë¡œ êµì²´.
+	//      (PhysSceneëŠ” detach/attachë§Œ ì±…ì„)
 	auto& physics = PhysicX::Get().GetPhysics();
-	physx::PxMaterial* mat = PhysicX::Get().GetDefaultMaterial(); // ³Ê ¿£Áø ¹æ½Ä¿¡ ¸Â°Ô
+	physx::PxMaterial* mat = PhysicX::Get().GetDefaultMaterial(); // ë„ˆ ì—”ì§„ ë°©ì‹ì— ë§ê²Œ
 
-	// attach »óÅÂ¸é actor¿¡¼­ ¸ÕÀú ¶¼°í ±³Ã¼ ÈÄ ´Ù½Ã ºÙÀÌ´Â °Ô ¾ÈÀü
+	// attach ìƒíƒœë©´ actorì—ì„œ ë¨¼ì € ë–¼ê³  êµì²´ í›„ ë‹¤ì‹œ ë¶™ì´ëŠ” ê²Œ ì•ˆì „
 	if (rb && rb->GetPxActor() && col->GetPxShape())
 	{
-		rb->DetachCollider(col); // ³»ºÎÀûÀ¸·Î actor->detachShape(*shape)±îÁö ¼öÇàÇÑ´Ù°í °¡Á¤
+		rb->DetachCollider(col); // ë‚´ë¶€ì ìœ¼ë¡œ actor->detachShape(*shape)ê¹Œì§€ ìˆ˜í–‰í•œë‹¤ê³  ê°€ì •
 	}
 
-	//shape Àç»ı¼º
-	//    - col->BuildShape(...)°¡ col ³»ºÎ m_shape¸¦ »õ·Î ¸¸µé°Ô
+	//shape ì¬ìƒì„±
+	//    - col->BuildShape(...)ê°€ col ë‚´ë¶€ m_shapeë¥¼ ìƒˆë¡œ ë§Œë“¤ê²Œ
 	col->BuildShape(&physics, mat);
 
 	auto* newShape = col->GetPxShape();
 	if (!newShape) return;
 
-	//ÇÊÅÍ ÀçÀû¿ë(·¹ÀÌ¾î ±â¹İ)
+	//í•„í„° ì¬ì ìš©(ë ˆì´ì–´ ê¸°ë°˜)
 	uint32_t layer = col->GetEffectiveLayer();
 	col->SetFilterData(matrix.MakeSimFilter(layer), matrix.MakeQueryFilter(layer));
 
-	//´Ù½Ã attach
+	//ë‹¤ì‹œ attach
 	if (rb && rb->GetPxActor())
 	{
 		rb->AttachCollider(col); // actor->attachShape(*newShape)
+	}
+}
+
+void MMMEngine::PhysScene::PushRigidsToPhysics()
+{
+	for (auto* rb : m_rigids)
+	{
+		if (!rb) continue;
+		rb->PushToPhysics(); // ë‚´ë¶€ì—ì„œ PoseDirty/ForceQueue ì²˜ë¦¬
 	}
 }
 

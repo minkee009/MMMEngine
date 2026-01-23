@@ -1,6 +1,7 @@
 #include "PhysxManager.h"
 #include "SceneManager.h"
 #include "GameObject.h"
+#include "BehaviourManager.h"
 
 DEFINE_SINGLETON(MMMEngine::PhysxManager)
 
@@ -34,10 +35,16 @@ void MMMEngine::PhysxManager::StepFixed(float dt)
     if (!m_IsInitialized) return;
     if (dt <= 0.f) return;
 	FlushCommands_PreStep();     // 등록/부착 등
+
 	ApplyFilterConfigIfDirty();  // dirty면 정책 갱신 + 전체 재적용 지시
     FlushDirtyColliders_PreStep(); //collider의 shape가 에디터 단계에서 변형되면 내부적으로 실행
 
-	m_PhysScene.Step(dt);       // simulate/fetch + transform sync + event dispatch
+    m_PhysScene.PushRigidsToPhysics(); //엔진 -> physx쓰도록
+	m_PhysScene.Step(dt);       // simulate/fetch
+    m_PhysScene.PullRigidsFromPhysics();   // PhysX->엔진 읽기 (pose)
+    m_PhysScene.DrainEvents();             // 이벤트 drain
+
+    DispatchPhysicsEvents();
 
 	FlushCommands_PostStep();    // detach/unreg/release 등 후처리
 }
@@ -46,6 +53,7 @@ void MMMEngine::PhysxManager::NotifyRigidAdded(RigidBodyComponent* rb)
 {
     if (!rb) return;
     RequestRegisterRigid(rb);
+    
 }
 
 void MMMEngine::PhysxManager::NotifyRigidRemoved(RigidBodyComponent* rb)
@@ -55,6 +63,11 @@ void MMMEngine::PhysxManager::NotifyRigidRemoved(RigidBodyComponent* rb)
     auto go = rb->GetGameObject();
     if (HasAnyCollider(go))
     {
+        auto checkcollider = rb->GetGameObject()->GetComponent<ColliderComponent>();
+        if (checkcollider.IsValid()) {
+            std::cout << u8"콜리더존재함 삭제불가" << std::endl;
+            return;
+        }
         // 정책: collider 있으면 rigid 제거 불가
         // (여기서 로그/에디터 메시지 추천)
         return;
@@ -265,7 +278,24 @@ void MMMEngine::PhysxManager::FlushCommands_PostStep()
     {
         if (it->type == CmdType::DetachCol)
         {
-            m_PhysScene.DetachCollider(it->new_rb, it->col);
+            auto* rb = it->new_rb;
+            auto* col = it->col;
+
+            // rb가 곧 Unregister 될 예정이면 Detach는 의미 없거나 위험할 수 있음
+            if (!rb || m_PendingUnreg.find(rb) != m_PendingUnreg.end())
+            {
+                it = m_Commands.erase(it);
+                continue;
+            }
+
+            // actor가 이미 없으면 detach할 것도 없음 (안전)
+            if (rb->GetPxActor() == nullptr)
+            {
+                it = m_Commands.erase(it);
+                continue;
+            }
+
+            m_PhysScene.DetachCollider(rb, col);
             it = m_Commands.erase(it);
         }
         else
@@ -274,13 +304,19 @@ void MMMEngine::PhysxManager::FlushCommands_PostStep()
         }
     }
 
-    //Unregister
+    // Unregister
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         if (it->type == CmdType::UnregRigid)
         {
-            m_PhysScene.UnregisterRigid(it->new_rb);
-            m_PendingUnreg.erase(it->new_rb);
+            auto* rb = it->new_rb;
+
+            if (rb)
+            {
+                m_PhysScene.UnregisterRigid(rb); // 내부에서 actor 존재 체크 + destroy idempotent면 안정
+                m_PendingUnreg.erase(rb);
+            }
+
             it = m_Commands.erase(it);
         }
         else
@@ -374,6 +410,60 @@ void MMMEngine::PhysxManager::UnbindScene()
     }
 
     m_Scene = nullptr;
+
+    m_PhysScene.Destroy();
+}
+
+void MMMEngine::PhysxManager::DispatchPhysicsEvents()
+{
+    // 1) Contact (충돌)
+    const auto& contacts = m_PhysScene.GetFrameContacts();
+    for (const auto& e : contacts)
+    {
+        // userData -> 엔진 컴포넌트 복구
+        auto* rbA = static_cast<RigidBodyComponent*>(e.a ? e.a->userData : nullptr);
+        auto* rbB = static_cast<RigidBodyComponent*>(e.b ? e.b->userData : nullptr);
+        auto* colA = static_cast<ColliderComponent*>(e.aShape ? e.aShape->userData : nullptr);
+        auto* colB = static_cast<ColliderComponent*>(e.bShape ? e.bShape->userData : nullptr);
+
+        if (!rbA || !rbB || !colA || !colB) continue;
+
+        auto goA = rbA->GetGameObject();
+        auto goB = rbB->GetGameObject();
+        if (!goA.IsValid() || !goB.IsValid()) continue;
+
+        const bool enter = (e.events & physx::PxPairFlag::eNOTIFY_TOUCH_FOUND) != 0;
+        const bool stay = (e.events & physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS) != 0;
+        const bool exit = (e.events & physx::PxPairFlag::eNOTIFY_TOUCH_LOST) != 0;
+
+
+        if (enter) Callback_Que.push_back({ goA, goB, P_EvenType::C_enter });
+        if (stay)  Callback_Que.push_back({ goA, goB, P_EvenType::C_stay });
+        if (exit)  Callback_Que.push_back({ goA, goB, P_EvenType::C_out });
+    }
+
+    // 2) Trigger
+    const auto& triggers = m_PhysScene.GetFrameTriggers();
+    for (const auto& t : triggers)
+    {
+        auto* triggerCol = static_cast<ColliderComponent*>(t.triggerShape ? t.triggerShape->userData : nullptr);
+        auto* otherCol = static_cast<ColliderComponent*>(t.otherShape ? t.otherShape->userData : nullptr);
+        if (!triggerCol || !otherCol) continue;
+
+        auto goT = triggerCol->GetGameObject();
+        auto goO = otherCol->GetGameObject();
+        if (!goT.IsValid() || !goO.IsValid()) continue;
+
+        if (t.isEnter)
+        {
+            Callback_Que.push_back({ goT, goO, P_EvenType::T_enter });
+
+        }
+        else
+        {
+            Callback_Que.push_back({ goT, goO, P_EvenType::T_out });
+        }
+    }
 }
 
 

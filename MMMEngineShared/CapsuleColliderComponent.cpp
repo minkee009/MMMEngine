@@ -42,6 +42,25 @@ float MMMEngine::CapsuleColliderComponent::GetHalfHeight() const
 	return m_halfHeight;
 }
 
+bool MMMEngine::CapsuleColliderComponent::UpdateShapeGeometry()
+{
+	if (!m_Shape)
+		return false;
+
+	physx::PxGeometryHolder holder = m_Shape->getGeometry();
+	if (holder.getType() != physx::PxGeometryType::eCAPSULE)
+		return false;
+
+	const float r = physx::PxMax(m_radius, 0.01f);
+	const float hh = physx::PxMax(m_halfHeight, 0.01f);
+
+	physx::PxCapsuleGeometry geom(r, hh);
+	if (!geom.isValid()) return false;
+	m_Shape->setGeometry(geom);
+	ApplyAll();
+	return true;
+}
+
 void MMMEngine::CapsuleColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
 {
     if (!physics || !material) return;
@@ -51,18 +70,27 @@ void MMMEngine::CapsuleColliderComponent::BuildShape(physx::PxPhysics* physics, 
 
     physx::PxCapsuleGeometry geom(t_radius, t_halfheight);
 
-    // shape »ı¼º
+    // shape ìƒì„±
     physx::PxShape* shape = physics->createShape(geom, *material, true);
     if (!shape) return;
 
-    // ºÎ¸ğ°¡ userData ¼³Á¤ ¹× ApplyAll ¼öÇà
+    // ë¶€ëª¨ê°€ userData ì„¤ì • ë° ApplyAll ìˆ˜í–‰
     SetShape(shape, true);
 
-    // Y-up Ä¸½¶ÀÌ ÇÊ¿äÇÏ¸é ¾Æ·¡ÄÚµå·Î
+    // Y-up ìº¡ìŠì´ í•„ìš”í•˜ë©´ ì•„ë˜ì½”ë“œë¡œ
     // SetLocalPose( physx::PxTransform(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0,0,1))) * m_LocalPose );
+	m_Shape->userData = this;
 }
 
 void MMMEngine::ColliderComponent::Initialize()
 {
+	// Shapeë¥¼ ë¨¼ì € ìƒì„±í•´ì•¼ AttachColliderì—ì„œ ì‚¬ìš©í•  ìˆ˜ ìˆìŒ
+	auto& physics = MMMEngine::PhysicX::Get().GetPhysics();
+	physx::PxMaterial* mat = MMMEngine::PhysicX::Get().GetDefaultMaterial();
+
+	if (mat)
+	{
+		BuildShape(&physics, mat);
+	}
 	MMMEngine::PhysxManager::Get().NotifyColliderAdded(this);
 }

@@ -77,6 +77,9 @@ void Initialize()
 	app->OnBeforeWindowMessage.AddListener<ImGuiEditorContext, &ImGuiEditorContext::HandleWindowMessage>(&ImGuiEditorContext::Get());
 
 	MMMEngine::PhysicX::Get().Initialize();
+	SceneManager::Get().onSceneInitBefore.AddListenerLambda([]() { 
+		MMMEngine::PhysxManager::Get().BindScene(SceneManager::Get().GetCurrentSceneRaw());
+		});
 }
 
 void Update_ProjectNotLoaded()
@@ -136,7 +139,6 @@ void Update()
 		ObjectManager::Get().ProcessPendingDestroy();
 		BehaviourManager::Get().AllSortBehaviours();
 		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
-		MMMEngine::PhysxManager::Get().BindScene(SceneManager::Get().GetCurrentSceneRaw());
 	}
 
 	if (EditorRegistry::g_editor_scene_playing)
@@ -146,14 +148,15 @@ void Update()
 
 	TimeManager::Get().ConsumeFixedSteps([&](float fixedDt)
 		{
-			if (!EditorRegistry::g_editor_scene_playing)
-				return;
+			/*if (!EditorRegistry::g_editor_scene_playing)
+				return;*/
 
+			MMMEngine::PhysxManager::Get().StepFixed(fixedDt);
 			//PhysicsManager::Get()->PreSyncPhysicsWorld();
 			//PhysicsManager::Get()->PreApplyTransform();
-			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 			//PhysicsManager::Get()->Simulate(fixedDt);
 			//PhysicsManager::Get()->ApplyTransform();
+			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 		});
 
 	RenderManager::Get().BeginFrame();
@@ -170,6 +173,7 @@ void Update()
 
 void Release()
 {
+	PhysxManager::Get().UnbindScene();
 	GlobalRegistry::g_pApp = nullptr;
 	ImGuiEditorContext::Get().Uninitialize();
 	RenderManager::Get().ShutDown();

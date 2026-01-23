@@ -293,6 +293,7 @@ bool MMMEngine::SceneManager::CheckSceneIsChanged()
 		m_currentSceneID = m_nextSceneID;
 		m_nextSceneID = static_cast<size_t>(-1);
 
+		onSceneInitBefore(this);
 		m_scenes[m_currentSceneID]->Initialize();
 		return true;
 	}

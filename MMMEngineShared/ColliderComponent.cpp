@@ -91,8 +91,31 @@ uint32_t MMMEngine::ColliderComponent::GetEffectiveLayer()
 void MMMEngine::ColliderComponent::MarkGeometryDirty()
 {
     m_geometryDirty = true;
-    //Todo Notifiycolliderchanges 로 전달 예정
     PhysxManager::Get().NotifyColliderChanged(this);
+}
+
+bool MMMEngine::ColliderComponent::ApplyGeometryIfDirty()
+{
+    if (!m_geometryDirty)
+        return false;
+
+    if (!m_Shape)
+        return false;
+
+    const bool ok = UpdateShapeGeometry();
+
+#ifdef _DEBUG
+    if (!ok)
+        OutputDebugStringA("[Collider] UpdateShapeGeometry failed.\n");
+#endif
+
+    if (ok)
+    {
+        m_geometryDirty = false;
+        ApplyAll(); // geometry 바뀐 뒤 flags/filter/pose 재적용
+    }
+
+    return ok;
 }
 
 

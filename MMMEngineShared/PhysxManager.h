@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include "Scene.h"
 #include "TimeManager.h"
 #include "PhysX.h"
@@ -9,8 +8,21 @@
 #include "ExportSingleton.hpp"
 #include "CollisionMatrix.h"
 
+
+#include <iostream>
+#include <tuple>
+
+
 namespace MMMEngine
 {
+	enum class P_EvenType
+	{
+		C_enter,		//contact 진입
+		C_stay,			//contact 중
+		C_out,			//contact 종료
+		T_enter,		//trigger 진입
+		T_out			//trigger 종료
+	};
 	class MMMENGINE_API PhysxManager : public Utility::ExportSingleton<PhysxManager>
 	{
 	public:
@@ -32,6 +44,11 @@ namespace MMMEngine
 
 		void UnbindScene();
 		
+		void DispatchPhysicsEvents();
+
+		MMMEngine::PhysScene* getPScene() { return &m_PhysScene; }
+
+		std::vector<std::tuple<ObjPtr<GameObject>, ObjPtr<GameObject>, P_EvenType>>& GetCallbackQue() { return Callback_Que; }
 
 	private:
 		// 내부에서만 쓰는 헬퍼
@@ -61,6 +78,9 @@ namespace MMMEngine
 		// 자동 rigid 생성 헬퍼함수
 		MMMEngine::RigidBodyComponent* GetOrCreateRigid(ObjPtr<GameObject> go);
 		bool HasAnyCollider(ObjPtr<GameObject> go) const;
+
+		//이벤트보관함수
+		std::vector<std::tuple<ObjPtr<GameObject>, ObjPtr<GameObject>, P_EvenType>> Callback_Que;
 
 		void Shutdown();
 	private:

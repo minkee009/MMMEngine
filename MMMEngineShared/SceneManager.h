@@ -7,6 +7,7 @@
 #include "GameObject.h"
 #include "Scene.h"
 #include "SceneRef.h"
+#include "Delegates.hpp"
 
 namespace MMMEngine
 {
@@ -42,10 +43,12 @@ namespace MMMEngine
 		SceneRef GetSceneRef(const Scene* pScene);
 		std::vector<Scene*> GetAllSceneToRaw();
 		//=====================================//
+		Scene* GetCurrentSceneRaw() { return m_scenes[m_currentSceneID].get(); }
 
 		Scene* GetSceneRaw(const SceneRef& ref);
-		Scene* GetCurrentSceneRaw() { return m_scenes[m_currentSceneID].get(); }
 		const SceneRef GetCurrentScene() const;
+
+		Utility::Event<SceneManager, void(void)> onSceneInitBefore{ this };
 
 		const std::wstring GetSceneListPath() const;
 

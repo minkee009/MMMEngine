@@ -8,6 +8,7 @@
 #include <iostream>
 
 
+
 namespace MMMEngine {
 	class ColliderComponent;
 }
@@ -60,6 +61,7 @@ namespace MMMEngine {
 		RigidBodyComponent(const Desc& desc) : m_Desc(desc) {};
 
 		void Initialize() override;	//생성자 이후 추가 초기화용
+		void UnInitialize()override;
 
 		void OnDestroy();
 		//Scene에 등록
@@ -124,9 +126,7 @@ namespace MMMEngine {
 		Type GetType() { return m_Desc.type; }
 
 
-		void SetUseGravity(bool value) { 
-			std::cout << m_Desc.mass << std::endl;
-			m_Desc.useGravity = value; m_DescDirty = true; m_WakeRequested = true; }
+		void SetUseGravity(bool value);
 		void SetKinematic(bool value) { m_Desc.isKinematic = value; m_DescDirty = true; m_WakeRequested = true; }
 		void SetMass(float mass) { m_Desc.mass = mass; m_DescDirty = true; m_WakeRequested = true; }
 		void SetLineDamping(float lin) { m_Desc.linearDamping = lin; m_DescDirty = true; m_WakeRequested = true; }
@@ -188,6 +188,8 @@ namespace MMMEngine {
 		physx::PxPhysics* m_Physics = nullptr;
 
 		bool m_IsAutoRigid = false;
+
+		void BindTeleport();
 
 	private:
 		physx::PxForceMode::Enum ToPxForceMode(ForceMode mode);

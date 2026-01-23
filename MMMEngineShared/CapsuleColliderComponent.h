@@ -15,6 +15,8 @@ namespace MMMEngine
 		float GetRadius() const;
 		float GetHalfHeight() const;
 
+		bool UpdateShapeGeometry() override;
+
 		void BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) override;
 	private:
 		float m_radius = 0.5f;

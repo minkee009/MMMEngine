@@ -79,6 +79,8 @@ void MMMEngine::RigidBodyComponent::CreateActor(physx::PxPhysics* physics, Vecto
 	if (auto* t_dynamic = m_Actor->is<physx::PxRigidDynamic>()) {
 		physx::PxRigidBodyExt::updateMassAndInertia(*t_dynamic, m_Desc.mass);
 	}
+
+	m_Actor->userData = this;
 }
 
 //생성했을때 이미 존재하면 등록안하도록 함
@@ -93,17 +95,32 @@ void MMMEngine::RigidBodyComponent::Initialize()
 	}
 	m_Desc = { MMMEngine::RigidBodyComponent::Type::Dynamic, 1.0f, 0.05f, 0.0f, true, false };
 
+	
+	//auto TransTarget = GetGameObject()->GetTransform();
+	//TransTarget->onMatrixUpdate.AddListener<RigidBodyComponent, &RigidBodyComponent::BindTeleport>(this);
+
 	MMMEngine::PhysxManager::Get().NotifyRigidAdded(this);
+}
+
+void MMMEngine::RigidBodyComponent::UnInitialize()
+{
+	MMMEngine::PhysxManager::Get().NotifyRigidRemoved(this);
 }
 
 void MMMEngine::RigidBodyComponent::OnDestroy()
 {
 	//for (auto* col : m_Colliders) DetachCollider(col);
 
-	auto cols = m_Colliders;
+	/*auto cols = m_Colliders;
 	for (auto* col : cols) DetachCollider(col);
 	DestroyActor();
 
+	m_Physics = nullptr;*/
+
+	if (!m_Actor) return;
+	m_Actor->release();
+	m_Actor = nullptr;
+	
 	m_Physics = nullptr;
 }
 
@@ -164,6 +181,7 @@ void MMMEngine::RigidBodyComponent::PullFromPhysics()
 {
 	if (!m_Actor) return;
 	//if (!m_Tr) return; // 엔진 Transform 포인터(혹은 참조)가 연결된 경우만 ( 오류방지용 )
+
 
 	// Static은 보통 Pull할 필요 없음 , 에디터 이동/텔레포트는 Push에서 setGlobalPose로 처리)
 	if (m_Desc.type == Type::Static) return;
@@ -427,6 +445,13 @@ physx::PxRigidActor* MMMEngine::RigidBodyComponent::GetPxActor() const
 
 
 
+void MMMEngine::RigidBodyComponent::BindTeleport()
+{
+	auto Bind_Trans = GetGameObject();
+	auto temptrans = Bind_Trans->GetTransform();
+	SetKinematicTarget(temptrans->GetWorldPosition(), temptrans->GetWorldRotation());
+}
+
 //private 함수들
 physx::PxForceMode::Enum MMMEngine::RigidBodyComponent::ToPxForceMode(ForceMode mode)
 {
@@ -438,6 +463,22 @@ physx::PxForceMode::Enum MMMEngine::RigidBodyComponent::ToPxForceMode(ForceMode 
 	case ForceMode::Acceleration: return physx::PxForceMode::eACCELERATION;
 	}
 	return physx::PxForceMode::eFORCE;
+}
+
+void MMMEngine::RigidBodyComponent::SetUseGravity(bool value)
+{
+	auto it  = MMMEngine::PhysxManager::Get().getPScene();
+
+
+	if (&(it->GetScene()) == nullptr)
+	{
+		std::cout << "GetScene is nullptr" << std::endl;
+	}
+	/*physx::PxU32 count = it->GetScene().getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC |
+		physx::PxActorTypeFlag::eRIGID_DYNAMIC);
+
+	std::cout << count << std::endl;*/
+	m_Desc.useGravity = value; m_DescDirty = true; m_WakeRequested = true;
 }
 
 void MMMEngine::RigidBodyComponent::SetType(Type newType)
@@ -482,6 +523,9 @@ void MMMEngine::RigidBodyComponent::SetType(Type newType)
 	//타입 변경
 	m_Desc.type = newType;
 
+
+	m_Physics = &(MMMEngine::PhysicX::Get().GetPhysics());
+	if (!m_Physics) return;
 	//Actor 재생성
 	DestroyActor();
 	CreateActor(m_Physics, temp_Position, temp_Quarter);
