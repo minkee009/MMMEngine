@@ -36,30 +36,33 @@ cbuffer CameraBuffer : register(b0)
 };
 float4 PS_Main(PS_INPUT input) : SV_TARGET
 {
-    float2 uv = input.worldPosition.xz / 1.0; // gridSpacing = 1.0
+    float2 uv = input.worldPosition.xz / 1.0; 
     float2 uvDeriv = fwidth(uv);
-    
-    // 선 두께 계산 (GLSL 로직 그대로)
-    float2 scaledThickness = uvDeriv * 1.0; // lineThickness = 1.0
-    
-    // frac은 GLSL의 fract와 동일
-    float distX = abs(frac(uv.x + scaledThickness.x / 2.0));
-    float distZ = abs(frac(uv.y + scaledThickness.y / 2.0));
+    float2 scaledThickness = uvDeriv * 1.0; 
 
-    bool onXLine = distX < scaledThickness.x;
-    bool onZLine = distZ < scaledThickness.y;
-    bool onAxisX = abs(input.worldPosition.z) < scaledThickness.y / 2.0;
-    bool onAxisZ = abs(input.worldPosition.x) < scaledThickness.x / 2.0;
+    float2 drawPos = abs(frac(uv + 0.5) - 0.5);
+    float2 gridAlpha2D = smoothstep(scaledThickness, float2(0.0, 0.0), drawPos);
+    
+    // X, Z 선 중 더 강한 쪽을 선택
+    float gridAlpha = max(gridAlpha2D.x, gridAlpha2D.y);
 
+    // 축(Axis) 선도 동일하게 부드럽게 처리
+    float2 axisAlpha2D = smoothstep(uvDeriv * 1.5, float2(0.0, 0.0), abs(input.worldPosition.xz));
+
+    // 거리 기반 페이드
     float distFromCamera = length(input.worldPosition.xz - cameraPosition.xz);
-    float alpha = 1.0 - smoothstep(4.0, 24.0, distFromCamera); // fadeDistance, fadeRange 적용
+    float fade = 1.0 - smoothstep(4.0, 24.0, distFromCamera);
 
-    if (onAxisZ) return float4(0.0, 0.0, 1.0, alpha);      // axisZColor
-    if (onAxisX) return float4(1.0, 0.0, 0.0, alpha);      // axisXColor
-    if (onXLine || onZLine) return float4(0.5, 0.5, 0.5, alpha); // gridColor
-    
-    discard;
-    return float4(0,0,0,0);
+    // 최종 색상 계산
+    float4 color;
+    if (axisAlpha2D.y > 0.1)      color = float4(1.0, 0.0, 0.0, axisAlpha2D.y * fade); // X축
+    else if (axisAlpha2D.x > 0.1) color = float4(0.0, 0.0, 1.0, axisAlpha2D.x * fade); // Z축
+    else                          color = float4(0.5, 0.5, 0.5, gridAlpha * fade);    // 일반 그리드
+
+    // 아주 낮은 알파값은 연산에서 제외하여 성능 최적화
+    if (color.a < 0.001) discard;
+
+    return color;
 }
 )";
 }
