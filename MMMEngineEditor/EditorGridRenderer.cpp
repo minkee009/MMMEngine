@@ -29,17 +29,24 @@ bool MMMEngine::Editor::EditorGridRenderer::Initialize(ID3D11Device* device)
     // Create blend state for alpha blending
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.RenderTarget[0].BlendEnable = TRUE;
+
+    // 컬러 혼합: 최종색 = (그리드색 * 그리드알파) + (배경색 * (1 - 그리드알파))
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
     blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+
+    // 알파 혼합: 알파값 자체를 어떻게 쌓을지 결정
     blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA; // ZERO에서 변경 권장
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
     blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
     HRESULT hr = device->CreateBlendState(&blendDesc, m_blendState.GetAddressOf());
     if (FAILED(hr))
         return false;
+
+
 
     // Create rasterizer state
     D3D11_RASTERIZER_DESC rastDesc = {};

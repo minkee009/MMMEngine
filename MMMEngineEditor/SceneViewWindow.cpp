@@ -64,6 +64,11 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 
 	ImGui::Begin(u8"\uf009 ¾À ºä", &g_editor_window_sceneView);
 
+	if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+	{
+		ImGui::SetWindowFocus();
+	}
+
 	m_isHovered = ImGui::IsWindowHovered();
 	m_isFocused = ImGui::IsWindowFocused();
 
