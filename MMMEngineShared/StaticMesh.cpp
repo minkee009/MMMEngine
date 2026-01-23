@@ -13,6 +13,7 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<StaticMesh>("StaticMesh")
+		.constructor<>()(policy::ctor::as_std_shared_ptr)
 		.property("castShadows", &StaticMesh::castShadows)
 		.property("receiveShadows", &StaticMesh::receiveShadows)
 		.property("meshData", &StaticMesh::meshData)

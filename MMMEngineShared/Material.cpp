@@ -21,6 +21,7 @@ RTTR_REGISTRATION
 	using namespace rttr;
 
 	registration::class_<MMMEngine::Material>("Material")
+		.constructor<>()(policy::ctor::as_std_shared_ptr)
 		.property_readonly("VShader", &MMMEngine::Material::GetVShader)
 		.property_readonly("PShader", &MMMEngine::Material::GetPShader)
 		.method("GetProperty", &MMMEngine::Material::GetProperty)

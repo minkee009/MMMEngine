@@ -198,12 +198,18 @@ void MMMEngine::Editor::FilesWindow::DrawNavigationBar(const fs::path& root)
             ImGui::SameLine();
         }
 
+        // imgui id push로 파일 안에 같은 이름의 파일이 있더라도 UI ID겹침 방지
+        ImGui::PushID(static_cast<int>(i));
+
         std::string label = (i == 0) ? "Root" : pathParts[i].filename().string();
 
         if (ImGui::SmallButton(label.c_str()))
         {
             NavigateTo(pathParts[i]);
         }
+
+        // id pop
+        ImGui::PopID(); 
     }
 }
 
@@ -586,7 +592,7 @@ void MMMEngine::Editor::FilesWindow::NavigateTo(const fs::path& newPath)
 void MMMEngine::Editor::FilesWindow::CreateNewScript(const std::string& parentDir, const std::string& scriptName)
 
 {
-    fs::path scriptsDir = fs::path(parentDir) / "Source" / "UserScripts" / "Scripts";
+    fs::path scriptsDir = fs::path(parentDir);// / "Source" / "UserScripts" / "Scripts";
 
     if (!fs::exists(scriptsDir))
     {

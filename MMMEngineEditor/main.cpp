@@ -27,6 +27,22 @@ using namespace MMMEngine;
 using namespace MMMEngine::Utility;
 using namespace MMMEngine::Editor;
 
+void AfterProjectLoaded()
+{
+	// 유저 스크립트 불러오기
+	fs::path cwd = fs::current_path();
+	DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
+
+	fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
+
+	fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
+
+	BehaviourManager::Get().StartUp(dllPath.stem().u8string());
+
+	// 리소스 매니저 부팅
+	ResourceManager::Get().StartUp(projectPath.generic_wstring() + L"/");
+}
+
 void Initialize()
 {
 	SetConsoleOutputCP(CP_UTF8);
@@ -49,19 +65,12 @@ void Initialize()
 		app->SetWindowTitle(L"MMMEditor [ " + Utility::StringHelper::StringToWString(currentProject.rootPath) + L" ]");
 		ObjectManager::Get().StartUp();
 
-		// 유저 스크립트 불러오기
-		{
-			fs::path cwd = fs::current_path();
-			DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
 
-			fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
-
-			fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
-
-			BehaviourManager::Get().StartUp(dllPath.stem().u8string());
-		}
+		// 경로 부팅
+		AfterProjectLoaded();
 		
 		BuildManager::Get().SetProgressCallbackString([](const std::string& progress) { std::cout << progress.c_str() << std::endl; });
+
 	}
 
 	RenderManager::Get().StartUp(hwnd, windowInfo.width, windowInfo.height);
@@ -99,19 +108,10 @@ void Update_ProjectNotLoaded()
 
 		ObjectManager::Get().StartUp();
 
-		// 유저 스크립트 불러오기
-		{
-			fs::path cwd = fs::current_path();
-			DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
 
-			fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
-
-			fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
-
-			BehaviourManager::Get().StartUp(dllPath.stem().u8string());
-		}
+		// 경로 부팅
+		AfterProjectLoaded();
 	
-
 		BuildManager::Get().SetProgressCallbackString([](const std::string& progress) { std::cout << progress << std::endl; });
 		return;
 	}

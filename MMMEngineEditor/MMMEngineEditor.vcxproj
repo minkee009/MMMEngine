@@ -114,7 +114,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>RTTR_DLL;_DEBUG;_CONSOLE;WIN32;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>Default</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)MMMEngineShared\rttr\..;$(SolutionDir)MMMEngineShared\dxtk\Inc;$(SolutionDir)MMMEngineShared\dxtk;$(SolutionDir)MMMEngineShared;$(ProjectDir)imgui-docking\;$(ProjectDir)imgui-docking\backends</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MMMEngineShared\rttr\..;$(SolutionDir)MMMEngineShared\dxtk\Inc;$(SolutionDir)MMMEngineShared\dxtk;$(SolutionDir)MMMEngineShared\physx;$(SolutionDir)MMMEngineShared;$(ProjectDir)imgui-docking\;$(ProjectDir)imgui-docking\backends</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
       <TreatWChar_tAsBuiltInType />
@@ -125,7 +125,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>rttr_core_d.lib;assimp-vc143-mt.lib;pugixml.lib;minizip.lib;zlib.lib;kubazip.lib;poly2tri.lib;draco.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>rttr_core_d.lib;assimp-vc143-mt.lib;pugixml.lib;minizip.lib;zlib.lib;kubazip.lib;poly2tri.lib;draco.lib;%(AdditionalDependencies);PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Common\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -137,12 +137,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32;_WINDOWS_CRT_SECURE_NO_WARNINGS;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)MMMEngineShared\rttr\..;$(SolutionDir)MMMEngineShared\dxtk\Inc;$(SolutionDir)MMMEngineShared\dxtk;$(SolutionDir)MMMEngineShared;$(ProjectDir)imgui-docking\;$(ProjectDir)imgui-docking\backends</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MMMEngineShared\rttr\..;$(SolutionDir)MMMEngineShared\dxtk\Inc;$(SolutionDir)MMMEngineShared\dxtk;$(SolutionDir)MMMEngineShared\physx;$(SolutionDir)MMMEngineShared;$(ProjectDir)imgui-docking\;$(ProjectDir)imgui-docking\backends</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>rttr_core.lib;assimp-vc143-mt.lib;pugixml.lib;minizip.lib;zlib.lib;kubazip.lib;poly2tri.lib;draco.lib;%(AdditionalDependencies);PhysX_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
