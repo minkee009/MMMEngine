@@ -95,6 +95,16 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 			if (ImGui::IsKeyPressed(ImGuiKey_R))
 				m_guizmoOperation = ImGuizmo::SCALE;
 		}
+
+		if (ImGui::IsKeyPressed(ImGuiKey_F))
+		{
+			if (g_selectedGameObject.IsValid())
+			{
+				auto& tr = g_selectedGameObject->GetTransform();
+				// 오브젝트의 위치로 포커스 (거리는 5.0f로 설정하거나 바운딩 박스 크기에 비례하게 설정)
+				m_pCam->FocusOn(tr->GetWorldPosition(), 7.0f);
+			}
+		}
 	}
 
 
