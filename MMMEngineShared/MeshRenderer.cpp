@@ -42,6 +42,10 @@ void MMMEngine::MeshRenderer::SetMesh(ResPtr<StaticMesh>& _mesh)
 
 void MMMEngine::MeshRenderer::Start()
 {
+	// 메시 없으면 리턴
+	if (!mesh)
+		return;
+
 	// 메테리얼 인덱스별로 파일경로 캐싱
 	for (int i = 0; i < mesh->materials.size(); ++i) {
 		m_shaderPathMap[i] = mesh->materials[i]->GetPShader()->GetFilePath();
@@ -51,7 +55,7 @@ void MMMEngine::MeshRenderer::Start()
 void MMMEngine::MeshRenderer::Update()
 {
 	// 유효성 확인
-	if (!mesh || mesh->meshData.vertices.empty() || mesh->gpuBuffer.vertexBuffers.empty() || GetGameObject()->GetTransform())
+	if (!mesh || !GetGameObject()->GetTransform())
 		return;
 
 	for (auto& [matIdx, meshIndices] : mesh->meshGroupData) {
@@ -64,6 +68,7 @@ void MMMEngine::MeshRenderer::Update()
 
 			command.vertexBuffer = meshBuffer.Get();
 			command.indexBuffer = indicesBuffer.Get();
+			command.material = material.get();
 			command.worldMatIndex = RenderManager::Get().AddMatrix(GetGameObject()->GetTransform()->GetWorldMatrix());
 			command.indiciesSize = mesh->indexSizes[idx];
 

@@ -99,7 +99,6 @@ json SerializeVertex(const std::vector<Mesh_Vertex>& _vertices)
 			rttr::filter_item::public_access |
 			rttr::filter_item::non_public_access))
 		{
-			auto string = vert.get_name().to_string();
 			if (prop.is_readonly())
 				continue;
 

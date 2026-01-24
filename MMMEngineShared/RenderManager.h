@@ -91,8 +91,6 @@ namespace MMMEngine
 		DirectX::SimpleMath::Vector4 m_ClearColor;
 
 		// 인풋 레이아웃
-		ResPtr<VShader> m_pDefaultVSShader;
-		ResPtr<PShader> m_pDefaultPSShader;
 		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pDefaultInputLayout;
 
 		// 트랜스폼 버퍼
@@ -135,9 +133,6 @@ namespace MMMEngine
 
 		const Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_pDevice; }
 		const Microsoft::WRL::ComPtr<ID3D11DeviceContext4> GetContext() const { return m_pDeviceContext; }
-		
-		const std::shared_ptr<VShader> GetDefaultVS() const { return m_pDefaultVSShader; }
-		const std::shared_ptr<PShader> GetDefaultPS() const { return m_pDefaultPSShader; }
 		const Microsoft::WRL::ComPtr<ID3D11InputLayout> GetDefaultInputLayout() const { return m_pDefaultInputLayout; }
 	public:
 		/*template <typename T, typename... Args>

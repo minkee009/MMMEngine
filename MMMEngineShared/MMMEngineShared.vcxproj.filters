@@ -299,7 +299,7 @@
     </ClInclude>
     <ClInclude Include="RenderCommand.h">
       <Filter>헤더 파일\Core\Render API</Filter>
-    </ClCompile>
+    </ClInclude>
     <ClInclude Include="SafeRelease.h">
       <Filter>헤더 파일\Utility</Filter>
     </ClInclude>

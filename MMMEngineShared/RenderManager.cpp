@@ -23,11 +23,15 @@ namespace MMMEngine {
 
 	void RenderManager::ApplyMatToContext(ID3D11DeviceContext4* _context, Material* _material)
 	{
+		
 		auto VS = _material->GetVShader()->m_pVShader;
 		auto PS = _material->GetPShader()->m_pPShader;
+		_context->IASetInputLayout(_material->GetVShader()->m_pInputLayout.Get());
 		_context->VSSetShader(VS.Get(), nullptr, 0);
 		_context->PSSetShader(PS.Get(), nullptr, 0);
-		
+		_context->PSSetSamplers(0, 1, m_pDafaultSamplerLinear.GetAddressOf());
+
+		// TODO::ShaderInfo 사용해 정적버퍼, 텍스쳐버퍼 업데이트 자동화 시키기
 		// 메테리얼 등록(Texture2D만 받는다)
 			for (auto& [prop, val] : _material->GetProperties()) {
 				int idx = ShaderInfo::Get().PropertyToIdx(ShaderType::S_PBR, prop);
@@ -77,6 +81,7 @@ namespace MMMEngine {
 
 				UINT stride = sizeof(Mesh_Vertex); // 실제 버텍스 구조체 크기
 				UINT offset = 0;
+				m_pDeviceContext->IAGetInputLayout(m_pDefaultInputLayout.GetAddressOf());
 				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
 				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
@@ -239,6 +244,19 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateRasterizerState2(&rsDesc, m_pDefaultRS.GetAddressOf()));
 		assert(m_pDefaultRS && "RenderPipe::InitD3D : defaultRS not initialized!!");
 	
+		// 샘플러 만들기
+		D3D11_SAMPLER_DESC sampDesc = {};
+		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		sampDesc.MinLOD = 0;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pDafaultSamplerLinear.GetAddressOf()));
+
+
 		// === Scene 렌더타겟 초기화 ===
 		D3D11_TEXTURE2D_DESC1 sceneColorDesc = {};
 		sceneColorDesc.Width = m_clientWidth;
@@ -290,25 +308,6 @@ namespace MMMEngine {
 		m_sceneViewport.MinDepth = 0.0f;
 		m_sceneViewport.MaxDepth = 1.0f;
 
-		// 기본 VSShader 생성
-		m_pDefaultVSShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
-		m_pDefaultPSShader = ResourceManager::Get().Load<PShader>(L"Shader/PBR/PS/BRDFShader.hlsl");
-
-		// 기본 InputLayout 생성
-		D3D11_INPUT_ELEMENT_DESC layout[] = {
-	   { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		};
-		HR_T(m_pDevice->CreateInputLayout(
-			layout, ARRAYSIZE(layout), m_pDefaultVSShader->m_pBlob->GetBufferPointer(),
-			m_pDefaultVSShader->m_pBlob->GetBufferSize(), m_pDefaultInputLayout.GetAddressOf()
-		));
-
 		// 캠 버퍼 생성
 		D3D11_BUFFER_DESC bd = {};
 		bd.Usage = D3D11_USAGE_DEFAULT;
@@ -317,7 +316,8 @@ namespace MMMEngine {
 
 		bd.ByteWidth = sizeof(Render_CamBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pCambuffer.GetAddressOf()));
-
+		bd.ByteWidth = sizeof(Render_TransformBuffer);
+		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pTransbuffer));
 	}
 	void RenderManager::ShutDown()
 	{
@@ -507,9 +507,9 @@ namespace MMMEngine {
 
 		// 캠 버퍼 업데이트
 		Render_CamBuffer m_camMat = {};
-		m_camMat.camPos = XMMatrixInverse(nullptr, m_viewMatrix).r[3];
-		m_camMat.mView = m_viewMatrix;
-		m_camMat.mProjection = m_projMatrix;
+		m_camMat.camPos = {.0f, .0f, .0f, 1.0f};
+		m_camMat.mView = Matrix::Identity;
+		m_camMat.mProjection = Matrix::Identity;
 
 		// 리소스 업데이트
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
@@ -518,6 +518,9 @@ namespace MMMEngine {
 		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 		m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
+		float blendFactor[4] = { 0,0,0,0 };
+		UINT sampleMask = 0xffffffff;
+		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
 
 		m_pDeviceContext->RSSetViewports(1, &m_sceneViewport);
 		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
@@ -533,18 +536,11 @@ namespace MMMEngine {
 
 	void RenderManager::RenderOnlyRenderer()
 	{
-		// Init Queue 처리
-		while (!m_initQueue.empty()) {
-			auto& renderer = m_initQueue.front();
-
-			renderer->Initialize();
-			m_initQueue.pop();
-		}
-
 		// 캠 버퍼 업데이트
+		Render_CamBuffer m_camMat = {};
 		m_camMat.camPos = XMMatrixInverse(nullptr, m_viewMatrix).r[3];
-		m_camMat.mView = m_viewMatrix;
-		m_camMat.mProjection = m_projMatrix;
+		m_camMat.mView = XMMatrixTranspose(m_viewMatrix);
+		m_camMat.mProjection = XMMatrixTranspose(m_projMatrix);
 
 		// 리소스 업데이트
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
@@ -553,15 +549,14 @@ namespace MMMEngine {
 		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 		m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
+		float blendFactor[4] = { 0,0,0,0 };
+		UINT sampleMask = 0xffffffff;
+		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
 
 		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
 
 		// RenderPass
-		for (const auto& pass : m_Passes) {
-			for (const auto& renderer : pass.second) {
-				renderer->Render();
-			}
-		}
+		ExcuteCommands();
 	}
 
 	void RenderManager::EndFrame()
