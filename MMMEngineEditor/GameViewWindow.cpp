@@ -20,7 +20,6 @@ void MMMEngine::Editor::GameViewWindow::Render()
     ImGuiStyle& style = ImGui::GetStyle();
     style.WindowMenuButtonPosition = ImGuiDir_None;
 
-    // Begin이 false여도 End는 반드시 호출해야 합니다.
     if (!ImGui::Begin(u8"\uf11b 게임", &g_editor_window_gameView))
     {
         ImGui::End();

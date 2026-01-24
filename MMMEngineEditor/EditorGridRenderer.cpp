@@ -46,6 +46,15 @@ bool MMMEngine::Editor::EditorGridRenderer::Initialize(ID3D11Device* device)
     if (FAILED(hr))
         return false;
 
+    D3D11_DEPTH_STENCIL_DESC dsDesc = {};
+    dsDesc.DepthEnable = TRUE;
+    dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    dsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // 그리드는 뒤에 그려지도록
+    dsDesc.StencilEnable = FALSE;
+
+    hr = device->CreateDepthStencilState(&dsDesc, m_depthStencilState.GetAddressOf());
+    if (FAILED(hr))
+        return false;
 
 
     // Create rasterizer state
@@ -104,7 +113,7 @@ void MMMEngine::Editor::EditorGridRenderer::Render(ID3D11DeviceContext* context,
 
     // Set constant buffers
     context->VSSetConstantBuffers(0, 1, m_viewProjBuffer.GetAddressOf());
-    context->PSSetConstantBuffers(0, 1, m_cameraBuffer.GetAddressOf());
+    context->PSSetConstantBuffers(1, 1, m_cameraBuffer.GetAddressOf());
 
     // Set vertex buffer
     UINT stride = sizeof(Vertex);

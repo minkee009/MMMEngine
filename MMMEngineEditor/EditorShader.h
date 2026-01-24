@@ -2,23 +2,15 @@
 
 namespace MMMEngine::EditorShader
 {
-	inline const char* g_shader_grid = R"(
-// Vertex Shader
+    inline const char* g_shader_grid = R"(
+// Vertex Shader Constant Buffer
 cbuffer ViewProjBuffer : register(b0)
 {
     float4x4 viewProj;
 };
 
-struct VS_INPUT
-{
-    float3 position : POSITION;
-};
-
-struct PS_INPUT
-{
-    float4 position : SV_POSITION;
-    float3 worldPosition : TEXCOORD0;
-};
+struct VS_INPUT { float3 position : POSITION; };
+struct PS_INPUT { float4 position : SV_POSITION; float3 worldPosition : TEXCOORD0; };
 
 PS_INPUT VS_Main(VS_INPUT input)
 {
@@ -28,45 +20,59 @@ PS_INPUT VS_Main(VS_INPUT input)
     return output;
 }
 
-// Pixel Shader
-cbuffer CameraBuffer : register(b0) 
+// Pixel Shader Constant Buffer (C++의 PSSetConstantBuffers(0, ...)에 맞춤)
+cbuffer CameraBuffer : register(b1)
 {
     float3 cameraPosition;
-    float padding;
+    float cb_padding;
 };
+
+// 'line' 대신 'gridVal' 변수명 사용 (예약어 충돌 방지)
+float drawGrid(float2 uv, float thickness)
+{
+    float2 derivative = fwidth(uv);
+    derivative = max(derivative, float2(0.0001, 0.0001)); // 0 나누기 방지
+    
+    float2 gridPos = abs(frac(uv - 0.5) - 0.5) / derivative;
+    float gridVal = min(gridPos.x, gridPos.y);
+    
+    return 1.0 - smoothstep(0.0, thickness, gridVal);
+}
+
 float4 PS_Main(PS_INPUT input) : SV_TARGET
 {
-    float2 uv = input.worldPosition.xz / 1.0; 
-    float2 uvDeriv = fwidth(uv);
-    float2 scaledThickness = uvDeriv * 1.0; 
+    float2 uv = input.worldPosition.xz;
+    float2 derivative = fwidth(uv);
+    derivative = max(derivative, float2(0.0001, 0.0001));
 
-    float2 drawPos = abs(frac(uv + 0.5) - 0.5);
-    float2 gridAlpha2D = smoothstep(scaledThickness, float2(0.0, 0.0), drawPos);
+    // 1. 거리 기반 페이드
+    float dist = length(input.worldPosition - cameraPosition);
+    float fade = 1.0 - smoothstep(15.0, 45.0, dist); 
     
-    // X, Z 선 중 더 강한 쪽을 선택
-    float gridAlpha = max(gridAlpha2D.x, gridAlpha2D.y);
+    // 2. 축(Axis) 렌더링 - 픽셀 단위 두께 고정
+    float2 axisPos = abs(input.worldPosition.xz) / derivative;
+    float4 finalColor = float4(0.0, 0.0, 0.0, 0.0);
+    
+    float axisWidth = 1.0;
 
-    // 축(Axis) 선도 동일하게 부드럽게 처리
-    float2 axisAlpha2D = smoothstep(uvDeriv * 1.5, float2(0.0, 0.0), abs(input.worldPosition.xz));
+    // 축 선 판정 로직
+    if (axisPos.x < axisWidth) {
+        finalColor = float4(0.2, 0.4, 1.0, fade); // Z축 (Blue)
+    }
+    else if (axisPos.y < axisWidth) {
+        finalColor = float4(1.0, 0.3, 0.3, fade); // X축 (Red)
+    }
+    else {
+        // 일반 그리드 (1단위 & 10단위)
+        float g1 = drawGrid(uv, 1.0);
+        float g2 = drawGrid(uv * 0.1, 1.0);
+        
+        float alpha = max(g1 * 0.15, g2 * 0.4);
+        finalColor = float4(0.5, 0.5, 0.5, alpha * fade);
+    }
 
-    // 거리 기반 페이드
-    float distFromCamera = length(input.worldPosition.xz - cameraPosition.xz);
-    float fade = 1.0 - smoothstep(4.0, 24.0, distFromCamera);
-
-    // 최종 색상 계산
-    float4 color;
-    if (axisAlpha2D.y > 0.1)      color = float4(1.0, 0.0, 0.0, axisAlpha2D.y * fade); // X축
-    else if (axisAlpha2D.x > 0.1) color = float4(0.0, 0.0, 1.0, axisAlpha2D.x * fade); // Z축
-    else                          color = float4(0.5, 0.5, 0.5, gridAlpha * fade);    // 일반 그리드
-
-    // 아주 낮은 알파값은 연산에서 제외하여 성능 최적화
-    if (color.a < 0.001) discard;
-
-    return color;
+    if (finalColor.a < 0.01) discard;
+    return finalColor;
 }
 )";
 }
-
-
-
-
