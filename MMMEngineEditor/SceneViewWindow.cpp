@@ -243,6 +243,36 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 		}
 		ImGui::EndDisabled();
 
+		// --- 카메라 설정 팝업 버튼 추가 ---
+		ImGui::SameLine();
+		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+		ImGui::SameLine();
+
+		if (ImGui::Button(u8"\uf0ad Camera Settings")) // 폰트어썸 렌치(wrench) 아이콘 사용 예시
+		{
+			ImGui::OpenPopup("CameraSettingsPopup");
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 10.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+
+		// 팝업 창 정의
+		if (ImGui::BeginPopup("CameraSettingsPopup"))
+		{
+			float fov = m_pCam->GetFOV();
+			float n = m_pCam->GetNearPlane();
+			float f = m_pCam->GetFarPlane();
+
+			// 컨트롤 간의 간격을 위해 ItemSpacing도 조절하고 싶다면 추가 가능
+			if (ImGui::DragFloat("FOV", &fov, 0.5f, 10.0f, 120.0f)) m_pCam->SetFOV(fov);
+			if (ImGui::DragFloat("Near", &n, 0.01f, 0.01f, 10.0f)) m_pCam->SetNearPlane(n);
+			if (ImGui::DragFloat("Far", &f, 1.0f, 10.0f, 10000.0f)) m_pCam->SetFarPlane(f);
+
+			ImGui::EndPopup();
+		}
+		ImGui::PopStyleVar(2);
+		// ----------------------------------
+
 		ImGui::PopStyleColor(3);
 	}
 

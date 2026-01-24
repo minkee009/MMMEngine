@@ -156,7 +156,9 @@ void Update()
 			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 			MMMEngine::PhysxManager::Get().StepFixed(fixedDt);
 
-			auto&& vec = std::move(PhysxManager::Get().GetCallbackQue());
+			std::vector<std::tuple<ObjPtr<GameObject>, ObjPtr<GameObject>, P_EvenType>> vec;
+
+			std::swap(vec, PhysxManager::Get().GetCallbackQue());
 
 			for (auto& [A, B, Event] : vec)
 			{
