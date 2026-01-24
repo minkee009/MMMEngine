@@ -65,6 +65,9 @@
     <ClCompile Include="RenderCommand.cpp">
       <Filter>소스 파일\Core\Render API</Filter>
     </ClCompile>
+    <ClCompile Include="RenderStateGuard.cpp">
+      <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
@@ -296,6 +299,12 @@
     </ClInclude>
     <ClInclude Include="RenderCommand.h">
       <Filter>헤더 파일\Core\Render API</Filter>
+    </ClCompile>
+    <ClInclude Include="SafeRelease.h">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderStateGuard.h">
+      <Filter>헤더 파일\Utility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -14,7 +14,7 @@ void MMMEngine::PhysxManager::BindScene(MMMEngine::Scene* scene)
     m_Scene = scene;
     if (!m_Scene) return;
 
-    // ¾À ¼³Á¤À¸·Î desc ±¸¼º (ÀÓ½Ã¶óµµ)
+    // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ desc ï¿½ï¿½ï¿½ï¿½ (ï¿½Ó½Ã¶ï¿½)
     PhysSceneDesc desc{};
     
     for (uint32_t i = 0; i <= 4; ++i)
@@ -41,19 +41,19 @@ void MMMEngine::PhysxManager::StepFixed(float dt)
 {
     if (!m_IsInitialized) return;
     if (dt <= 0.f) return;
-	FlushCommands_PreStep();     // µî·Ï/ºÎÂø µî
+	FlushCommands_PreStep();     // ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
 
-	ApplyFilterConfigIfDirty();  // dirty¸é Á¤Ã¥ °»½Å + ÀüÃ¼ ÀçÀû¿ë Áö½Ã
-    FlushDirtyColliders_PreStep(); //colliderÀÇ shape°¡ ¿¡µðÅÍ ´Ü°è¿¡¼­ º¯ÇüµÇ¸é ³»ºÎÀûÀ¸·Î ½ÇÇà
+	ApplyFilterConfigIfDirty();  // dirtyï¿½ï¿½ ï¿½ï¿½Ã¥ ï¿½ï¿½ï¿½ï¿½ + ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    FlushDirtyColliders_PreStep(); //colliderï¿½ï¿½ shapeï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°è¿¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 
-    m_PhysScene.PushRigidsToPhysics(); //µî·ÏµÈ rb¸ñ·ÏÀ» ¼øÈ¸ÇÏ¸é¼­ pushtoPhysics¸¦ È£Ãâ
+    m_PhysScene.PushRigidsToPhysics(); //ï¿½ï¿½Ïµï¿½ rbï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¸ï¿½Ï¸é¼­ pushtoPhysicsï¿½ï¿½ È£ï¿½ï¿½
 	m_PhysScene.Step(dt);       // simulate/fetch
-    m_PhysScene.PullRigidsFromPhysics();   // PhysX->¿£Áø ÀÐ±â (pose)
-    m_PhysScene.DrainEvents();             // ÀÌº¥Æ® drain
+    m_PhysScene.PullRigidsFromPhysics();   // PhysX->ï¿½ï¿½ï¿½ï¿½ ï¿½Ð±ï¿½ (pose)
+    m_PhysScene.DrainEvents();             // ï¿½Ìºï¿½Æ® drain
 
     DispatchPhysicsEvents();
 
-	FlushCommands_PostStep();    // detach/unreg/release µî ÈÄÃ³¸®
+	FlushCommands_PostStep();    // detach/unreg/release ï¿½ï¿½ ï¿½ï¿½Ã³ï¿½ï¿½
 }
 
 void MMMEngine::PhysxManager::NotifyRigidAdded(RigidBodyComponent* rb)
@@ -68,9 +68,9 @@ void MMMEngine::PhysxManager::NotifyRigidRemoved(RigidBodyComponent* rb)
     if (!rb) return;
     //auto go = rb->GetGameObject();
     //if (!go.IsValid()) return;
-    ////Áßº¹ rigid »ý¼º ÈÄ Áï½Ã destroyµÇ´Â ÄÉÀÌ½º ¹æ¾î (¼±ÅÃ)
-    ////ÇöÀç GOÀÇ ´ëÇ¥ rigid°¡ rb°¡ ¾Æ´Ï¶ó¸é, ÀÌ rb´Â ¹°¸®¿ùµå¿¡ µî·ÏµÆÀ» °¡´É¼ºÀÌ ³·À½.
-    ////±×·¡µµ ¾ÈÀüÇÏ°Ô Unregister¸¸ ¿äÃ»(È¤½Ã µî·ÏµÅÀÖÀ¸¸é Á¦°ÅµÇ°Ô).
+    ////ï¿½ßºï¿½ rigid ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ destroyï¿½Ç´ï¿½ ï¿½ï¿½ï¿½Ì½ï¿½ ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½)
+    ////ï¿½ï¿½ï¿½ï¿½ GOï¿½ï¿½ ï¿½ï¿½Ç¥ rigidï¿½ï¿½ rbï¿½ï¿½ ï¿½Æ´Ï¶ï¿½ï¿½, ï¿½ï¿½ rbï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å¿¡ ï¿½ï¿½Ïµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½É¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½.
+    ////ï¿½×·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½ Unregisterï¿½ï¿½ ï¿½ï¿½Ã»(È¤ï¿½ï¿½ ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ÅµÇ°ï¿½).
     //auto currentRbPtr = go->GetComponent<RigidBodyComponent>();
     //RigidBodyComponent* currentRb = currentRbPtr.IsValid()
     //    ? static_cast<RigidBodyComponent*>(currentRbPtr.GetRaw())
@@ -78,12 +78,12 @@ void MMMEngine::PhysxManager::NotifyRigidRemoved(RigidBodyComponent* rb)
 
     //if (currentRb && currentRb != rb)
     //{
-    //    // "´ëÇ¥ rigid"°¡ ¾Æ´Ñ Áßº¹ rigid Á¦°Å: collider °Çµå¸± ÇÊ¿ä ¾øÀ½
+    //    // "ï¿½ï¿½Ç¥ rigid"ï¿½ï¿½ ï¿½Æ´ï¿½ ï¿½ßºï¿½ rigid ï¿½ï¿½ï¿½ï¿½: collider ï¿½Çµå¸± ï¿½Ê¿ï¿½ ï¿½ï¿½ï¿½ï¿½
     //    RequestUnregisterRigid(rb);
     //    return;
     //}
 
-    ////¸¶Áö¸·À¸·Î rigid Á¦°Å(PhysX unregister) ¿¹¾à
+    ////ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ rigid ï¿½ï¿½ï¿½ï¿½(PhysX unregister) ï¿½ï¿½ï¿½ï¿½
     RequestUnregisterRigid(rb);
 }
 
@@ -112,7 +112,7 @@ void MMMEngine::PhysxManager::NotifyColliderRemoved(ColliderComponent* col)
     if (!go.IsValid()) return;
 
     auto rbPtr = go->GetComponent<RigidBodyComponent>();
-    if (!rbPtr.IsValid()) return; // Á¤Ã¥»ó °ÅÀÇ ¾ø¾î¾ß ÇÏÁö¸¸ ¹æ¾î
+    if (!rbPtr.IsValid()) return; // ï¿½ï¿½Ã¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
     auto* rb = (RigidBodyComponent*)rbPtr.GetRaw();
 
     RequestDetachCollider(rb, col);
@@ -130,13 +130,13 @@ void MMMEngine::PhysxManager::NotifyColliderChanged(ColliderComponent* col)
 }
 
 
-// rigidbody¸¦ physScene ½Ã¹Ä·¹ÀÌ¼Ç ´ë»óÀ¸·Î µî·ÏÇÑ´Ù
+// rigidbodyï¿½ï¿½ physScene ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ñ´ï¿½
 void MMMEngine::PhysxManager::RequestRegisterRigid(MMMEngine::RigidBodyComponent* rb)
 {
     if (!rb) return;
     if (m_PendingUnreg.find(rb) != m_PendingUnreg.end()) return;
 
-    // rb °ü·Ã RegRigid Áßº¹ Á¦°Å (È¤Àº rb °ü·Ã ¸í·É Á¤¸® Á¤Ã¥¿¡ ¸Â°Ô)
+    // rb ï¿½ï¿½ï¿½ï¿½ RegRigid ï¿½ßºï¿½ ï¿½ï¿½ï¿½ï¿½ (È¤ï¿½ï¿½ rb ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¥ï¿½ï¿½ ï¿½Â°ï¿½)
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         if (it->type == CmdType::RegRigid && it->new_rb == rb)
@@ -148,15 +148,15 @@ void MMMEngine::PhysxManager::RequestRegisterRigid(MMMEngine::RigidBodyComponent
     m_Commands.push_back({ CmdType::RegRigid, rb, nullptr });
 }
 
-// rigidbody°¡ °¡Áø physX actor¸¦ pxScene¿¡¼­ Á¦°Å ( rigidbody¸¦ ´õÀÌ»ó ¹°¸®¿ùµå¿¡ Á¸ÀçÇÏÁö ¾Ê°Ô ¸¸µå´Â ÇÔ¼ö )
+// rigidbodyï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ physX actorï¿½ï¿½ pxSceneï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ( rigidbodyï¿½ï¿½ ï¿½ï¿½ï¿½Ì»ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å¿¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½ )
 void MMMEngine::PhysxManager::RequestUnregisterRigid(MMMEngine::RigidBodyComponent* rb)
 {
     if (!rb) return;
 
-    //¿¹¾àµÈ°Å¸é Áßº¹¹æÁö¿ë
+    //ï¿½ï¿½ï¿½ï¿½È°Å¸ï¿½ ï¿½ßºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     if (m_PendingUnreg.find(rb) != m_PendingUnreg.end()) return;
 
-    // ¾ÆÁ÷ Ã³¸® ÀüÀÎ Register/Attach/Detach µîÀ» Á¤¸®(ÃÖ¼ÒÇÑ Reg/Attach´Â Á¦°Å ÃßÃµ)
+    // ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Register/Attach/Detach ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(ï¿½Ö¼ï¿½ï¿½ï¿½ Reg/Attachï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ãµ)
 	for (auto it = m_Commands.begin(); it != m_Commands.end(); )
 	{
 		if (it->new_rb == rb)
@@ -164,13 +164,13 @@ void MMMEngine::PhysxManager::RequestUnregisterRigid(MMMEngine::RigidBodyCompone
 		else
 			++it;
 	}
-    //Áö¿ï¿¹Á¤ÀÎ Å¥¿¡ ´ãÀ½
+    //ï¿½ï¿½ï¿½ï¿¹ï¿½ï¿½ï¿½ï¿½ Å¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     m_PendingUnreg.insert(rb);
-    //Å¥¿¡¼­ Áö¿î rigid¸¦ unregid typeÀ¸·Î ¹Ù²ã¼­ physScene¿¡¼­ actor¸¦ »©µµ·Ï ÇÔ
+    //Å¥ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ rigidï¿½ï¿½ unregid typeï¿½ï¿½ï¿½ï¿½ ï¿½Ù²ã¼­ physSceneï¿½ï¿½ï¿½ï¿½ actorï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
     m_Commands.push_back({ CmdType::UnregRigid, rb, nullptr });
 }
 
-//collider¸¦ physx·Î ¸¸µé°í ¸¸µç shape¸¦ rigdbody¿¡ attachShapeÇÔ
+//colliderï¿½ï¿½ physxï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ shapeï¿½ï¿½ rigdbodyï¿½ï¿½ attachShapeï¿½ï¿½
 void MMMEngine::PhysxManager::RequestAttachCollider(MMMEngine::RigidBodyComponent* rb, MMMEngine::ColliderComponent* col)
 {
 	if (!rb || !col) return;
@@ -181,7 +181,7 @@ void MMMEngine::PhysxManager::RequestAttachCollider(MMMEngine::RigidBodyComponen
 
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
-        //DetachColÀÌ ¿¹¾àµÇ¾îÀÖ´Ù¸é »ó¼âÇÔ
+        //DetachColï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ç¾ï¿½ï¿½Ö´Ù¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½
         if (it->type == CmdType::DetachCol && it->new_rb == rb && it->col == col)
             it = m_Commands.erase(it);
         else
@@ -190,13 +190,13 @@ void MMMEngine::PhysxManager::RequestAttachCollider(MMMEngine::RigidBodyComponen
 	m_Commands.push_back({ CmdType::AttachCol, rb, col });
 }
 
-//rigidÀÇ actor¿¡¼­ ÇØ´ç colliderÀÇ pxshape¸¦ Á¦°ÅÇÔ
+//rigidï¿½ï¿½ actorï¿½ï¿½ï¿½ï¿½ ï¿½Ø´ï¿½ colliderï¿½ï¿½ pxshapeï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void MMMEngine::PhysxManager::RequestDetachCollider(MMMEngine::RigidBodyComponent* rb, MMMEngine::ColliderComponent* col)
 {
     if (!rb || !col) return;
 
     if (m_PendingUnreg.find(rb) != m_PendingUnreg.end()) return;
-    // ¾ÆÁ÷ Ã³¸® ÀüÀÎ Attach°¡ ÀÖÀ¸¸é »ó¼â
+    // ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Attachï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         if (it->type == CmdType::AttachCol && it->new_rb == rb && it->col == col)
@@ -205,16 +205,16 @@ void MMMEngine::PhysxManager::RequestDetachCollider(MMMEngine::RigidBodyComponen
             ++it;
     }
 
-    //attachcolÇß´ø ÆÄÀÏÀ» detach·Î ³Ö¾î¼­ Á¦°Å
+    //attachcolï¿½ß´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ detachï¿½ï¿½ ï¿½Ö¾î¼­ ï¿½ï¿½ï¿½ï¿½
     m_Commands.push_back({ CmdType::DetachCol, rb, col });
 }
 
-//colliderÀÇ shape¸¦ ´Ù½Ã ¸¸µé¾î¼­ ¿ø·¡ ºÙ¾îÀÖ´ø actor¿¡ ´Ù½Ã ºÙÀÎ´Ù (colliderÂÊ¿¡ ÀÚ±âÀÚ½ÅÀÌ µî·ÏµÈ objectÈ®ÀÎ ¹ýÇÊ¿ä )
+//colliderï¿½ï¿½ shapeï¿½ï¿½ ï¿½Ù½ï¿½ ï¿½ï¿½ï¿½ï¿½î¼­ ï¿½ï¿½ï¿½ï¿½ ï¿½Ù¾ï¿½ï¿½Ö´ï¿½ actorï¿½ï¿½ ï¿½Ù½ï¿½ ï¿½ï¿½ï¿½Î´ï¿½ (colliderï¿½Ê¿ï¿½ ï¿½Ú±ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ ï¿½ï¿½Ïµï¿½ objectÈ®ï¿½ï¿½ ï¿½ï¿½ï¿½Ê¿ï¿½ )
 void MMMEngine::PhysxManager::RequestRebuildCollider(MMMEngine::RigidBodyComponent* rb, MMMEngine::ColliderComponent* col)
 {
 	if (!col) return;
 
-    //°°Àº col¿¡ rebuil°¡ ÀÌ¹Ì ÀÖÀ¸¸é Áßº¹ Á¦°Å
+    //ï¿½ï¿½ï¿½ï¿½ colï¿½ï¿½ rebuilï¿½ï¿½ ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ßºï¿½ ï¿½ï¿½ï¿½ï¿½
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         if (it->type == CmdType::RebuildCol && it->col == col)
@@ -225,7 +225,7 @@ void MMMEngine::PhysxManager::RequestRebuildCollider(MMMEngine::RigidBodyCompone
     m_Commands.push_back({ CmdType::RebuildCol, rb, col });
 }
 
-//·¹ÀÌ¾î/¸¶½ºÅ© Á¤Ã¥ÀÌ ¹Ù²î¸é Scene¿¡ Á¸ÀçÇÏ´Â ¸ðµç shapeÀÇ filterdata¸¦ ´Ù½Ã ³Öµµ·Ï Áö½Ã
+//ï¿½ï¿½ï¿½Ì¾ï¿½/ï¿½ï¿½ï¿½ï¿½Å© ï¿½ï¿½Ã¥ï¿½ï¿½ ï¿½Ù²ï¿½ï¿½ Sceneï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ shapeï¿½ï¿½ filterdataï¿½ï¿½ ï¿½Ù½ï¿½ ï¿½Öµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 void MMMEngine::PhysxManager::RequestReapplyFilters()
 {
     m_FilterDirty = true;
@@ -235,11 +235,11 @@ void MMMEngine::PhysxManager::RequestChangeRigidType(MMMEngine::RigidBodyCompone
 {
     if (!rb) return;
 
-    // Unregister ¿¹Á¤ÀÌ¸é Å¸ÀÔ ¹Ù²Ü ÀÇ¹Ì°¡ ¾øÀ½ (¾îÂ÷ÇÇ »ç¶óÁü)
+    // Unregister ì˜ˆì •ì´ë©´ íƒ€ìž… ë°”ê¿€ ì˜ë¯¸ê°€ ì—†ìŒ (ì–´ì°¨í”¼ ì‚¬ë¼ì§)
     if (m_PendingUnreg.find(rb) != m_PendingUnreg.end())
         return;
 
-    //°°Àº rb¿¡ ´ëÇÑ ÀÌÀü ChangeRigidType ¿äÃ»ÀÌ ÀÖÀ¸¸é Á¦°Å (¸¶Áö¸· ¿äÃ»¸¸ ³²±è)
+    //ê°™ì€ rbì— ëŒ€í•œ ì´ì „ ChangeRigidType ìš”ì²­ì´ ìžˆìœ¼ë©´ ì œê±° (ë§ˆì§€ë§‰ ìš”ì²­ë§Œ ë‚¨ê¹€)
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         if (it->type == CmdType::ChangeRigid && it->new_rb == rb)
@@ -248,12 +248,12 @@ void MMMEngine::PhysxManager::RequestChangeRigidType(MMMEngine::RigidBodyCompone
             ++it;
     }
 
-    // Á¤Ã¥: Å¸ÀÔ º¯°æÀº "actor Àç»ý¼º"ÀÌ¶ó, ±âÁ¸ Attach/DetachÀÌ µÚ¼¯ÀÌ¸é À§Çè
-    //    - °¡Àå ¾ÈÀüÇÑ Á¤Ã¥Àº: Å¸ÀÔ º¯°æ ¿äÃ» ½ÃÁ¡¿¡ rb °ü·Ã Attach/DetachÀ» Á¤¸®ÇÏ°Å³ª
-    //    - È¤Àº Flush ¼ø¼­¸¦ ChangeRigidType -> Attach/Detach·Î °­Á¦ÇÏ´Â °Í
+    // ì •ì±…: íƒ€ìž… ë³€ê²½ì€ "actor ìž¬ìƒì„±"ì´ë¼, ê¸°ì¡´ Attach/Detachì´ ë’¤ì„žì´ë©´ ìœ„í—˜
+    //    - ê°€ìž¥ ì•ˆì „í•œ ì •ì±…ì€: íƒ€ìž… ë³€ê²½ ìš”ì²­ ì‹œì ì— rb ê´€ë ¨ Attach/Detachì„ ì •ë¦¬í•˜ê±°ë‚˜
+    //    - í˜¹ì€ Flush ìˆœì„œë¥¼ ChangeRigidType -> Attach/Detachë¡œ ê°•ì œí•˜ëŠ” ê²ƒ
     //
-    // ¿©±â¼­´Â "Flush ¼ø¼­ °­Á¦"·Î °¡´Â °Ô º¸Åë ´õ ³´´Ù.
-    // µû¶ó¼­ ¿©±â¼­´Â Áö¿ìÁö ¾Ê°í, FlushCommands_PreStep¿¡¼­ ChangeRigidTypeÀ» ¸ÕÀú Ã³¸®ÇÏ°Ô ¸¸µç´Ù.
+    // ì—¬ê¸°ì„œëŠ” "Flush ìˆœì„œ ê°•ì œ"ë¡œ ê°€ëŠ” ê²Œ ë³´í†µ ë” ë‚«ë‹¤.
+    // ë”°ë¼ì„œ ì—¬ê¸°ì„œëŠ” ì§€ìš°ì§€ ì•Šê³ , FlushCommands_PreStepì—ì„œ ChangeRigidTypeì„ ë¨¼ì € ì²˜ë¦¬í•˜ê²Œ ë§Œë“ ë‹¤.
 
     m_Commands.push_back({ CmdType::ChangeRigid, rb, nullptr });
 }
@@ -286,11 +286,11 @@ void MMMEngine::PhysxManager::SetLayerCollision(uint32_t layerA, uint32_t layerB
     m_FilterDirty = true;
 }
 
-//¹°¸® ½Ã¹Ä·¹ÀÌ¼ÇÀ» µ¹¸®±â Á÷Àü(simulateÇÏ±âÀü)¿¡ Å¥¿¡ ½×ÀÎ ¸í·É Áß Áö±Ý ÇØµµ ¾ÈÀüÇÑ°ÍÀ» physScene¿¡ ½ÇÇàÇÔ
-// actor»ý¼º ¹× acotr¸¦ Ãß°¡ÇÏ´Â ÀÛ¾÷ / shape»ý¼º ¹Ø ºÙÀÌ´Â ÀÛ¾÷ / shape ±³Ã¼µîÀ» ¿©±â¼­ ÇÑ´Ù
+//ï¿½ï¿½ï¿½ï¿½ ï¿½Ã¹Ä·ï¿½ï¿½Ì¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(simulateï¿½Ï±ï¿½ï¿½ï¿½)ï¿½ï¿½ Å¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Øµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ñ°ï¿½ï¿½ï¿½ physSceneï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// actorï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ acotrï¿½ï¿½ ï¿½ß°ï¿½ï¿½Ï´ï¿½ ï¿½Û¾ï¿½ / shapeï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Ì´ï¿½ ï¿½Û¾ï¿½ / shape ï¿½ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½â¼­ ï¿½Ñ´ï¿½
 void MMMEngine::PhysxManager::FlushCommands_PreStep()
 {
-    //ChangeRigidType ¸ÕÀú Ã³¸®ÇÏµµ·Ï
+    //ChangeRigidType ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         if (it->type == CmdType::ChangeRigid)
@@ -321,7 +321,7 @@ void MMMEngine::PhysxManager::FlushCommands_PreStep()
             it = m_Commands.erase(it);
             break;
         default:
-            // Post¿¡¼­ Ã³¸®ÇÒ Å¸ÀÔ(Detach/Unreg)Àº ³²°ÜµÐ´Ù
+            // Postï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½ï¿½(Detach/Unreg)ï¿½ï¿½ ï¿½ï¿½ï¿½ÜµÐ´ï¿½
             ++it;
             break;
         }
@@ -329,7 +329,7 @@ void MMMEngine::PhysxManager::FlushCommands_PreStep()
 }
 
 
-//¹°¸® ½ºÅÇÀÌ ¿Ï·áµÈ ÈÄ (simulate + fetchResults°¡ ³¡³­ Á÷ÈÄ ) Å¥¿¡ ½×ÀÎ ¸í·É Áß ½ºÅÇ ÀÌÈÄ¿¡ Ã³¸®ÇÏ´Â ÇÔ¼ö¸¦ ½ÇÇàÇÏ´Â ÇÔ¼ö
+//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ï·ï¿½ï¿½ ï¿½ï¿½ (simulate + fetchResultsï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ) Å¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ä¿ï¿½ Ã³ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½
 void MMMEngine::PhysxManager::FlushCommands_PostStep()
 {
     //Detach
@@ -340,14 +340,14 @@ void MMMEngine::PhysxManager::FlushCommands_PostStep()
             auto* rb = it->new_rb;
             auto* col = it->col;
 
-            // rb°¡ °ð Unregister µÉ ¿¹Á¤ÀÌ¸é Detach´Â ÀÇ¹Ì ¾ø°Å³ª À§ÇèÇÒ ¼ö ÀÖÀ½
+            // rbï¿½ï¿½ ï¿½ï¿½ Unregister ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ì¸ï¿½ Detachï¿½ï¿½ ï¿½Ç¹ï¿½ ï¿½ï¿½ï¿½Å³ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             if (!rb || m_PendingUnreg.find(rb) != m_PendingUnreg.end())
             {
                 it = m_Commands.erase(it);
                 continue;
             }
 
-            // actor°¡ ÀÌ¹Ì ¾øÀ¸¸é detachÇÒ °Íµµ ¾øÀ½ (¾ÈÀü)
+            // actorï¿½ï¿½ ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ detachï¿½ï¿½ ï¿½Íµï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½)
             if (rb->GetPxActor() == nullptr)
             {
                 it = m_Commands.erase(it);
@@ -372,7 +372,7 @@ void MMMEngine::PhysxManager::FlushCommands_PostStep()
 
             if (rb)
             {
-                m_PhysScene.UnregisterRigid(rb); // ³»ºÎ¿¡¼­ actor Á¸Àç Ã¼Å© + destroy idempotent¸é ¾ÈÁ¤
+                m_PhysScene.UnregisterRigid(rb); // ï¿½ï¿½ï¿½Î¿ï¿½ï¿½ï¿½ actor ï¿½ï¿½ï¿½ï¿½ Ã¼Å© + destroy idempotentï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 m_PendingUnreg.erase(rb);
             }
 
@@ -386,17 +386,17 @@ void MMMEngine::PhysxManager::FlushCommands_PostStep()
 
 }
 
-//Ãæµ¹ ¸ÅÆ®¸¯½º ¼³Á¤ÀÌ ¹Ù²î¾ù´ÂÁö È®ÀÎÇÏ°í ¹Ù²î¾úÀ¸¸é scene¿¡ µî·ÏµÈ shape¿¡ »õÇÊÅÍ¸¦ ¸ðµÎ Àû¿ë½ÃÅ°´Â ÇÔ¼ö
+//ï¿½æµ¹ ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ù²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ È®ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½Ù²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ sceneï¿½ï¿½ ï¿½ï¿½Ïµï¿½ shapeï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Å°ï¿½ï¿½ ï¿½Ô¼ï¿½
 void MMMEngine::PhysxManager::ApplyFilterConfigIfDirty()
 {
     if (!m_FilterDirty) return;
     if (!m_Scene) return;
 
-    //ÃÖ½Å ¼³Á¤À¸·Î °»½Å
-    //Todo Matrix¿¡ ¼³Á¤µÈ loadÇÔ¼ö ±¸ÇÒ¼ö ÀÖµµ·Ï ¶Ç´Â ÇöÀç Scene¿¡¼­ ¼³Á¤°¡Á®¿Ã¼öÀÖµµ·Ï
+    //ï¿½Ö½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    //Todo Matrixï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ loadï¿½Ô¼ï¿½ ï¿½ï¿½ï¿½Ò¼ï¿½ ï¿½Öµï¿½ï¿½ï¿½ ï¿½Ç´ï¿½ ï¿½ï¿½ï¿½ï¿½ Sceneï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¼ï¿½ï¿½Öµï¿½ï¿½ï¿½
     //m_CollisionMatrix.LoadFrom(m_Scene->GetPhysicsSettings());
 
-    //ÇöÀç ¾ÀÀÇ ¸ðµç attached collider¿¡ ÀçÀû¿ë
+    //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ attached colliderï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     m_PhysScene.ReapplyFilters(m_CollisionMatrix);
 
     m_FilterDirty = false;
@@ -409,7 +409,7 @@ void MMMEngine::PhysxManager::FlushDirtyColliders_PreStep()
     for (auto* col : m_DirtyColliders)
     {
         if (!col) continue;
-        // PhysSceneÀÌ ownerByCollider·Î rb Ã£°Ô ÇÒ ¿¹Á¤
+        // PhysSceneï¿½ï¿½ ownerByColliderï¿½ï¿½ rb Ã£ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         m_PhysScene.UpdateColliderGeometry(col);
     }
     m_DirtyColliders.clear();
@@ -422,13 +422,13 @@ void MMMEngine::PhysxManager::FlushDirtyColliderFilters_PreStep()
     for (auto* col : m_FilterDirtyColliders)
     {
         if (!col) continue;
-        if (!col->GetPxShape()) { col->ClearFilterDirty(); continue; } // ¾ÆÁ÷ »ý¼º ÀüÀÌ¸é ½ºÅµ
+        if (!col->GetPxShape()) { col->ClearFilterDirty(); continue; } // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¸ï¿½ ï¿½ï¿½Åµ
 
         const uint32_t layer = col->GetEffectiveLayer();
         col->SetFilterData(m_CollisionMatrix.MakeSimFilter(layer),
             m_CollisionMatrix.MakeQueryFilter(layer));
 
-        // ÇÊÅÍ µ¥ÀÌÅÍ º¯°æÀ» PhysX pair¿¡ ¹Ý¿µ
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ PhysX pairï¿½ï¿½ ï¿½Ý¿ï¿½
         m_PhysScene.ResetFilteringFor(col);
 
         col->ClearFilterDirty();
@@ -479,7 +479,7 @@ void MMMEngine::PhysxManager::EraseCommandsForCollider(MMMEngine::ColliderCompon
 void MMMEngine::PhysxManager::NotifyRigidTypeChanged(RigidBodyComponent* rb)
 {
     if (!rb) return;
-    RequestChangeRigidType(rb); // ³»ºÎ Ä¿¸Çµå Å¥ ÀûÀç
+    RequestChangeRigidType(rb); // ï¿½ï¿½ï¿½ï¿½ Ä¿ï¿½Çµï¿½ Å¥ ï¿½ï¿½ï¿½ï¿½
 }
 
 void MMMEngine::PhysxManager::UnbindScene()
@@ -502,11 +502,11 @@ void MMMEngine::PhysxManager::UnbindScene()
 
 void MMMEngine::PhysxManager::DispatchPhysicsEvents()
 {
-    // 1) Contact (Ãæµ¹)
+    // 1) Contact (ï¿½æµ¹)
     const auto& contacts = m_PhysScene.GetFrameContacts();
     for (const auto& e : contacts)
     {
-        // userData -> ¿£Áø ÄÄÆ÷³ÍÆ® º¹±¸
+        // userData -> ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½
         auto* rbA = static_cast<RigidBodyComponent*>(e.a ? e.a->userData : nullptr);
         auto* rbB = static_cast<RigidBodyComponent*>(e.b ? e.b->userData : nullptr);
         auto* colA = static_cast<ColliderComponent*>(e.aShape ? e.aShape->userData : nullptr);
