@@ -72,6 +72,32 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 	m_isHovered = ImGui::IsWindowHovered();
 	m_isFocused = ImGui::IsWindowFocused();
 
+	if (m_isFocused && m_isHovered)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		const bool rightDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+
+		// 수정 제안: WantCaptureKeyboard 조건을 제거하거나 
+		// ImGui Key 관련 함수를 직접 사용하여 우선순위를 높입니다.
+		const bool gizmoUsing = ImGuizmo::IsUsing();
+
+		if (!rightDown && !gizmoUsing)
+		{
+			if (ImGui::IsKeyPressed(ImGuiKey_Q))
+				m_guizmoOperation = (ImGuizmo::OPERATION)0; // 0은 어떤 기즈모도 표시하지 않음
+
+			if (ImGui::IsKeyPressed(ImGuiKey_W))
+				m_guizmoOperation = ImGuizmo::TRANSLATE;
+
+			if (ImGui::IsKeyPressed(ImGuiKey_E))
+				m_guizmoOperation = ImGuizmo::ROTATE;
+
+			if (ImGui::IsKeyPressed(ImGuiKey_R))
+				m_guizmoOperation = ImGuizmo::SCALE;
+		}
+	}
+
+
 	// 사용 가능한 영역 크기 가져오기
 	ImVec2 viewportSize = ImGui::GetContentRegionAvail();
 	m_lastWidth = viewportSize.x;
@@ -90,7 +116,7 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 		);
 	}
 	// ImGuizmo는 별도의 DrawList에 그려짐
-	if (g_selectedGameObject.IsValid())
+	if (g_selectedGameObject.IsValid() && (int)m_guizmoOperation != 0)
 	{
 		ImVec2 imagePos = ImGui::GetItemRectMin();  // 방금 그린 Image의 좌상단 (화면 좌표)
 		ImVec2 imageMax = ImGui::GetItemRectMax();
@@ -134,6 +160,7 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 	{
 		auto buttonsize = ImVec2(0, 0);
 		auto padding = ImVec2{ 10,10 };
+		auto handing = (int)m_guizmoOperation == 0;
 		auto moving = m_guizmoOperation == ImGuizmo::OPERATION::TRANSLATE;
 		auto rotating = m_guizmoOperation == ImGuizmo::OPERATION::ROTATE;
 		auto scaling = m_guizmoOperation == ImGuizmo::OPERATION::SCALE;
@@ -145,6 +172,14 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
 
 		ImGui::SetCursorPos(scenecornerpos + padding);
+		// Hand 버튼 (Q)
+		ImGui::BeginDisabled(handing);
+		if (ImGui::Button(u8"\uf256 hand", buttonsize)) // 폰트어썸 핸드 아이콘
+		{
+			m_guizmoOperation = (ImGuizmo::OPERATION)0;
+		}
+		ImGui::EndDisabled();
+		ImGui::SameLine();
 		// Move 버튼
 		ImGui::BeginDisabled(moving);
 		if (ImGui::Button(u8"\uf047 move", buttonsize))
@@ -338,7 +373,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	context->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	if (m_isFocused)
-		m_pCam->InputUpdate();
+		m_pCam->InputUpdate((int)m_guizmoOperation);
 
 	m_pGridRenderer->Render(context, *m_pCam);
 

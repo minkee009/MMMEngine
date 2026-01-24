@@ -67,10 +67,11 @@ void MMMEngine::Editor::EditorCamera::MarkTransformMatrixDirty()
     m_isViewMatrixDirty = true;
 }
 
-void MMMEngine::Editor::EditorCamera::InputUpdate()
+void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
 {
     const float moveSpeed = 5.0f;
     const float rotSpeed = 0.1f;
+    const float panSpeed = 0.01f; // 팬 이동 속도 (조절 필요)
 
     static float targetPitch = DirectX::XMConvertToDegrees(m_rotation.ToEuler().x);
     static float targetYaw = DirectX::XMConvertToDegrees(m_rotation.ToEuler().y);
@@ -82,15 +83,14 @@ void MMMEngine::Editor::EditorCamera::InputUpdate()
     static Vector3 movement = Vector3::Zero;
 
     auto mousePos = Input::GetMousePos();
+    float deltaX = mousePos.x - m_lastMouseX;
+    float deltaY = mousePos.y - m_lastMouseY;
 
     if (Input::GetKey(KeyCode::MouseRight))
     {
         // 마우스 회전 처리
         if (!m_firstMouseUpdate)
         {
-            float deltaX = mousePos.x - m_lastMouseX;
-            float deltaY = mousePos.y - m_lastMouseY;
-
             if (deltaX != 0 || deltaY != 0)
             {
                 // 마우스 델타로 회전 적용
@@ -120,13 +120,20 @@ void MMMEngine::Editor::EditorCamera::InputUpdate()
         targetMovement += worldMat.Right() * move.x;
         targetMovement += worldMat.Up() * move.y;
     }
+    else if (currentOp == 0 && Input::GetKey(KeyCode::MouseLeft))
+    {
+        Matrix worldMat = GetTransformMatrix();
+
+        // 보간용 변수인 movement를 초기화하여, 모드 전환 시 튀는 현상 방지
+        movement = Vector3::Zero;
+
+        // 현재 위치에서 즉시 델타만큼 이동
+        Vector3 deltaPos = (worldMat.Right() * (-deltaX * panSpeed)) + (worldMat.Up() * (deltaY * panSpeed));
+        SetPosition(GetPosition() + deltaPos);
+    }
     else
     {
-        // 우클릭이 해제되면 마우스 업데이트 초기화
-        if (Input::GetKeyUp(KeyCode::MouseRight))
-        {
-            m_firstMouseUpdate = true;
-        }
+        if (Input::GetKeyUp(KeyCode::MouseRight)) m_firstMouseUpdate = true;
     }
 
     pitch = CameraMathf::Lerp(pitch, targetPitch, 12.0f * Time::GetUnscaledDeltaTime());

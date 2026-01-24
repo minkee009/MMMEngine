@@ -85,6 +85,6 @@ namespace MMMEngine::Editor
 
 		inline const bool IsDirtyMatrix() { return m_isProjMatrixDirty || m_isViewMatrixDirty || m_isTransformMatrixDirty; }
 
-		void InputUpdate();
+		void InputUpdate(int currentOp);
 	};
 }
