@@ -6,8 +6,6 @@
 void MMMEngine::Snowball::Initialize()
 {
 	tr = GetTransform();
-	player = GameObject::Find("Player");
-	playertr = player->GetTransform();
 }
 
 void MMMEngine::Snowball::UnInitialize()
@@ -17,12 +15,15 @@ void MMMEngine::Snowball::UnInitialize()
 
 void MMMEngine::Snowball::Update()
 {
-	if (!player || !playertr) return;
-	if (controlled)
+	if (IsCarried())
+	{
 		pos = tr->GetWorldPosition();
-		playerpos = playertr->GetWorldPosition();
-		playerrot = playertr->GetWorldRotation();
+		auto trPlayer = carrier->GetTransform();
+		playerpos = trPlayer->GetWorldPosition();
+		playerrot = trPlayer->GetWorldRotation();
 		RollSnow();
+	}
+
 	DirectX::SimpleMath::Vector3 scaleVector = { scale, scale, scale };
 	tr->SetWorldScale(scaleVector);
 }
@@ -30,8 +31,8 @@ void MMMEngine::Snowball::Update()
 void MMMEngine::Snowball::RollSnow()
 {
 	//지금은 플레이어가 잡고 이동만 해도 사이즈가 커짐, 필드 시스템 추후 추가
-	if(scale <= maxscale && player->GetComponent<Player>()->IsScoopMoving())
-		scale += Time::GetDeltaTime();
+	if(scale <= maxscale && carrier->IsScoopMoving())
+		scale = std::min(scale + Time::GetDeltaTime(), maxscale);
 	auto fwd = DirectX::SimpleMath::Vector3::Transform(
 		DirectX::SimpleMath::Vector3::Forward, playerrot);
 	fwd.y = 0.0f;
@@ -52,8 +53,9 @@ void MMMEngine::Snowball::RollSnow()
 	}
 }
 
-void MMMEngine::Snowball::AssembleSnow(ObjPtr<GameObject> other)
+void MMMEngine::Snowball::EatSnow(ObjPtr<GameObject> other)
 {
+	if (!other || other == GetGameObject()) return;
 	auto snowcomp = other->GetComponent<Snowball>();
 	if (snowcomp == nullptr)
 		return;

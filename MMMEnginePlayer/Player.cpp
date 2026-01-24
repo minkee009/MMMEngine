@@ -58,8 +58,13 @@ void MMMEngine::Player::Update()
 	pos = tr->GetWorldPosition();
 	rot = tr->GetWorldRotation();
 	HandleMovement();
+	UpdateScoop();
+	if (matchedSnowball)
+	{
+		VelocityDown(matchedSnowball->GetComponent<Snowball>()->GetScale());
+	}
 	if (Input::GetKey(KeyCode::Space)) {
-		//스페이스 누른상태면 공격불가, 눈 생성 및 굴리기 로직은 별도의 코드에 있기 때문에 삽관련 애니메이션만 추가
+		//스페이스 누른상태면 공격불가
 		ClearTarget();
 		return;
 	}
@@ -151,62 +156,31 @@ bool MMMEngine::Player::AttachSnowball(ObjPtr<GameObject> snow)
 	if (!snow) return false;
 
 	if (matchedSnowball == snow) return true;
-	if (matchedSnowball) DetachedSnowball();
+	if (matchedSnowball) DetachSnowball();
 
 	matchedSnowball = snow;
-	auto sc = matchedSnowball->GetComponent<Snowball>();
-	if (sc) sc->SetControlled(true);
 	return true;
 }
 
-void MMMEngine::Player::DetachedSnowball()
+void MMMEngine::Player::DetachSnowball()
 {
 	if (!matchedSnowball) return;
-	
-	auto sc = matchedSnowball->GetComponent<Snowball>();
-	if (sc) sc->SetControlled(false);
 
 	matchedSnowball = nullptr;
+	VelocityReturn();
 }
 
-void MMMEngine::Player::HandleScoopInput()
+void MMMEngine::Player::UpdateScoop()
 {
-	if (Input::GetKeyDown(KeyCode::Space))
-	{
+	if (Input::GetKeyDown(KeyCode::Space)) {
+		SnowballManager::instance->OnScoopStart(*this);
 		scoopHeld = true;
-		ClearTarget();
-
-		if (matchedSnowball) return;
-
-		auto nearest = SnowballManager::instance->FindNearestSnowball(pos, pickupRange);
-		if (nearest) {
-			AttachSnowball(nearest);
-			snowSpawnTimer = 0.0f;
-			return;
-		}
-		snowSpawnTimer += Time::GetDeltaTime();
-		if (snowSpawnTimer >= snowSpawnDelay) {
-			MakeSnowballAndAttach();
-			snowSpawnTimer = 0.0f;
-		}
 	}
-}
-
-void MMMEngine::Player::MakeSnowballAndAttach()
-{
-	auto obj = NewObject<GameObject>();
-	obj->AddComponent<Snowball>();
-	obj->SetTag("Snowball");
-	SnowballManager::instance->Snows.push_back(obj);
-
-	auto sc = obj->GetComponent<Snowball>();
-	auto snowtr = obj->GetTransform();
-	sc->SetControlled(true);
-	//눈덩이 위치 설정, 테스트 후 수정
-	auto fwd = DirectX::SimpleMath::Vector3::Transform(
-		DirectX::SimpleMath::Vector3::Forward, rot);
-	fwd.y = 0.0f;
-	if (fwd.LengthSquared() > 1e-8f) fwd.Normalize();
-	auto snowpos = pos + fwd * offset;
-	snowtr->SetWorldPosition(snowpos);
+	if (Input::GetKey(KeyCode::Space)) {
+		SnowballManager::instance->OnScoopHold(*this);
+	}
+	if (Input::GetKeyUp(KeyCode::Space)) {
+		SnowballManager::instance->OnScoopEnd(*this);
+		scoopHeld = false;
+	}
 }

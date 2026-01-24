@@ -1,14 +1,9 @@
 #include "SFX3DComponent.h"
 #include "Transform.h"
 
-MMMEngine::SFX3DComponent::SFX3DComponent()
+void MMMEngine::SFX3DComponent::Initialize()
 {
-	for (int i = 0; i < 5; i++) {
-		sfxChannel[i] = nullptr;
-	}
-	for (int i = 0; i < 3; i++) {
-		loopsfxChannel[i] = nullptr;
-	}
+
 }
 
 void MMMEngine::SFX3DComponent::UnInitialize()
@@ -24,6 +19,29 @@ void MMMEngine::SFX3DComponent::UnInitialize()
 			loopsfxChannel[i]->stop();
 			loopsfxChannel[i] = nullptr;
 		}
+	}
+}
+
+void MMMEngine::SFX3DComponent::Update()
+{
+	auto transform = GetTransform();
+	x = transform->GetWorldPosition().x;
+	y = transform->GetWorldPosition().y;
+	z = transform->GetWorldPosition().z;
+	FMOD_VECTOR pos = V3(x, y, z);
+	FMOD_VECTOR vel = V3(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i < 5; i++)
+	{
+		FMOD::Channel* ch = sfxChannel[i];
+		if (!ch) continue;
+
+		bool playing = false;
+		if (ch->isPlaying(&playing) != FMOD_OK || !playing)
+		{
+			sfxChannel[i] = nullptr;
+			continue;
+		}
+		ch->set3DAttributes(&pos, &vel);
 	}
 }
 
@@ -69,27 +87,4 @@ int MMMEngine::SFX3DComponent::AcquireSlot()
 		}
 	}
 	return slot;
-}
-
-void MMMEngine::SFX3DComponent::PosChange()
-{
-	auto transform = GetTransform();
-	x = transform->GetWorldPosition().x;
-	y = transform->GetWorldPosition().y;
-	z = transform->GetWorldPosition().z;
-	FMOD_VECTOR pos = V3(x, y, z);
-	FMOD_VECTOR vel = V3(0.0f, 0.0f, 0.0f);
-	for (int i = 0; i < 5; i++)
-	{
-		FMOD::Channel* ch = sfxChannel[i];
-		if (!ch) continue;
-
-		bool playing = false;
-		if (ch->isPlaying(&playing) != FMOD_OK || !playing)
-		{
-			sfxChannel[i] = nullptr;
-			continue;
-		}
-		ch->set3DAttributes(&pos, &vel);
-	}
 }

@@ -16,7 +16,7 @@ namespace MMMEngine {
 		int mNextSlot = 0;
 
 	protected:
-		SFX2DComponent();
+		SFX2DComponent() {};
 		virtual void Initialize() override {};
 		virtual void UnInitialize() override;
 		int AcquireSlot();

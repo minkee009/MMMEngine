@@ -18,6 +18,8 @@ namespace MMMEngine {
 		bool MoveToTarget(const DirectX::SimpleMath::Vector3 target, float stopDist);
 		void CheckPlayer();
 		bool LostPlayer();
+	protected:
+		virtual void Configure() {};
 		int HP = 50; //적 HP
 		int atk = 3; //적 공격력
 		bool playerFind = false;

@@ -1,15 +1,5 @@
 #include "SFX2DComponent.h"
 
-MMMEngine::SFX2DComponent::SFX2DComponent()
-{
-	for (int i = 0; i < 5; i++) {
-		sfxChannel[i] = nullptr;
-	}
-	for (int i = 0; i < 3; i++) {
-		loopsfxChannel[i] = nullptr;
-	}
-}
-
 void MMMEngine::SFX2DComponent::UnInitialize()
 {
 	for (int i = 0; i < 5; i++) {

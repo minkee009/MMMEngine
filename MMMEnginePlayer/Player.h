@@ -14,18 +14,19 @@ namespace MMMEngine {
 		void Update();
 		void GetDamage(int t) { HP -= t; };
 		void VelocityDown(float t) { velocity = bestvelocity - t; };
-		void VelocityReturn() { velocity = 20.0f; };
+		void VelocityReturn() { velocity = bestvelocity; };
 		bool IsScoopMoving() const{ return scoopHeld&&isMoving; }
 		bool PlayerDeath() const { return HP <= 0; }
 		bool AttachSnowball(ObjPtr<GameObject> snow);
-		void DetachedSnowball();
-		void MakeSnowballAndAttach();
+		void DetachSnowball();
+		float GetPickupRange() const { return pickupRange; }
+		ObjPtr<GameObject> GetMatchedSnowball()const { return matchedSnowball; }
 	private:
 		void HandleMovement();
 		void HandleTargeting();
 		void HandleAttack();
 		void ClearTarget();
-		void HandleScoopInput();
+		void UpdateScoop();
 
 		int HP = 100; //플레이어 체력
 		float velocity = 20.0f; //플레이어 속도
@@ -36,8 +37,6 @@ namespace MMMEngine {
 		int atk = 10; //플레이어 공격력
 		float attackTimer = 0.0f;
 		float attackDelay = 1.0f; //플레이어 공격 간격
-		float snowSpawnTimer = 0.0f;
-		float snowSpawnDelay = 0.2f;
 		float pickupRange = 1.0f; //눈 픽업 거리
 		ObjPtr<GameObject> matchedSnowball = nullptr;
 		ObjPtr<GameObject> targetEnemy = nullptr;
