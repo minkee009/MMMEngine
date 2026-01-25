@@ -247,11 +247,30 @@ void MMMEngine::Editor::ImGuiEditorContext::BeginFrame()
 
 void MMMEngine::Editor::ImGuiEditorContext::Render()
 {
+
+    if (!g_editor_project_loaded)
+    {
+        ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImDrawList* dl = ImGui::GetBackgroundDrawList(vp);
+
+        ImU32 bgColor = IM_COL32(30, 30, 30, 255); // 어두운 회색
+        dl->AddRectFilled(
+            vp->Pos,
+            ImVec2(vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y),
+            bgColor
+        );
+        StartUpProjectWindow::Get().Render();
+        return;
+    }
+
+
     // 1. 메인 뷰포트 정보 가져오기
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowViewport(viewport->ID);
+
+
 
     // 2. 배경 윈도우 스타일 설정 (테두리와 라운딩 제거)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -263,7 +282,6 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
     window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
 
     // 4. 배경 창 시작
     bool p_open = true;
@@ -349,8 +367,11 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
             ImGui::EndMenuBar();
         }
+
+
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
 
         {
             const float line_h = 1.0f; // 정확히 1픽셀
@@ -369,6 +390,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
         // 2) 짙은 색 테마 복구 (PopStyleColor 21개)
         ImGui::PopStyleColor(21);
+
 
         // 1. 툴바 스타일 및 배경 설정
         ImVec4 toolbarBg = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
@@ -603,12 +625,6 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
     }
     ImGui::End(); // MyMainDockSpaceWindow 종료
-
-    if (!g_editor_project_loaded)
-    {
-        StartUpProjectWindow::Get().Render();
-        return;
-    }
 
     auto& style = ImGui::GetStyle();
 

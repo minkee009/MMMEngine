@@ -15,6 +15,41 @@ namespace fs = std::filesystem;
 
 namespace MMMEngine::Editor
 {
+    static bool CopyEngineShaderToProjectRoot(const fs::path& projectRootDir)
+    {
+        const char* engineDirEnv = std::getenv("MMMENGINE_DIR");
+        if (!engineDirEnv || engineDirEnv[0] == '\0')
+            return false;
+
+        fs::path engineRoot = fs::path(engineDirEnv);
+
+        // source: C:\MMMEngine\Common\Shader
+        fs::path src = engineRoot / "Common" / "Shader";
+
+        // destination: C:\Project\Shader
+        fs::path dst = projectRootDir / "Shader";
+
+        std::error_code ec;
+
+        if (!fs::exists(src, ec) || !fs::is_directory(src, ec))
+            return false;
+
+        // 목적지 Shader 폴더 생성
+        fs::create_directories(dst, ec);
+        if (ec) return false;
+
+        // Shader 내부 전체 복사
+        fs::copy(
+            src,
+            dst,
+            fs::copy_options::recursive |
+            fs::copy_options::overwrite_existing,
+            ec
+        );
+
+        return !ec;
+    }
+
     // ------------------------------------------------------------
     // Editor config (last opened project)
     // ------------------------------------------------------------
@@ -483,6 +518,9 @@ void MMMEngine::ExampleBehaviour::Update()
         if (projectRootDir.empty()) return false;
 
         EnsureProjectFolders(projectRootDir);
+
+        if (!CopyEngineShaderToProjectRoot(projectRootDir))
+            return false; // 또는 로그만 남기고 계속
 
         Project p;
         p.rootPath = projectRootDir.generic_u8string();
