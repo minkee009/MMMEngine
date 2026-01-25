@@ -157,12 +157,58 @@ void MMMEngine::PhysScene::UnregisterRigid(MMMEngine::RigidBodyComponent* rb)
 	if (itR == m_rigids.end())
 		return; // 등록 안 됨
 
+
 	// GameObject가 유효하지 않으면 컨테이너만 정리하고 반환
 	if (!rb->GetGameObject().IsValid())
 	{
+		if (!m_scene || !rb) return;
+
+		auto itR = m_rigids.find(rb);
+		if (itR == m_rigids.end())
+			return;
+
+		//rb에 달린 콜라이더 목록 확보 (GO invalid여도 이 컨테이너 기반으로 정리 가능)
+		std::vector<ColliderComponent*> cols;
+		if (auto itList = m_collidersByRigid.find(rb); itList != m_collidersByRigid.end())
+			cols = itList->second;
+
+		//GO가 invalid이면 PhysX 호출은 위험할 수 있으니 "컨테이너만" 정리하고 종료
+		if (!rb->GetGameObject().IsValid())
+		{
+			for (auto* col : cols)
+			{
+				if (!col) continue;
+
+				// ownerByCollider에서 rb가 owner인 경우만 제거 (안전장치)
+				auto itOwner = m_ownerByCollider.find(col);
+				if (itOwner != m_ownerByCollider.end() && itOwner->second == rb)
+					m_ownerByCollider.erase(itOwner);
+			}
+
+			m_collidersByRigid.erase(rb);
+			m_rigids.erase(itR);
+			return;
+		}
+
+		// ---- 여기부터는 GO valid인 정상 케이스 ----
+
+		// rb에 붙은 콜라이더 전부 detach (PhysX detach + 컨테이너 정리)
+		for (auto* col : cols)
+		{
+			if (!col) continue;
+			DetachCollider(rb, col);
+		}
+
+		// actor scene에서 제거
+		if (auto* actor = rb->GetPxActor())
+		{
+			m_scene->removeActor(*actor);
+		}
+
 		m_collidersByRigid.erase(rb);
 		m_rigids.erase(itR);
-		return;
+
+		rb->DestroyActor();
 	}
 
 	// rb에 붙은 콜라이더 전부 detach (컨테이너 정리 포함)

@@ -14,6 +14,8 @@ namespace MMMEngine
 
 		bool UpdateShapeGeometry() override;
 
+		void PrintFilter() override;
+
 		void BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) override;
 	private:
 		Vector3 m_halfExtents = { 0.5f, 0.5f, 0.5f };

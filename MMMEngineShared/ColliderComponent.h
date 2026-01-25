@@ -83,6 +83,10 @@ namespace MMMEngine
 		physx::PxTransform GetWorldPosPx() const;
 
 
+		//디버그 함수
+		virtual void PrintFilter() {};
+
+
 	protected:
 		// 파생 클래스가 shape 생성 후 반드시 호출
 		void SetShape(physx::PxShape* shape, bool owned = true);

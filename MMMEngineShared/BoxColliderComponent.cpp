@@ -52,6 +52,12 @@ bool MMMEngine::BoxColliderComponent::UpdateShapeGeometry()
 	return true;
 }
 
+void MMMEngine::BoxColliderComponent::PrintFilter()
+{
+	auto fd = m_Shape->getSimulationFilterData();
+	printf("simFilter: %u %u %u %u\n", fd.word0, fd.word1, fd.word2, fd.word3);
+}
+
 void MMMEngine::BoxColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
 {
 	if (!physics || !material) return;

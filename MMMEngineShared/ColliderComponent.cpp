@@ -201,7 +201,7 @@ void MMMEngine::ColliderComponent::MarkFilterDirty()
 {
     m_filterDirty = true;
 
-    // �ݶ��̴��� "���� �ٲ����"�� �˸�
+    // 
     PhysxManager::Get().NotifyColliderChanged(this);
 }
 
@@ -212,7 +212,7 @@ physx::PxTransform MMMEngine::ColliderComponent::GetWorldPosPx() const
     physx::PxRigidActor* actor = m_Shape->getActor();
     if (!actor) return physx::PxTransform(physx::PxIdentity);
 
-    // actor�� ���� ���� + shape�� ���� ����
+    // 
     return actor->getGlobalPose() * m_Shape->getLocalPose();
 }
 
@@ -249,7 +249,7 @@ void MMMEngine::ColliderComponent::ApplyAll()
 
 void MMMEngine::ColliderComponent::Initialize()
 {
-	// Shape�� ���� �����ؾ� AttachCollider���� ����� �� ����
+	// 
 	auto& physics = MMMEngine::PhysicX::Get().GetPhysics();
 	physx::PxMaterial* mat = MMMEngine::PhysicX::Get().GetDefaultMaterial();
 
