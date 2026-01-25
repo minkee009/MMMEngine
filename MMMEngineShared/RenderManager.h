@@ -15,9 +15,7 @@
 #include <wrl/client.h>
 #include <SimpleMath.h>
 
-#include <RenderShared.h>
 #include <Object.h>
-#include "json/json.hpp"
 #include <RenderCommand.h>
 
 #pragma comment (lib, "d3d11.lib")

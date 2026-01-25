@@ -1,10 +1,11 @@
 #include "RenderManager.h"
-#include "GameObject.h"
-#include "Transform.h"
-//#include <EditorCamera.h>
-#include <RendererTools.h>
+
+#include "RendererTools.h"
+#include "RenderShared.h"
 #include "ShaderInfo.h"
 #include "ResourceManager.h"
+#include "GameObject.h"
+#include "Transform.h"
 
 DEFINE_SINGLETON(MMMEngine::RenderManager)
 

@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <d3dcompiler.h>
 
+#include "RenderManager.h"
+
 namespace fs = std::filesystem;
 
 DEFINE_SINGLETON(MMMEngine::ShaderInfo);

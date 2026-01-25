@@ -6,10 +6,11 @@
 #include <SimpleMath.h>
 #include <wrl/client.h>
 #include <d3d11_4.h>
-#include "RendererTools.h"
-#include "RenderManager.h"
-#include "ResourceManager.h"
 #include <d3d11shader.h>
+
+#include "RendererTools.h"
+#include "ResourceManager.h"
+#include "RenderShared.h"
 
 #include "VShader.h"
 #include "PShader.h"
