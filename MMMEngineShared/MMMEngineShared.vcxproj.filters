@@ -476,9 +476,6 @@
     <ClInclude Include="RenderManager.h">
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
-    <ClInclude Include="RendererBase.h">
-      <Filter>헤더 파일\Core\Render API</Filter>
-    </ClInclude>
     <ClInclude Include="MeshRenderer.h">
       <Filter>헤더 파일\Core\Render API\Component</Filter>
     </ClInclude>
@@ -488,14 +485,8 @@
     <ClInclude Include="Texture2D.h">
       <Filter>헤더 파일\Core\Render API\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="SkyboxRenderer.h">
-      <Filter>헤더 파일\Core\Render API\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="PShader.h">
       <Filter>헤더 파일\Core\Render API\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="GeoRenderer.h">
-      <Filter>헤더 파일\Core\Render API\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="ScriptLoader.h">
       <Filter>헤더 파일\Core\Behaviour API\ScriptLoader</Filter>
@@ -598,9 +589,6 @@
     <ClCompile Include="RenderManager.cpp">
       <Filter>소스 파일\Core\Render API</Filter>
     </ClCompile>
-    <ClCompile Include="RendererBase.cpp">
-      <Filter>소스 파일\Core\Render API</Filter>
-    </ClCompile>
     <ClCompile Include="RenderShared.h">
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClCompile>
@@ -612,9 +600,6 @@
     </ClCompile>
     <ClCompile Include="Texture2D.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="SkyboxRenderer.cpp">
-      <Filter>소스 파일\Core\Render API\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="VShader.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
@@ -636,9 +621,6 @@
     </ClCompile>
     <ClCompile Include="StaticMesh.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="GeoRenderer.cpp">
-      <Filter>소스 파일\Core\Render API\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="SkeletalMesh.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
