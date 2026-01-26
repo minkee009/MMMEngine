@@ -15,6 +15,41 @@ namespace fs = std::filesystem;
 
 namespace MMMEngine::Editor
 {
+    static bool CopyEngineShaderToProjectRoot(const fs::path& projectRootDir)
+    {
+        const char* engineDirEnv = std::getenv("MMMENGINE_DIR");
+        if (!engineDirEnv || engineDirEnv[0] == '\0')
+            return false;
+
+        fs::path engineRoot = fs::path(engineDirEnv);
+
+        // source: C:\MMMEngine\Common\Shader
+        fs::path src = engineRoot / "Common" / "Shader";
+
+        // destination: C:\Project\Shader
+        fs::path dst = projectRootDir / "Shader";
+
+        std::error_code ec;
+
+        if (!fs::exists(src, ec) || !fs::is_directory(src, ec))
+            return false;
+
+        // 목적지 Shader 폴더 생성
+        fs::create_directories(dst, ec);
+        if (ec) return false;
+
+        // Shader 내부 전체 복사
+        fs::copy(
+            src,
+            dst,
+            fs::copy_options::recursive |
+            fs::copy_options::overwrite_existing,
+            ec
+        );
+
+        return !ec;
+    }
+
     // ------------------------------------------------------------
     // Editor config (last opened project)
     // ------------------------------------------------------------
@@ -182,11 +217,11 @@ namespace MMMEngine::Editor
         out <<
             R"(#include "rttr/type"
 #include "ScriptBehaviour.h"
-#include "Export.h"
+#include "UserScriptsCommon.h"
 
 namespace MMMEngine
 {
-    class MMMENGINE_API ExampleBehaviour : public ScriptBehaviour
+    class USERSCRIPTS ExampleBehaviour : public ScriptBehaviour
     {
     private:
         RTTR_ENABLE(ScriptBehaviour)
@@ -217,7 +252,7 @@ namespace MMMEngine
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
 
-RTTR_REGISTRATION
+RTTR_PLUGIN_REGISTRATION
 {
 	using namespace rttr;
 	using namespace MMMEngine;
@@ -293,10 +328,13 @@ void MMMEngine::ExampleBehaviour::Update()
         std::string engineSharedInclude = R"($(ProjectDir)..\..\..\MMMEngineShared)";
         std::string engineSharedIncludeDXTk = R"($(ProjectDir)..\..\..\MMMEngineShared\dxtk)";
         std::string engineSharedIncludeDXTkInc = R"($(ProjectDir)..\..\..\MMMEngineShared\dxtk\inc)";
+        std::string engineSharedIncludePhysXInc = R"($(ProjectDir)..\..\..\MMMEngineShared\physx)";
         std::string engineSharedDebugLibDir = R"($(ProjectDir)..\..\..\X64\Debug)";
         std::string engineSharedReleaseLibDir = R"($(ProjectDir)..\..\..\X64\Release)";
-        std::string engineSharedCommonLibDir = R"($(ProjectDir)..\..\..\Common\Lib)";
+        std::string engineSharedCommonDebugLibDir = R"($(ProjectDir)..\..\..\Common\Lib\Debug)";
+        std::string engineSharedCommonReleaseLibDir = R"($(ProjectDir)..\..\..\Common\Lib\Release)";
         std::string engineSharedLibName = "MMMEngineShared.lib";
+        std::string DirectXLibName = "DirectXTK.lib;DirectXTex.lib";
         std::string rttrDebugLibName = "rttr_core_d.lib";
         std::string rttrReleaseLibName = "rttr_core.lib";
         std::string physXLibsName = "PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib";
@@ -307,9 +345,11 @@ void MMMEngine::ExampleBehaviour::Update()
             engineSharedInclude = engineDir + R"(\MMMEngineShared\)";
             engineSharedIncludeDXTk = engineDir + R"(\MMMEngineShared\dxtk)";
             engineSharedIncludeDXTkInc = engineDir + R"(\MMMEngineShared\dxtk\inc)";
+            engineSharedIncludePhysXInc = engineDir + R"(\MMMEngineShared\physx)";
             engineSharedDebugLibDir = engineDir + R"(\X64\Debug)";
-            engineSharedReleaseLibDir = engineDir + R"(\X64\Debug)";
-            engineSharedCommonLibDir = engineDir + R"(\Common\Lib)";
+            engineSharedReleaseLibDir = engineDir + R"(\X64\Release)";
+            engineSharedCommonDebugLibDir = engineDir + R"(\Common\Lib\Debug)";
+            engineSharedCommonReleaseLibDir = engineDir + R"(\Common\Lib\Release)";
         }
 
         std::ofstream out(vcxprojPath, std::ios::binary);
@@ -389,13 +429,14 @@ void MMMEngine::ExampleBehaviour::Update()
       <WarningLevel>Level3</WarningLevel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ConformanceMode>false</ConformanceMode>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;MMMENGINE_EXPORTS;RTTR_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>)xml" << engineSharedInclude << R"xml(;)xml" << engineSharedIncludeDXTk << R"xml(;)xml" << engineSharedIncludeDXTkInc << R"xml(;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4819;4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;RTTR_DLL;USERSCRIPTS_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>)xml" << engineSharedInclude << R"xml(;)xml" << engineSharedIncludeDXTk << R"xml(;)xml" << engineSharedIncludeDXTkInc << R"xml(;)xml" << engineSharedIncludePhysXInc << R"xml(;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>)xml" << engineSharedDebugLibDir << R"xml(;)xml" << engineSharedCommonLibDir << R"xml(;)xml" << physXLibsName << renderResourceLibs << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>)xml" << engineSharedLibName << R"xml(;)xml" << rttrDebugLibName << R"xml(;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>)xml" << engineSharedDebugLibDir << R"xml(;)xml" << engineSharedCommonDebugLibDir << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>)xml" << engineSharedLibName << R"xml(;)xml" << DirectXLibName << R"xml(;)xml" << rttrDebugLibName << R"xml(;)xml" << physXLibsName << R"xml(;)xml" << renderResourceLibs << R"xml(;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
@@ -406,14 +447,15 @@ void MMMEngine::ExampleBehaviour::Update()
       <ConformanceMode>false</ConformanceMode>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;MMMENGINE_EXPORTS;RTTR_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>)xml" << engineSharedInclude << R"xml(;)xml" << engineSharedIncludeDXTk << R"xml(;)xml" << engineSharedIncludeDXTkInc << R"xml(;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4819;4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;RTTR_DLL;USERSCRIPTS_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>)xml" << engineSharedInclude << R"xml(;)xml" << engineSharedIncludeDXTk << R"xml(;)xml" << engineSharedIncludeDXTkInc << R"xml(;)xml" << engineSharedIncludePhysXInc << R"xml(;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>)xml" << engineSharedReleaseLibDir << R"xml(;)xml" << engineSharedCommonLibDir << R"xml(;)xml" << physXLibsName << renderResourceLibs << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>)xml" << engineSharedLibName << R"xml(;)xml" << rttrReleaseLibName << R"xml(;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>)xml" << engineSharedReleaseLibDir << R"xml(;)xml" << engineSharedCommonReleaseLibDir << R"xml(;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>)xml" << engineSharedLibName << R"xml(;)xml" << DirectXLibName << R"xml(;)xml" << rttrReleaseLibName << R"xml(;)xml" << physXLibsName << R"xml(;)xml" << renderResourceLibs << R"xml(;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
@@ -483,6 +525,9 @@ void MMMEngine::ExampleBehaviour::Update()
         if (projectRootDir.empty()) return false;
 
         EnsureProjectFolders(projectRootDir);
+
+        if (!CopyEngineShaderToProjectRoot(projectRootDir))
+            return false; // 또는 로그만 남기고 계속
 
         Project p;
         p.rootPath = projectRootDir.generic_u8string();

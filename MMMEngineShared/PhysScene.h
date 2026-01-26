@@ -28,7 +28,7 @@ struct PhysSceneDesc
 
 namespace MMMEngine
 {
-	class PhysScene
+	class MMMENGINE_API PhysScene
 	{
 	public:
 		PhysScene() = default;

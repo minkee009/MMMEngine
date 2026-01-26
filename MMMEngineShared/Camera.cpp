@@ -2,6 +2,7 @@
 #include "Transform.h"
 #include "rttr/registration"
 #include "SceneManager.h"
+#include "RenderManager.h"
 
 MMMEngine::ObjPtr<MMMEngine::Camera> MMMEngine::Camera::s_mainCam = nullptr;
 
@@ -15,6 +16,7 @@ RTTR_REGISTRATION
 		.property("FOV", &Camera::GetFov, &Camera::SetFOV)
 		.property("Near", &Camera::GetNear, &Camera::SetNear)
 		.property("Far", &Camera::GetFar, &Camera::SetFar)
+		// todo :  AsepectRatio <- 카메라가 직접 설정하면 안됨, RenderManager의 씬타겟 이미지의 해상도로 처리해주셈
 		.property("AspectRatio", &Camera::GetAsepct, &Camera::SetAspect);
 
 
@@ -89,6 +91,8 @@ void MMMEngine::Camera::Initialize()
 	m_aspect = 4 / 3;
 
 	MarkViewMatrixDirty();
+
+	RenderManager::Get().SetCamera(SelfPtr(this));
 }
 
 
@@ -149,7 +153,7 @@ void MMMEngine::Camera::SetAspect(const float& value)
 
 MMMEngine::ObjPtr<MMMEngine::Camera> MMMEngine::Camera::GetMainCamera()
 {
-	if (!s_mainCam.IsValid())
+	if (!s_mainCam.IsValid() || s_mainCam->IsDestroyed())
 	{
 		//새로운 메인캠 찾기
 		auto mainCamGOs = GameObject::FindGameObjectsWithTag("MainCamera");

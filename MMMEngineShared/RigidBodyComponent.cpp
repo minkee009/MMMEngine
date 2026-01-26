@@ -1,4 +1,4 @@
-#include "RigidBodyComponent.h"
+﻿#include "RigidBodyComponent.h"
 #include "PhysXHelper.h"
 #include "Transform.h"
 #include "rttr/registration"
@@ -511,6 +511,11 @@ void MMMEngine::RigidBodyComponent::SetUseGravity(bool value)
 
 	std::cout << count << std::endl;*/
 	m_Desc.useGravity = value; m_DescDirty = true; m_WakeRequested = true;
+}
+
+void MMMEngine::RigidBodyComponent::SetKinematic(bool value)
+{
+	m_Desc.isKinematic = value; m_DescDirty = true; m_WakeRequested = true;
 }
 
 void MMMEngine::RigidBodyComponent::SetType(Type newType)

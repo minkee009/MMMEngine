@@ -15,6 +15,7 @@ namespace MMMEngine
 		float m_fov; // 0 ~ 360 degree
 		float m_near; // near plane
 		float m_far; // far plane
+		// todo : AsepectRatio <- 카메라가 직접 설정하면 안됨, RenderManager의 씬타겟 이미지의 해상도로 처리해주셈
 		float m_aspect; // { width / height } ratio
 		mutable bool m_isProjMatrixDirty;
 		mutable bool m_isViewMatrixDirty;

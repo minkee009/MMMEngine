@@ -3,9 +3,7 @@
   <ItemGroup>
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Behaviour.cpp" />
-    <ClCompile Include="BehaviourManger.cpp" />
     <ClCompile Include="Component.cpp" />
-    <ClCompile Include="dxtk\Src\SimpleMath.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GlobalRegistry.cpp" />
     <ClCompile Include="InputManager.cpp" />
@@ -56,12 +54,6 @@
     <ClCompile Include="RigidBodyComponent.cpp">
       <Filter>소스 파일\Core\Physcis API</Filter>
     </ClCompile>
-    <ClCompile Include="BoxColliderComponent.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SphereColliderComponent.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="RenderCommand.cpp">
       <Filter>소스 파일\Core\Render API</Filter>
     </ClCompile>
@@ -77,6 +69,15 @@
     <ClCompile Include="Light.cpp">
       <Filter>소스 파일\Core\Render API\Component</Filter>
     </ClCompile>
+    <ClCompile Include="SphereColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="BoxColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="BehaviourManager.cpp">
+      <Filter>소스 파일\Core\Behaviour API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
@@ -84,27 +85,6 @@
     <ClInclude Include="Component.h" />
     <ClInclude Include="Delegates.hpp" />
     <ClInclude Include="DisplayMode.h" />
-    <ClInclude Include="dxtk\Inc\Audio.h" />
-    <ClInclude Include="dxtk\Inc\BufferHelpers.h" />
-    <ClInclude Include="dxtk\Inc\CommonStates.h" />
-    <ClInclude Include="dxtk\Inc\DDSTextureLoader.h" />
-    <ClInclude Include="dxtk\Inc\DirectXHelpers.h" />
-    <ClInclude Include="dxtk\Inc\Effects.h" />
-    <ClInclude Include="dxtk\Inc\GamePad.h" />
-    <ClInclude Include="dxtk\Inc\GeometricPrimitive.h" />
-    <ClInclude Include="dxtk\Inc\GraphicsMemory.h" />
-    <ClInclude Include="dxtk\Inc\Keyboard.h" />
-    <ClInclude Include="dxtk\Inc\Model.h" />
-    <ClInclude Include="dxtk\Inc\Mouse.h" />
-    <ClInclude Include="dxtk\Inc\PostProcess.h" />
-    <ClInclude Include="dxtk\Inc\PrimitiveBatch.h" />
-    <ClInclude Include="dxtk\Inc\ScreenGrab.h" />
-    <ClInclude Include="dxtk\Inc\SimpleMath.h" />
-    <ClInclude Include="dxtk\Inc\SpriteBatch.h" />
-    <ClInclude Include="dxtk\Inc\SpriteFont.h" />
-    <ClInclude Include="dxtk\Inc\VertexTypes.h" />
-    <ClInclude Include="dxtk\Inc\WICTextureLoader.h" />
-    <ClInclude Include="dxtk\Inc\XboxDDSTextureLoader.h" />
     <ClInclude Include="Export.h" />
     <ClInclude Include="ExportSingleton.hpp" />
     <ClInclude Include="GameObject.h" />
@@ -167,15 +147,6 @@
     </Filter>
     <Filter Include="소스 파일\Utility">
       <UniqueIdentifier>{bb817747-9bed-4c9b-9d18-d3727af467be}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK">
-      <UniqueIdentifier>{c1f31de4-7de7-4812-9d2f-5225d890f3e4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK\Src">
-      <UniqueIdentifier>{22a3ca23-ec10-4a58-9d4d-c71761373146}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK\Inc">
-      <UniqueIdentifier>{d2942064-b39a-40f4-86b6-3aa64d93dc96}</UniqueIdentifier>
     </Filter>
     <Filter Include="헤더 파일\Core\Resource API">
       <UniqueIdentifier>{9429d884-7bed-4e3a-8a66-6736b614e7c7}</UniqueIdentifier>
@@ -321,6 +292,9 @@
     <ClInclude Include="Light.h">
       <Filter>헤더 파일\Core\Render API\Component</Filter>
     </ClInclude>
+    <ClInclude Include="UserScriptsCommon.h">
+      <Filter>헤더 파일\Core\Behaviour API</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Object.h">
@@ -346,69 +320,6 @@
     </ClInclude>
     <ClInclude Include="Transform.h">
       <Filter>헤더 파일\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\Audio.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\BufferHelpers.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\CommonStates.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\DDSTextureLoader.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\DirectXHelpers.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\Effects.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\GamePad.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\GeometricPrimitive.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\GraphicsMemory.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\Keyboard.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\Model.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\Mouse.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\PostProcess.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\PrimitiveBatch.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\ScreenGrab.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\SimpleMath.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\SpriteBatch.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\SpriteFont.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\VertexTypes.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\WICTextureLoader.h">
-      <Filter>DXTK\Inc</Filter>
-    </ClInclude>
-    <ClInclude Include="dxtk\Inc\XboxDDSTextureLoader.h">
-      <Filter>DXTK\Inc</Filter>
     </ClInclude>
     <ClInclude Include="StringHelper.h">
       <Filter>헤더 파일\Utility</Filter>
@@ -550,9 +461,6 @@
     <ClCompile Include="ObjectManager.cpp">
       <Filter>소스 파일\Core\Object API</Filter>
     </ClCompile>
-    <ClCompile Include="dxtk\Src\SimpleMath.cpp">
-      <Filter>DXTK\Src</Filter>
-    </ClCompile>
     <ClCompile Include="Transform.cpp">
       <Filter>소스 파일\Core</Filter>
     </ClCompile>
@@ -572,9 +480,6 @@
       <Filter>소스 파일\Utility</Filter>
     </ClCompile>
     <ClCompile Include="Behaviour.cpp">
-      <Filter>소스 파일\Core\Behaviour API</Filter>
-    </ClCompile>
-    <ClCompile Include="BehaviourManger.cpp">
       <Filter>소스 파일\Core\Behaviour API</Filter>
     </ClCompile>
     <ClCompile Include="ResourceManager.cpp">
@@ -662,9 +567,6 @@
   <ItemGroup>
     <None Include="Object.inl">
       <Filter>헤더 파일\Core\Object API</Filter>
-    </None>
-    <None Include="dxtk\Inc\SimpleMath.inl">
-      <Filter>DXTK\Inc</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

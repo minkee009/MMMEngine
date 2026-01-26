@@ -542,6 +542,11 @@ namespace MMMEngine {
 		return index;
 	}
 
+	void RenderManager::ClearAllCommands()
+	{
+		m_renderCommands.clear();
+	}
+
 	void RenderManager::BeginFrame()
 	{
 		// Clear
@@ -553,15 +558,25 @@ namespace MMMEngine {
 		UpdateRenderers();
 
 		// 카메라 유효성 확인
-		if(!m_pMainCamera.IsValid())
-			m_pMainCamera = Camera::GetMainCamera();
-		if (!m_pMainCamera.IsValid()) {
-			m_pMainCamera = Camera::CreateMainCamera()->GetComponent<Camera>();
-		}
+		//if(!m_pMainCamera.IsValid())
+		//	m_pMainCamera = Camera::GetMainCamera();
+		//if (!m_pMainCamera.IsValid()) {
+		//	m_pMainCamera = Camera::CreateMainCamera()->GetComponent<Camera>();
+		//}
 	}
 
 	void RenderManager::Render()
 	{
+		if (!m_pMainCamera.IsValid())
+		{
+			// Clear
+			m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
+			m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
+			return;
+		}
+
 		// Clear
 		m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
