@@ -296,6 +296,7 @@ void MMMEngine::SceneManager::ShutDown()
 {
 	m_dontDestroyOnLoadScene.reset();
 	m_scenes.clear();
+	m_currentSceneID = static_cast<size_t>(-1);
 }
 
 bool MMMEngine::SceneManager::CheckSceneIsChanged()
@@ -392,7 +393,10 @@ std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::
 
 std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::GetAllGameObjectInDDOL()
 {
-	return m_dontDestroyOnLoadScene->GetGameObjects();
+	if (m_dontDestroyOnLoadScene)
+		return m_dontDestroyOnLoadScene->GetGameObjects();
+	else
+		std::vector<ObjPtr<GameObject>>();
 }
 
 std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::FindGameObjectsWithTagFromAllScenes(const std::string& tag)

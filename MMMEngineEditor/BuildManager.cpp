@@ -167,7 +167,6 @@ namespace MMMEngine::Editor
 
         while (ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
         {
-            currentFileCount++;
             float percent = (static_cast<float>(currentFileCount) / totalFiles) * 100.0f;
 
             buffer[bytesRead] = '\0';

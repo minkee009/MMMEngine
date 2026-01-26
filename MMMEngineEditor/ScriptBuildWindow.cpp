@@ -26,6 +26,24 @@ namespace MMMEngine::Editor
         m_exitCode.store(0);
         m_showToast = true;
 
+        {
+            auto sceneRef = SceneManager::Get().GetCurrentScene();
+            auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
+
+            SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" +
+                StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
+            SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
+
+            EditorRegistry::g_selectedGameObject = nullptr;
+
+            RenderManager::Get().ClearAllCommands();
+
+            SceneManager::Get().ShutDown();
+            ObjectManager::Get().ShutDown();
+
+            BehaviourManager::Get().UnloadUserScripts();
+        }
+
         // 이전 스레드 정리
         if (m_worker.joinable())
             m_worker.join();
@@ -75,21 +93,6 @@ namespace MMMEngine::Editor
            
             if (!dllPath.empty())
             {
-                auto sceneRef = SceneManager::Get().GetCurrentScene();
-                auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
-
-                SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" + StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
-                SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
-
-                EditorRegistry::g_selectedGameObject = nullptr;
-
-                // 씬 매니저를 셧다운
-                // 오브젝트 매니저를 셧다운
-                RenderManager::Get().ClearAllCommands();
-
-                SceneManager::Get().ShutDown();
-                ObjectManager::Get().ShutDown();
-
                 BehaviourManager::Get().ReloadUserScripts(dllPath.stem().u8string());
                
                 // 오브젝트 매니저 리부팅

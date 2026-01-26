@@ -178,4 +178,9 @@ void MMMEngine::BehaviourManager::ReloadUserScripts(const std::string& name)
 	m_pScriptLoader->LoadScriptDLL(name);
 }
 
+void MMMEngine::BehaviourManager::UnloadUserScripts()
+{
+	m_pScriptLoader->UnloadScript();
+}
+
 

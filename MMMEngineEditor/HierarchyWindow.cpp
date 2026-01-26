@@ -147,7 +147,11 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-
+	if (sceneRef.id == static_cast<size_t>(-1))
+	{
+		ImGui::End();
+		return;
+	}
 	std::string showSceneName = sceneRaw->GetName() + ".scene";
 	if (ImGui::CollapsingHeader(showSceneName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 	{
