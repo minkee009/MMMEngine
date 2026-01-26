@@ -118,7 +118,7 @@
       <ConformanceMode>Default</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>Default</LanguageStandard_C>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)$(ProjectDir)rttr\..;$(ProjectDir);$(ProjectDir)dxtk\Inc;$(ProjectDir)dxtk;$(ProjectDir)dxtex;$(ProjectDir)DDSTextureLoader</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)$(ProjectDir)rttr\..;$(ProjectDir);$(ProjectDir)dxtk\Inc;$(ProjectDir)dxtk;$(ProjectDir)dxtex;$(ProjectDir)DDSTextureLoader;$(ProjectDir)FMOD\include\core\inc</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -130,8 +130,8 @@
     <Link>
       <SubSystem>NotSet</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Common\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>rttr_core_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Common\Lib;$(SolutionDir)\MMMEngineShared\FMOD\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>rttr_core_d.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -160,7 +160,9 @@
     <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="AssetsDatabase.h" />
+    <ClInclude Include="AudioManager.h" />
     <ClInclude Include="Behaviour.h" />
+    <ClInclude Include="BGMComponent.h" />
     <ClInclude Include="EditorCamera.h" />
     <ClInclude Include="Component.h" />
     <ClInclude Include="Delegates.hpp" />
@@ -190,6 +192,7 @@
     <ClInclude Include="ExportSingleton.hpp" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="GlobalRegistry.h" />
+    <ClInclude Include="ListenerComponent.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MaterialSerializer.h" />
     <ClInclude Include="MeshRenderer.h" />
@@ -221,6 +224,8 @@
     <ClInclude Include="ScriptBehaviour.h" />
     <ClInclude Include="ScriptLoader.h" />
     <ClInclude Include="SerializableEvent.h" />
+    <ClInclude Include="SFX2DComponent.h" />
+    <ClInclude Include="SFX3DComponent.h" />
     <ClInclude Include="SkeletalMesh.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="VShader.h" />
@@ -240,14 +245,17 @@
   <ItemGroup>
     <ClCompile Include="AnimationClip.cpp" />
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="AudioManager.cpp" />
     <ClCompile Include="Behaviour.cpp" />
     <ClCompile Include="BehaviourManger.cpp" />
+    <ClCompile Include="BGMComponent.cpp" />
     <ClCompile Include="EditorCamera.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="dxtk\Src\SimpleMath.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GlobalRegistry.cpp" />
     <ClCompile Include="InputManager.cpp" />
+    <ClCompile Include="ListenerComponent.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="MaterialSerializer.cpp" />
     <ClCompile Include="MeshRenderer.cpp" />
@@ -271,6 +279,8 @@
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="SceneSerializer.cpp" />
     <ClCompile Include="ScriptBehaviour.cpp" />
+    <ClCompile Include="SFX2DComponent.cpp" />
+    <ClCompile Include="SFX3DComponent.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="VShader.cpp" />
