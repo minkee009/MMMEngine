@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <iostream>
 
+#include "Camera.h"
+
 DEFINE_SINGLETON(MMMEngine::SceneManager)
 
 void MMMEngine::SceneManager::LoadScenes(bool allowEmptyScene)
@@ -59,7 +61,7 @@ void MMMEngine::SceneManager::LoadScenes(bool allowEmptyScene)
 				m_scenes.pop_back();
 				m_scenes[index] = std::move(emptyScene);
 				m_sceneNameToID[sceneName] = index;
-				std::cout << "씬 리스트에 등록된 씬파일을 찾지 못했습니다. -> Scene File : " << sceneName << ".scene \n임시 씬을 생성합니다." << std::endl;
+				std::cout << u8"씬 리스트에 등록된 씬파일을 찾지 못했습니다. -> Scene File : " << sceneName << u8".scene \n임시 씬을 생성합니다." << std::endl;
 			}
 			else
 			{
@@ -86,7 +88,7 @@ void MMMEngine::SceneManager::CreateEmptyScene(std::string name)
 	m_scenes.push_back(std::make_unique<Scene>());
 	m_scenes.back()->SetName(name);
 	SnapShot snapShot; 
-	SceneSerializer::Get().SerializeToMemory(*m_scenes.back(), snapShot);
+	SceneSerializer::Get().SerializeToMemory(*m_scenes.back(), snapShot, true); //카메라 까지 같이 생성하도록 주입
 	m_scenes.back()->SetSnapShot(std::move(snapShot));
 }
 
@@ -154,7 +156,15 @@ const std::unordered_map<std::string, size_t>& MMMEngine::SceneManager::GetScene
 	return m_sceneNameToID;
 }
 
-void MMMEngine::SceneManager::UpdateAndReloadScenes(std::vector<std::string> sceneList)
+void MMMEngine::SceneManager::ReloadSnapShotCurrentScene()
+{
+	SnapShot snapshot;
+	auto currentScene = m_scenes[m_currentSceneID].get();
+	SceneSerializer::Get().SerializeToMemory(*currentScene, snapshot);
+	currentScene->SetSnapShot(std::move(snapshot));
+}
+
+void MMMEngine::SceneManager::RebulidAndApplySceneList(std::vector<std::string> sceneList)
 {
 	// 현재 씬 배열에 존재하는지 체크, 새로운 것도 체크
 	std::string currentSceneName = m_scenes[m_currentSceneID]->GetName();
@@ -171,11 +181,13 @@ void MMMEngine::SceneManager::UpdateAndReloadScenes(std::vector<std::string> sce
 		{
 			idx = m_sceneNameToID[sceneName];
 		}
-
+		
+		// 씬 리스트에 있는 씬
 		if (idx != -1)
 		{
 			changedScenes.push_back(std::move(m_scenes[idx]));
 		}
+		// 기존 씬 리스트에 없는 신규 씬
 		else
 		{
 			// 파일 경로 탐색
@@ -223,11 +235,16 @@ void MMMEngine::SceneManager::UpdateAndReloadScenes(std::vector<std::string> sce
 	}
 	else
 	{
-		std::cout << "경고! : 열려있던 씬의 정보가 씬 리스트에서 사라졌습니다. "
-			<< "0번째 씬을 로드합니다." << std::endl;
+		std::cout << u8"경고! : 열려있던 씬의 정보가 씬 리스트에서 사라졌습니다. "
+			<< u8"0번째 씬을 로드합니다." << std::endl;
 		m_currentSceneID = 0;
 		m_nextSceneID = 0;
 	}
+}
+
+void MMMEngine::SceneManager::ClearDDOLScene()
+{
+	m_dontDestroyOnLoadScene->Clear();
 }
 
 void MMMEngine::SceneManager::UpdateScenesHash(std::unordered_map<std::string, size_t>&& nameToID) noexcept
@@ -293,6 +310,7 @@ bool MMMEngine::SceneManager::CheckSceneIsChanged()
 		m_currentSceneID = m_nextSceneID;
 		m_nextSceneID = static_cast<size_t>(-1);
 
+		onSceneInitBefore(this);
 		m_scenes[m_currentSceneID]->Initialize();
 		return true;
 	}

@@ -4,6 +4,7 @@
 #include "rttr/type"
 #include "SimpleMath.h"
 #include "Delegates.hpp"
+#include "PhysxManager.h"
 
 namespace MMMEngine
 {
@@ -37,7 +38,7 @@ namespace MMMEngine
 	public:
 		virtual ~Transform() = default;
 
-		Utility::Event<Transform, void(void)> onMatrixUpdate{ this };
+		Utility::Event<Transform, void(void)> onMatrixUpdate{this};
 
 		const DirectX::SimpleMath::Matrix& GetLocalMatrix() const;
 		const DirectX::SimpleMath::Matrix& GetWorldMatrix() const;

@@ -240,6 +240,9 @@ LRESULT MMMEngine::Utility::App::HandleWindowMessage(HWND hWnd, UINT uMsg, WPARA
 	//	// 비클라이언트 영역은 기본 처리
 	//	result = DefWindowProc(hWnd, uMsg, wParam, lParam);
 	//	break;
+	case WM_MOUSEWHEEL:
+		OnMouseWheelUpdate(this, wParam, lParam);
+		return 0;
 	case WM_SYSKEYDOWN:  // Alt + 다른 키 조합
 		if (wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000)  // Alt+Enter
 		{

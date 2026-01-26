@@ -36,8 +36,9 @@ MMMEngine::PropertyValue MMMEngine::MaterialSerializer::property_from_json(const
 	}
 	else if (type == "Texture2D")
 	{
-		std::wstring filePath = j.at("file").get<std::wstring>();
-		auto tex = ResourceManager::Get().Load<Texture2D>(filePath);
+		std::string filePath = j.at("file").get<std::string>();
+		fs::path fsPath(filePath);
+		auto tex = ResourceManager::Get().Load<Texture2D>(fsPath.wstring());
 		return tex;
 	}
 
@@ -95,14 +96,18 @@ fs::path MMMEngine::MaterialSerializer::Serealize(Material* _material, std::wstr
 	
 	std::vector<uint8_t> v = json::to_msgpack(snapshot);
 
-	fs::path p(_path);
-	p = p / (_name + L"_Material" + std::to_wstring(_index));
+	fs::path savePath(ResourceManager::Get().GetCurrentRootPath());
 
-	if (p.has_parent_path() && !fs::exists(p.parent_path())) {
-		fs::create_directories(p.parent_path());
+	fs::path p(_path);
+	p = p / (_name + L"_Material" + std::to_wstring(_index) + L".material");
+
+	savePath = savePath / p;
+
+	if (savePath.has_parent_path() && !fs::exists(savePath.parent_path())) {
+		fs::create_directories(savePath.parent_path());
 	}
 
-	std::ofstream file(p.string(), std::ios::binary);
+	std::ofstream file(savePath.string(), std::ios::binary);
 	if (!file.is_open()) {
 		throw std::runtime_error("파일을 열 수 없습니다: " + Utility::StringHelper::WStringToString(_path));
 	}
@@ -114,8 +119,12 @@ fs::path MMMEngine::MaterialSerializer::Serealize(Material* _material, std::wstr
 
 void MMMEngine::MaterialSerializer::UnSerealize(Material* _material, std::wstring _path)
 {
+	// 경로 만들기
+	fs::path loadPath(ResourceManager::Get().GetCurrentRootPath());
+	loadPath = loadPath / _path;
+
 	// 파일 읽기
-	std::ifstream inFile(_path, std::ios::binary);
+	std::ifstream inFile(loadPath.wstring(), std::ios::binary);
 	if (!inFile.is_open()) {
 		throw std::runtime_error("파일을 열수 없습니다.");
 	}

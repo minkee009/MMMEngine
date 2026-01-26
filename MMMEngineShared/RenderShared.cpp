@@ -1,6 +1,8 @@
 #include "RenderShared.h"
 #include "rttr/registration.h"
 
+#pragma warning(disable: 4506)
+
 RTTR_REGISTRATION
 {
 	using namespace rttr;
@@ -15,11 +17,10 @@ RTTR_REGISTRATION
 		.property("BoneIndices", &Mesh_Vertex::BoneIndices)
 		.property("BoneWeights", &Mesh_Vertex::BoneWeights);
 
-	auto reg = registration::class_<MMMEngine::Mesh_BoneBuffer>("Mesh_BoneBuffer")
+	registration::class_<MMMEngine::Mesh_BoneBuffer>("Mesh_BoneBuffer")
 		.constructor<>()
 		.property("BoneMat", &Mesh_BoneBuffer::BoneMat);
 
 	registration::class_<MMMEngine::MeshData>("MeshData")
-		.property("vertices", &MeshData::vertices)
-		.property("indices", &MeshData::indices);
+		.property("vertices", &MeshData::vertices);
 }

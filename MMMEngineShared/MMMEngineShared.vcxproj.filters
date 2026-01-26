@@ -1,6 +1,140 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="Behaviour.cpp" />
+    <ClCompile Include="BehaviourManager.cpp" />
+    <ClCompile Include="Component.cpp" />
+    <ClCompile Include="dxtk\Src\SimpleMath.cpp" />
+    <ClCompile Include="GameObject.cpp" />
+    <ClCompile Include="GlobalRegistry.cpp" />
+    <ClCompile Include="InputManager.cpp" />
+    <ClCompile Include="MissingScriptBehaviour.cpp" />
+    <ClCompile Include="MUID.cpp" />
+    <ClCompile Include="Object.cpp" />
+    <ClCompile Include="ObjectManager.cpp" />
+    <ClCompile Include="RenderManager.cpp" />
+    <ClCompile Include="Resource.cpp" />
+    <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="rttr_directxmath_registry.cpp" />
+    <ClCompile Include="rttr_simplemath_registry.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="SceneSerializer.cpp" />
+    <ClCompile Include="ScriptBehaviour.cpp" />
+    <ClCompile Include="ScriptLoader.cpp" />
+    <ClCompile Include="StringHelper.cpp" />
+    <ClCompile Include="TimeManager.cpp" />
+    <ClCompile Include="Transform.cpp" />
+    <ClCompile Include="CapsuleColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="ColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="CollisionMatrix.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsEventCallback.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsFilter.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysScene.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysX.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysxHelper.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysxManager.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="RigidBodyComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderCommand.cpp">
+      <Filter>소스 파일\Core\Render API</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderStateGuard.cpp">
+      <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="SphereColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="BoxColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="App.h" />
+    <ClInclude Include="Behaviour.h" />
+    <ClInclude Include="Component.h" />
+    <ClInclude Include="Delegates.hpp" />
+    <ClInclude Include="DisplayMode.h" />
+    <ClInclude Include="dxtk\Inc\Audio.h" />
+    <ClInclude Include="dxtk\Inc\BufferHelpers.h" />
+    <ClInclude Include="dxtk\Inc\CommonStates.h" />
+    <ClInclude Include="dxtk\Inc\DDSTextureLoader.h" />
+    <ClInclude Include="dxtk\Inc\DirectXHelpers.h" />
+    <ClInclude Include="dxtk\Inc\Effects.h" />
+    <ClInclude Include="dxtk\Inc\GamePad.h" />
+    <ClInclude Include="dxtk\Inc\GeometricPrimitive.h" />
+    <ClInclude Include="dxtk\Inc\GraphicsMemory.h" />
+    <ClInclude Include="dxtk\Inc\Keyboard.h" />
+    <ClInclude Include="dxtk\Inc\Model.h" />
+    <ClInclude Include="dxtk\Inc\Mouse.h" />
+    <ClInclude Include="dxtk\Inc\PostProcess.h" />
+    <ClInclude Include="dxtk\Inc\PrimitiveBatch.h" />
+    <ClInclude Include="dxtk\Inc\ScreenGrab.h" />
+    <ClInclude Include="dxtk\Inc\SimpleMath.h" />
+    <ClInclude Include="dxtk\Inc\SpriteBatch.h" />
+    <ClInclude Include="dxtk\Inc\SpriteFont.h" />
+    <ClInclude Include="dxtk\Inc\VertexTypes.h" />
+    <ClInclude Include="dxtk\Inc\WICTextureLoader.h" />
+    <ClInclude Include="dxtk\Inc\XboxDDSTextureLoader.h" />
+    <ClInclude Include="Export.h" />
+    <ClInclude Include="ExportSingleton.hpp" />
+    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="GlobalRegistry.h" />
+    <ClInclude Include="MissingScriptBehaviour.h" />
+    <ClInclude Include="MMMApplication.h" />
+    <ClInclude Include="MMMResources.h" />
+    <ClInclude Include="MMMSceneManagement.h" />
+    <ClInclude Include="MMMScreen.h" />
+    <ClInclude Include="MUID.h" />
+    <ClInclude Include="InputConstant.h" />
+    <ClInclude Include="InputKeyCode.h" />
+    <ClInclude Include="MMMInput.h" />
+    <ClInclude Include="InputManager.h" />
+    <ClInclude Include="RenderManager.h" />
+    <ClInclude Include="Resolution.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="MMMTime.h" />
+    <ClInclude Include="Object.h" />
+    <ClInclude Include="ObjectManager.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="SceneRef.h" />
+    <ClInclude Include="SceneSerializer.h" />
+    <ClInclude Include="ScriptBehaviour.h" />
+    <ClInclude Include="ScriptLoader.h" />
+    <ClInclude Include="SerializableEvent.h" />
+    <ClInclude Include="Singleton.hpp" />
+    <ClInclude Include="StringHelper.h" />
+    <ClInclude Include="TimeManager.h" />
+    <ClInclude Include="Transform.h" />
+    <ClInclude Include="ResourceManager.h" />
+    <ClInclude Include="BehaviourManager.h" />
     <Filter Include="소스 파일">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
@@ -30,15 +164,6 @@
     </Filter>
     <Filter Include="소스 파일\Utility">
       <UniqueIdentifier>{bb817747-9bed-4c9b-9d18-d3727af467be}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK">
-      <UniqueIdentifier>{c1f31de4-7de7-4812-9d2f-5225d890f3e4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK\Src">
-      <UniqueIdentifier>{22a3ca23-ec10-4a58-9d4d-c71761373146}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK\Inc">
-      <UniqueIdentifier>{d2942064-b39a-40f4-86b6-3aa64d93dc96}</UniqueIdentifier>
     </Filter>
     <Filter Include="헤더 파일\Core\Resource API">
       <UniqueIdentifier>{9429d884-7bed-4e3a-8a66-6736b614e7c7}</UniqueIdentifier>
@@ -130,9 +255,57 @@
     <Filter Include="헤더 파일\Core\Core Test">
       <UniqueIdentifier>{64ea75a6-7e6a-4817-801f-f9612da1250c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\Core\Core Test">
-      <UniqueIdentifier>{44b49f8c-3077-4d0a-be63-9f9da05c9b52}</UniqueIdentifier>
-    </Filter>
+    <ClInclude Include="CapsuleColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="ColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionMatrix.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsEventCallback.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsFilter.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysScene.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysX.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysxHelper.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysxManager.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="RigidBodyComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderCommand.h">
+      <Filter>헤더 파일\Core\Render API</Filter>
+    </ClInclude>
+    <ClInclude Include="SafeRelease.h">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderStateGuard.h">
+      <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="BoxColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="SphereColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Object.h">
@@ -303,12 +476,6 @@
     <ClInclude Include="RenderManager.h">
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
-    <ClInclude Include="RendererBase.h">
-      <Filter>헤더 파일\Core\Render API</Filter>
-    </ClInclude>
-    <ClInclude Include="EditorCamera.h">
-      <Filter>헤더 파일\Core\Render API\Component</Filter>
-    </ClInclude>
     <ClInclude Include="MeshRenderer.h">
       <Filter>헤더 파일\Core\Render API\Component</Filter>
     </ClInclude>
@@ -318,14 +485,8 @@
     <ClInclude Include="Texture2D.h">
       <Filter>헤더 파일\Core\Render API\Resource</Filter>
     </ClInclude>
-    <ClInclude Include="SkyboxRenderer.h">
-      <Filter>헤더 파일\Core\Render API\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="PShader.h">
       <Filter>헤더 파일\Core\Render API\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="GeoRenderer.h">
-      <Filter>헤더 파일\Core\Render API\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="ScriptLoader.h">
       <Filter>헤더 파일\Core\Behaviour API\ScriptLoader</Filter>
@@ -357,9 +518,6 @@
     <ClInclude Include="TextResource.h">
       <Filter>헤더 파일\Core\Core Test</Filter>
     </ClInclude>
-    <ClInclude Include="AssetsDatabase.h">
-      <Filter>헤더 파일\Core</Filter>
-    </ClInclude>
     <ClInclude Include="ResourceSerializer.h">
       <Filter>헤더 파일\Core\Render API\Tool</Filter>
     </ClInclude>
@@ -377,6 +535,9 @@
     </ClInclude>
     <ClInclude Include="ListenerComponent.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderInfo.h">
+      <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -413,9 +574,6 @@
     <ClCompile Include="Behaviour.cpp">
       <Filter>소스 파일\Core\Behaviour API</Filter>
     </ClCompile>
-    <ClCompile Include="BehaviourManger.cpp">
-      <Filter>소스 파일\Core\Behaviour API</Filter>
-    </ClCompile>
     <ClCompile Include="ResourceManager.cpp">
       <Filter>소스 파일\Core\Resource API</Filter>
     </ClCompile>
@@ -443,14 +601,8 @@
     <ClCompile Include="RenderManager.cpp">
       <Filter>소스 파일\Core\Render API</Filter>
     </ClCompile>
-    <ClCompile Include="RendererBase.cpp">
-      <Filter>소스 파일\Core\Render API</Filter>
-    </ClCompile>
     <ClCompile Include="RenderShared.h">
       <Filter>헤더 파일\Core\Render API</Filter>
-    </ClCompile>
-    <ClCompile Include="EditorCamera.cpp">
-      <Filter>소스 파일\Core\Render API\Component</Filter>
     </ClCompile>
     <ClCompile Include="MeshRenderer.cpp">
       <Filter>소스 파일\Core\Render API\Component</Filter>
@@ -460,9 +612,6 @@
     </ClCompile>
     <ClCompile Include="Texture2D.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="SkyboxRenderer.cpp">
-      <Filter>소스 파일\Core\Render API\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="VShader.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
@@ -485,9 +634,6 @@
     <ClCompile Include="StaticMesh.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
     </ClCompile>
-    <ClCompile Include="GeoRenderer.cpp">
-      <Filter>소스 파일\Core\Render API\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="SkeletalMesh.cpp">
       <Filter>소스 파일\Core\Render API\Resource</Filter>
     </ClCompile>
@@ -499,9 +645,6 @@
     </ClCompile>
     <ClCompile Include="MaterialSerializer.cpp">
       <Filter>소스 파일\Core\Render API\Tools</Filter>
-    </ClCompile>
-    <ClCompile Include="TextResource.cpp">
-      <Filter>소스 파일\Core\Core Test</Filter>
     </ClCompile>
     <ClCompile Include="ResourceSerializer.cpp">
       <Filter>소스 파일\Core\Render API\Tools</Filter>
@@ -524,18 +667,26 @@
     <ClCompile Include="ListenerComponent.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="ShaderInfo.cpp">
+      <Filter>소스 파일\Core\Render API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Object.inl">
       <Filter>헤더 파일\Core\Object API</Filter>
-    </None>
-    <None Include="dxtk\Inc\SimpleMath.inl">
-      <Filter>DXTK\Inc</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="MMMEngineShared.rc">
       <Filter>리소스 파일</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="헤더 파일\Core\Physics API">
+      <UniqueIdentifier>{7210efdf-bb0c-4a09-8874-d36d7238e32e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Physcis API">
+      <UniqueIdentifier>{e66850de-f491-4f75-9843-c4ad5567a533}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

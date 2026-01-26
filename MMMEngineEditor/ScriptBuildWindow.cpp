@@ -42,7 +42,11 @@ namespace MMMEngine::Editor
                 const auto projectRoot =
                     ProjectManager::Get().GetActiveProject().rootPath;
 
+#ifdef _DEBUG
                 auto out = bm.BuildUserScripts(projectRoot, BuildConfiguration::Debug);
+#else
+                auto out = bm.BuildUserScripts(projectRoot, BuildConfiguration::Release);
+#endif
 
                 m_exitCode.store(out.exitCode);
                 m_building.store(false);

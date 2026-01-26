@@ -16,9 +16,19 @@ void MMMEngine::InputManager::ShutDown()
 
 void MMMEngine::InputManager::Update()
 {
+    m_wheelFrame = m_wheelPending;
+    m_wheelPending = 0;
+
+    // 이전 마우스 위치 저장
+    m_prevMouseClient = m_mouseClient;
+
     // 마우스 좌표
     ::GetCursorPos(&m_mouseClient);
     ::ScreenToClient(m_hWnd, &m_mouseClient);
+
+    // 마우스 델타 계산
+    m_mouseDelta.x = static_cast<float>(m_mouseClient.x - m_prevMouseClient.x);
+    m_mouseDelta.y = static_cast<float>(m_mouseClient.y - m_prevMouseClient.y);
 
     // 키보드 상태 업데이트
     memcpy_s(m_prevState, sizeof(m_prevState), m_currState, sizeof(m_currState));
@@ -46,6 +56,13 @@ void MMMEngine::InputManager::HandleWindowResize(int newWidth, int newHeight)
     m_clientRect.top = 0;
 }
 
+void MMMEngine::InputManager::HandleMouseWheelEvent(WPARAM wParam, LPARAM /*lParam*/)
+{
+    const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+    m_wheelPending += delta;
+    m_wheelDeltaAccum += delta;
+}
+
 Vector2 MMMEngine::InputManager::GetMousePos()
 {
     return Vector2{ (float)m_mouseClient.x, (float)m_mouseClient.y };
@@ -68,4 +85,29 @@ bool MMMEngine::InputManager::GetKeyUp(KeyCode keyCode)
     auto nativeKeyCode = static_cast<unsigned char>(keyCode);
     if (nativeKeyCode == -1) return false;
     return ((m_prevState[nativeKeyCode] & KEY_PRESSED) && !(m_currState[nativeKeyCode] & KEY_PRESSED));
+}
+
+Vector2 MMMEngine::InputManager::GetMouseDelta()
+{
+    return m_mouseDelta;
+}
+
+int MMMEngine::InputManager::GetMouseScrollDelta()
+{
+    return m_wheelFrame;
+}
+
+float MMMEngine::InputManager::GetMouseScrollNotches()
+{
+    return static_cast<float>(m_wheelFrame) / static_cast<float>(WHEEL_DELTA);
+}
+
+bool MMMEngine::InputManager::GetMouseScrollUp()
+{
+    return m_wheelFrame > 0;
+}
+
+bool MMMEngine::InputManager::GetMouseScrollDown()
+{
+    return m_wheelFrame < 0;
 }

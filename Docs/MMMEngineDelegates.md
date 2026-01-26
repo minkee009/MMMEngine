@@ -23,3 +23,12 @@ public:
 -> 정적 클래스에서 이벤트 쓰는법
 
  
+
+
+
+
+
+```c++
+onMatrixUpdate.AddListener<Listener, &Listener::OnMatrixUpdated>(&li);
+```
+

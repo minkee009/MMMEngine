@@ -1,130 +1,155 @@
 #include "RenderManager.h"
+
+#include "RendererTools.h"
+#include "RenderShared.h"
+#include "ShaderInfo.h"
+#include "ResourceManager.h"
 #include "GameObject.h"
 #include "Transform.h"
-#include <EditorCamera.h>
-#include <RendererTools.h>
-#include "VShader.h"
-#include "PShader.h"
-#include "ResourceManager.h"
+#include "Camera.h"
+#include "Renderer.h"
+
+#include "rttr/registration.h"
 
 DEFINE_SINGLETON(MMMEngine::RenderManager)
 
 using namespace Microsoft::WRL;
+using namespace DirectX::SimpleMath;
+using namespace DirectX;
+
+RTTR_REGISTRATION{
+	using namespace rttr;
+	using namespace MMMEngine;
+	
+	rttr::registration::class_<RenderManager>("RenderManager")
+		.property("maincamera", &RenderManager::GetCamera, &RenderManager::SetCamera);
+}
 
 namespace MMMEngine {
 
-	void RenderManager::ResizeRTVs(int width, int height)
+	RenderManager::RenderManager()
 	{
-		if (!m_pDevice || !m_pDeviceContext || !m_pSwapChain)
-			return;
+		m_worldMatrix = Matrix::Identity;
+		m_viewMatrix = Matrix::Identity;
+		m_projMatrix = Matrix::Identity;
+	}
 
-		// ÃÖ¼Ò ¹æ¾î
-		if (width <= 0 || height <= 0)
-			return;
+	void RenderManager::ApplyMatToContext(ID3D11DeviceContext4* _context, Material* _material)
+	{
+		
+		auto VS = _material->GetVShader()->m_pVShader;
+		auto PS = _material->GetPShader()->m_pPShader;
+		_context->IASetInputLayout(_material->GetVShader()->m_pInputLayout.Get());
+		_context->VSSetShader(VS.Get(), nullptr, 0);
+		_context->PSSetShader(PS.Get(), nullptr, 0);
+		_context->PSSetSamplers(0, 1, m_pDafaultSamplerLinear.GetAddressOf());
 
-		HRESULT hr = S_OK;
+		// TODO::ShaderInfo ì‚¬ìš©í•´ ì •ì ë²„í¼, í…ìŠ¤ì³ë²„í¼ ì—…ë°ì´íŠ¸ ìë™í™” ì‹œí‚¤ê¸°
+		// ë©”í…Œë¦¬ì–¼ ë“±ë¡(Texture2Dë§Œ ë°›ëŠ”ë‹¤)
+			for (auto& [prop, val] : _material->GetProperties()) {
+				int idx = ShaderInfo::Get().PropertyToIdx(ShaderType::S_PBR, prop);
 
-		// 1) ÆÄÀÌÇÁ¶óÀÎ¿¡¼­ ±âÁ¸ RTV/DSV ¹ÙÀÎµù ÇØÁ¦ (ResizeBuffers Àü¿¡ ÇÊ¼ö)
-		ID3D11RenderTargetView* nullRTV[1] = { nullptr };
-		m_pDeviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
-		m_pDeviceContext->Flush();
+				if (auto tex = std::get_if<ResPtr<Texture2D>>(&val)) {
+					if (*tex) {
+						ID3D11ShaderResourceView* srv = (*tex)->m_pSRV.Get();
+						m_pDeviceContext->PSSetShaderResources(idx, 1, &srv);
+					}
+				}
+			}
+	}
 
-		// 2) ±âÁ¸ ¸®¼Ò½º ¸±¸®Áî (ComPtr¸é Reset)
-		m_pRenderTargetView.Reset();
-
-		m_pSceneSRV.Reset();
-		m_pSceneRTV.Reset();
-		m_pSceneTexture.Reset();
-
-		m_pDepthStencilView.Reset();
-		m_pDepthStencilTexture.Reset();
-
-		// 3) ½º¿ÒÃ¼ÀÎ ¹öÆÛ ¸®»çÀÌÁî
-		//    Æ÷¸ËÀº DXGI_FORMAT_UNKNOWNÀ» ÁÖ¸é ±âÁ¸ Æ÷¸Ë À¯Áö
-		//    BufferCount´Â 0À» ÁÖ¸é ±âÁ¸ À¯Áö
-		hr = m_pSwapChain->ResizeBuffers(
-			0,
-			static_cast<UINT>(width),
-			static_cast<UINT>(height),
-			DXGI_FORMAT_UNKNOWN,
-			0
-		);
-		if (FAILED(hr))
-			return;
-
-		// 4) ¹é¹öÆÛ RTV Àç»ı¼º
+	void RenderManager::ExcuteCommands()
+	{
+		for (auto& [type, commands] : m_renderCommands)
 		{
-			ComPtr<ID3D11Texture2D> backBuffer;
-			hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()));
-			if (FAILED(hr))
-				return;
+			if (type == RenderType::R_TRANSCULANT)
+			{
+				// íˆ¬ëª… ì˜¤ë¸Œì íŠ¸: ì¹´ë©”ë¼ ê±°ë¦¬ ë‚´ë¦¼ì°¨ìˆœ ì •ë ¬
+				std::sort(commands.begin(), commands.end(),
+					[](const RenderCommand& a, const RenderCommand& b)
+					{
+						return a.camDistance > b.camDistance;
+					});
+			}
+			else
+			{
+				// ë¶ˆíˆ¬ëª… ì˜¤ë¸Œì íŠ¸: ë¨¸í‹°ë¦¬ì–¼ ê¸°ì¤€ ì •ë ¬
+				std::sort(commands.begin(), commands.end(),
+					[](const RenderCommand& a, const RenderCommand& b)
+					{
+						return a.material < b.material;
+					});
+			}
 
-			hr = m_pDevice->CreateRenderTargetView1(backBuffer.Get(), nullptr, m_pRenderTargetView.GetAddressOf());
-			if (FAILED(hr))
-				return;
-		}
+			// ì •ë ¬ëœ ì»¤ë§¨ë“œ ì‹¤í–‰
+			Material* lastMaterial = nullptr;
+			for (auto& cmd : commands)
+			{
+				if (cmd.material != lastMaterial)
+				{
+					ApplyMatToContext(m_pDeviceContext.Get(), cmd.material);
+					lastMaterial = cmd.material;
+				}
 
-		// 5) ¾À ÅØ½ºÃ³/RTV/SRV Àç»ı¼º (StartUp°ú µ¿ÀÏ ½ºÆå, Å©±â¸¸ º¯°æ)
-		{
-			D3D11_TEXTURE2D_DESC1 descTex = {};
-			descTex.Width = static_cast<UINT>(width);
-			descTex.Height = static_cast<UINT>(height);
-			descTex.MipLevels = 1;
-			descTex.ArraySize = 1;
-			descTex.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-			descTex.SampleDesc.Count = 1;
-			descTex.SampleDesc.Quality = 0;
-			descTex.Usage = D3D11_USAGE_DEFAULT;
-			descTex.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-			descTex.CPUAccessFlags = 0;
-			descTex.MiscFlags = 0;
 
-			hr = m_pDevice->CreateTexture2D1(&descTex, nullptr, m_pSceneTexture.GetAddressOf());
-			if (FAILED(hr))
-				return;
+				UINT stride = sizeof(Mesh_Vertex); // ì‹¤ì œ ë²„í…ìŠ¤ êµ¬ì¡°ì²´ í¬ê¸°
+				UINT offset = 0;
+				m_pDeviceContext->IAGetInputLayout(m_pDefaultInputLayout.GetAddressOf());
+				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
+				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-			hr = m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), nullptr, m_pSceneRTV.GetAddressOf());
-			if (FAILED(hr))
-				return;
+				if (cmd.boneMatIndex >= 0)
+				{
+					// ìŠ¤í‚¨ë“œ ë©”ì‹œë¼ë©´ ë³¸ ì¸ë±ìŠ¤ë¥¼ ì…°ì´ë”ì— ì „ë‹¬
+					// UpdateBoneIndexConstantBuffer(cmd.boneMatIndex);
+				}
 
-			hr = m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), nullptr, m_pSceneSRV.GetAddressOf());
-			if (FAILED(hr))
-				return;
-		}
+				// ì›”ë“œë§¤íŠ¸ë¦­ìŠ¤ ë²„í¼ì§‘ì–´ë„£ê¸°
+				Render_TransformBuffer transformBuffer;
+				transformBuffer.mWorld = XMMatrixTranspose(m_objWorldMatMap[cmd.worldMatIndex]);
+				transformBuffer.mNormalMatrix = XMMatrixInverse(nullptr, m_objWorldMatMap[cmd.worldMatIndex]);
+				m_pDeviceContext->UpdateSubresource1(m_pTransbuffer.Get(), 0, nullptr, &transformBuffer, 0, 0, D3D11_COPY_DISCARD);
+				m_pDeviceContext->VSSetConstantBuffers(1, 1, m_pTransbuffer.GetAddressOf());
 
-		// 6) Depth ÅØ½ºÃ³/DSV Àç»ı¼º (StartUp°ú µ¿ÀÏ ½ºÆå, Å©±â¸¸ º¯°æ)
-		{
-			D3D11_TEXTURE2D_DESC1 descDepth = {};
-			descDepth.Width = static_cast<UINT>(width);
-			descDepth.Height = static_cast<UINT>(height);
-			descDepth.MipLevels = 1;
-			descDepth.ArraySize = 1;
-			descDepth.Format = DXGI_FORMAT_R24G8_TYPELESS;
-			descDepth.SampleDesc.Count = 1;
-			descDepth.SampleDesc.Quality = 0;
-			descDepth.Usage = D3D11_USAGE_DEFAULT;
-			descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-			descDepth.CPUAccessFlags = 0;
-			descDepth.MiscFlags = 0;
-
-			hr = m_pDevice->CreateTexture2D1(&descDepth, nullptr, m_pDepthStencilTexture.GetAddressOf());
-			if (FAILED(hr))
-				return;
-
-			D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
-			descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-			descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-			descDSV.Texture2D.MipSlice = 0;
-
-			hr = m_pDevice->CreateDepthStencilView(m_pDepthStencilTexture.Get(), &descDSV, m_pDepthStencilView.GetAddressOf());
-			if (FAILED(hr))
-				return;
+				m_pDeviceContext->DrawIndexed(cmd.indiciesSize, 0, 0);
+			}
 		}
 	}
 
-	void RenderManager::StartUp(HWND* _hwnd, UINT _ClientWidth, UINT _ClientHeight)
+	void RenderManager::InitCache()
 	{
-		// µğ¹ÙÀÌ½º »ı¼º
+		// ìºì‹± ì»¨í…Œì´ë„ˆ ì´ˆê¸°í™”
+		m_objWorldMatMap.clear();
+		m_renderCommands.clear();
+		m_rObjIdx = 0;
+	}
+
+	void RenderManager::InitRenderers()
+	{
+		int size = static_cast<int>(m_renInitQueue.size());
+		for (int i = 0; i < size; ++i) {
+			auto renderer = m_renInitQueue.front();
+			m_renInitQueue.pop();
+
+			if (!renderer->isEnabled)
+				m_renInitQueue.push(renderer);
+			else
+				renderer->Init();
+		}
+	}
+
+	void RenderManager::UpdateRenderers()
+	{
+		for (auto& renderer : m_renderers) {
+			if (renderer->isEnabled) {
+				renderer->Render();
+			}
+		}
+	}
+
+	void RenderManager::StartUp(HWND _hwnd, UINT _ClientWidth, UINT _ClientHeight)
+	{
+		// ë””ë°”ì´ìŠ¤ ìƒì„±
 		ComPtr<ID3D11Device> device;
 		D3D_FEATURE_LEVEL featureLevel;
 		D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, NULL,
@@ -133,63 +158,71 @@ namespace MMMEngine {
 
 		HR_T(device.As(&m_pDevice));
 
-		// hWnd µî·Ï
+		// hWnd ë“±ë¡
 		assert(_hwnd != nullptr && "RenderPipe::Initialize : hWnd must not be nullptr!!");
-		m_pHwnd = _hwnd;
+		m_hWnd = _hwnd;
 
-		// Å¬¶óÀÌ¾ğÆ® »çÀÌÁî µî·Ï
-		m_rClientWidth = _ClientWidth;
-		m_rClientHeight = _ClientHeight;
+		// í´ë¼ì´ì–¸íŠ¸ ì‚¬ì´ì¦ˆ ë“±ë¡
+		m_clientWidth = _ClientWidth;
+		m_clientHeight = _ClientHeight;
 
-		// ÀÎ½ºÅÏ½º ÃÊ±âÈ­ ¹¶ÅÊÀÌ
+		// ì¸ìŠ¤í„´ìŠ¤ ì´ˆê¸°í™” ë­‰íƒ±ì´
 		InitD3D();
 		Start();
 	}
 	void RenderManager::InitD3D()
 	{
-		// ½º¿ÒÃ¼ÀÎ ¼Ó¼º¼³Á¤ »ı¼º
+		// ìŠ¤ì™‘ì²´ì¸ ì†ì„±ì„¤ì • ìƒì„±
 		DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
-		swapDesc.BufferCount = 1;
+		swapDesc.BufferCount = 2;
 		swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		swapDesc.Width = m_rClientWidth;
-		swapDesc.Height = m_rClientHeight;
+		swapDesc.Width = m_clientWidth;
+		swapDesc.Height = m_clientHeight;
 		swapDesc.SampleDesc.Count = 1;		// MSAA
-		swapDesc.SampleDesc.Quality = 0;	// MSAA Ç°Áú¼öÁØ
+		swapDesc.SampleDesc.Quality = 0;	// MSAA í’ˆì§ˆìˆ˜ì¤€
 
+		// DXGI ë””ë°”ì´ìŠ¤
+		ComPtr<IDXGIDevice> dxgiDevice;
+		m_pDevice.As(&dxgiDevice);
 
-		// ÆÑÅä¸® »ı¼º
-		Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory;
-		HR_T(CreateDXGIFactory1(__uuidof(IDXGIFactory2), (void**)dxgiFactory.GetAddressOf()));
+		ComPtr<IDXGIAdapter> adapter;
+		dxgiDevice->GetAdapter(&adapter);
 
-		// ½º¿ÒÃ¼ÀÎ »ı¼º
+		// íŒ©í† ë¦¬ ìƒì„±
+		ComPtr<IDXGIFactory2> dxgiFactory;
+		adapter->GetParent(IID_PPV_ARGS(&dxgiFactory));
+
+		// ìŠ¤ì™‘ì²´ì¸ ìƒì„±
 		Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
-		HR_T(dxgiFactory->CreateSwapChainForHwnd(m_pDevice.Get(), *m_pHwnd, &swapDesc,
+		HR_T(dxgiFactory->CreateSwapChainForHwnd(m_pDevice.Get(), m_hWnd, &swapDesc,
 			nullptr, nullptr, swapChain.GetAddressOf()));
 		HR_T(swapChain.As(&m_pSwapChain));
 
-		// ÄÁÅØ½ºÆ® »ı¼º
+		// ì»¨í…ìŠ¤íŠ¸ ìƒì„±
 		ComPtr<ID3D11DeviceContext3> context;
 		m_pDevice->GetImmediateContext3(context.GetAddressOf());
 		HR_T(context.As(&m_pDeviceContext));
 
-		// ·»´õÅ¸°Ù »ı¼º
-		HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), (void**)m_pBackBuffer.GetAddressOf()));
-		HR_T(m_pDevice->CreateRenderTargetView1(m_pBackBuffer.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
+		// ìŠ¤ì™‘ì²´ì¸ ë Œë”íƒ€ê²Ÿ ìƒì„±
+		ID3D11Texture2D1* backBuffer;
+		HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), (void**)&backBuffer));
+		HR_T(m_pDevice->CreateRenderTargetView1(backBuffer, nullptr, m_pRenderTargetView.GetAddressOf()));
+		backBuffer->Release();
 
-		// ºäÆ÷Æ® ¼³Á¤
-		m_defaultViewport = {};
-		m_defaultViewport.TopLeftX = 0.0f;
-		m_defaultViewport.TopLeftY = 0.0f;
-		m_defaultViewport.Width = static_cast<float>(m_rClientWidth);
-		m_defaultViewport.Height = static_cast<float>(m_rClientHeight);
-		m_defaultViewport.MinDepth = 0.0f;
-		m_defaultViewport.MaxDepth = 1.0f;
+		// ë·°í¬íŠ¸ ì„¤ì •
+		m_swapViewport = {};
+		m_swapViewport.TopLeftX = 0.0f;
+		m_swapViewport.TopLeftY = 0.0f;
+		m_swapViewport.Width = static_cast<float>(m_clientWidth);
+		m_swapViewport.Height = static_cast<float>(m_clientHeight);
+		m_swapViewport.MinDepth = 0.0f;
+		m_swapViewport.MaxDepth = 1.0f;
 
-		// ‰X½º ÅØ½ºÃÄ »ı¼º
+		// Â‰XìŠ¤ í…ìŠ¤ì³ ìƒì„±
 		D3D11_TEXTURE2D_DESC1 depthDesc = {};
-		depthDesc.Width = m_rClientWidth;
-		depthDesc.Height = m_rClientHeight;
+		depthDesc.Width = m_clientWidth;
+		depthDesc.Height = m_clientHeight;
 		depthDesc.MipLevels = 1;
 		depthDesc.ArraySize = 1;
 		depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -200,16 +233,16 @@ namespace MMMEngine {
 		depthDesc.CPUAccessFlags = 0;
 		depthDesc.MiscFlags = 0;
 
-		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, m_pDepthStencilTexture.GetAddressOf()));
+		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, m_pDepthStencilBuffer.GetAddressOf()));
 
-		// ‰X½º½ºÅÄ½Ç ºä »ı¼º
+		// Â‰XìŠ¤ìŠ¤íƒ ì‹¤ ë·° ìƒì„±
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
 		dsv.Format = depthDesc.Format;
 		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		dsv.Texture2D.MipSlice = 0;
-		HR_T(m_pDevice->CreateDepthStencilView(m_pDepthStencilTexture.Get(), &dsv, m_pDepthStencilView.GetAddressOf()));
+		HR_T(m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer.Get(), &dsv, m_pDepthStencilView.GetAddressOf()));
 
-		// ·¡½ºÅÍ¶óÀÌÀú ¼Ó¼º »ı¼º
+		// ë˜ìŠ¤í„°ë¼ì´ì € ì†ì„± ìƒì„±
 		D3D11_RASTERIZER_DESC2 defaultRsDesc = {};
 		defaultRsDesc.FillMode = D3D11_FILL_SOLID;
 		defaultRsDesc.CullMode = D3D11_CULL_BACK;
@@ -223,7 +256,7 @@ namespace MMMEngine {
 		defaultRsDesc.AntialiasedLineEnable = FALSE;
 		HR_T(m_pDevice->CreateRasterizerState2(&defaultRsDesc, m_pDefaultRS.GetAddressOf()));
 
-		// ºí·£µå ½ºÅ×ÀÌÆ® »ı¼º
+		// ë¸”ëœë“œ ìŠ¤í…Œì´íŠ¸ ìƒì„±
 		D3D11_BLEND_DESC1 blendDesc = {};
 		blendDesc.AlphaToCoverageEnable = FALSE;
 		blendDesc.IndependentBlendEnable = FALSE;
@@ -232,7 +265,7 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateBlendState1(&blendDesc, m_pDefaultBS.GetAddressOf()));
 		assert(m_pDefaultBS && "RenderPipe::InitD3D : defaultBS not initialized!!");
 
-		// ·¹½ºÅÍ¶óÀÌÀú ½ºÅ×ÀÌÆ® »ı¼º
+		// ë ˆìŠ¤í„°ë¼ì´ì € ìŠ¤í…Œì´íŠ¸ ìƒì„±
 		D3D11_RASTERIZER_DESC2 rsDesc = {};
 		rsDesc.FillMode = D3D11_FILL_SOLID;
 		rsDesc.CullMode = D3D11_CULL_BACK;
@@ -247,56 +280,71 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateRasterizerState2(&rsDesc, m_pDefaultRS.GetAddressOf()));
 		assert(m_pDefaultRS && "RenderPipe::InitD3D : defaultRS not initialized!!");
 	
-		D3D11_TEXTURE2D_DESC1 descTex;
-		ZeroMemory(&descTex, sizeof(descTex));
-		descTex.Width = m_rClientWidth;
-		descTex.Height = m_rClientHeight;
-		descTex.MipLevels = 1;
-		descTex.ArraySize = 1;
-		descTex.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-		descTex.SampleDesc.Count = 1;
-		descTex.SampleDesc.Quality = 0;
-		descTex.Usage = D3D11_USAGE_DEFAULT;
-		descTex.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-		descTex.CPUAccessFlags = 0;
-		descTex.MiscFlags = 0;
-		HR_T(m_pDevice->CreateTexture2D1(&descTex, NULL, m_pSceneTexture.GetAddressOf()));
+		// ìƒ˜í”ŒëŸ¬ ë§Œë“¤ê¸°
+		D3D11_SAMPLER_DESC sampDesc = {};
+		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		sampDesc.MinLOD = 0;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-		// ¾À ÅØ½ºÃÄ ·»´õ Å¸°Ù ºä »ı¼º
-		HR_T(m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), NULL, m_pSceneRTV.GetAddressOf()));
-
-		// ¾À ÅØ½ºÃÄ ½¦ÀÌ´õ ¸®¼Ò½º ºä »ı¼º
-		HR_T(m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), NULL, m_pSceneSRV.GetAddressOf()));
+		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pDafaultSamplerLinear.GetAddressOf()));
 
 
-		// ±âº» VSShader »ı¼º
-		m_pDefaultVSShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
-		m_pDefaultPSShader = ResourceManager::Get().Load<PShader>(L"Shader/PBR/PS/BRDFShader.hlsl");
+		// === Scene ë Œë”íƒ€ê²Ÿ ì´ˆê¸°í™” ===
+		D3D11_TEXTURE2D_DESC1 sceneColorDesc = {};
+		sceneColorDesc.Width = m_clientWidth;
+		sceneColorDesc.Height = m_clientHeight;
+		sceneColorDesc.MipLevels = 1;
+		sceneColorDesc.ArraySize = 1;
+		sceneColorDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // HDR ì§€ì› í¬ë§·
+		sceneColorDesc.SampleDesc.Count = 1;
+		sceneColorDesc.SampleDesc.Quality = 0;
+		sceneColorDesc.Usage = D3D11_USAGE_DEFAULT;
+		sceneColorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 
-		// ±âº» InputLayout »ı¼º
-		D3D11_INPUT_ELEMENT_DESC layout[] = {
-	   { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	   { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		};
-		HR_T(m_pDevice->CreateInputLayout(
-			layout, ARRAYSIZE(layout), m_pDefaultVSShader->m_pBlob->GetBufferPointer(),
-			m_pDefaultVSShader->m_pBlob->GetBufferSize(), m_pDefaultInputLayout.GetAddressOf()
-		));
-}
-	void RenderManager::ShutDown()
-	{
-	}
-	void RenderManager::Start()
-	{
-		// ¹öÆÛ ±âº»»ö»ó
-		m_ClearColor = DirectX::SimpleMath::Vector4(0.45f, 0.55f, 0.60f, 1.00f);
+		// Scene ì»¬ëŸ¬ í…ìŠ¤ì²˜ ìƒì„±
+		HR_T(m_pDevice->CreateTexture2D1(&sceneColorDesc, nullptr, m_pSceneTexture.GetAddressOf()));
 
-		// Ä· ¹öÆÛ »ı¼º
+		// RTV ìƒì„±
+		HR_T(m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), nullptr, m_pSceneRTV.GetAddressOf()));
+
+		// SRV ìƒì„±
+		HR_T(m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), nullptr, m_pSceneSRV.GetAddressOf()));
+
+		// Depth/Stencil ë²„í¼ ìƒì„±
+		D3D11_TEXTURE2D_DESC1 sceneDepthDesc = {};
+		sceneDepthDesc.Width = m_clientWidth;
+		sceneDepthDesc.Height = m_clientHeight;
+		sceneDepthDesc.MipLevels = 1;
+		sceneDepthDesc.ArraySize = 1;
+		sceneDepthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		sceneDepthDesc.SampleDesc.Count = 1;
+		sceneDepthDesc.SampleDesc.Quality = 0;
+		sceneDepthDesc.Usage = D3D11_USAGE_DEFAULT;
+		sceneDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		sceneDepthDesc.CPUAccessFlags = 0;
+		sceneDepthDesc.MiscFlags = 0;
+
+		HR_T(m_pDevice->CreateTexture2D1(&sceneDepthDesc, nullptr, m_pSceneDSB.GetAddressOf()));
+
+		// DSV ìƒì„±
+		HR_T(m_pDevice->CreateDepthStencilView(m_pSceneDSB.Get(), nullptr, m_pSceneDSV.GetAddressOf()));
+
+		m_sceneWidth = m_clientWidth;
+		m_sceneHeight = m_clientHeight;
+
+		// ì”¬ ë·°í¬íŠ¸ ì„¤ì •
+		m_sceneViewport.TopLeftX = 0.0f;
+		m_sceneViewport.TopLeftY = 0.0f;
+		m_sceneViewport.Width = static_cast<float>(m_sceneWidth);
+		m_sceneViewport.Height = static_cast<float>(m_sceneHeight);
+		m_sceneViewport.MinDepth = 0.0f;
+		m_sceneViewport.MaxDepth = 1.0f;
+
+		// ìº  ë²„í¼ ìƒì„±
 		D3D11_BUFFER_DESC bd = {};
 		bd.Usage = D3D11_USAGE_DEFAULT;
 		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -304,31 +352,180 @@ namespace MMMEngine {
 
 		bd.ByteWidth = sizeof(Render_CamBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pCambuffer.GetAddressOf()));
+		bd.ByteWidth = sizeof(Render_TransformBuffer);
+		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pTransbuffer));
+	}
+	void RenderManager::ShutDown()
+	{
+		// COMê°ì²´ ì´ˆê¸°í™”
+		m_pDevice->Release();
+		m_pDeviceContext->Release();
+		m_pSwapChain->Release();
 
-		// ÅØ½ºÃÄ ¹öÆÛ¹øÈ£ ÇÏµåÄÚµù
-		m_propertyMap[L"basecolor"] = 0;
-		m_propertyMap[L"normal"] = 1;
-		m_propertyMap[L"emissive"] = 2;
-		m_propertyMap[L"shadowmap"] = 3;
-		m_propertyMap[L"opacity"] = 4;
 
-		m_propertyMap[L"metalic"] = 30;
-		m_propertyMap[L"roughness"] = 31;
-		m_propertyMap[L"ao"] = 32;
+		//// ë³€ìˆ˜ ì´ˆê¸°í™”
+		//while (!m_initQueue.empty())
+		//	m_initQueue.pop();
+
+		m_worldMatrix = Matrix::Identity;
+		m_viewMatrix = Matrix::Identity;
+		m_projMatrix = Matrix::Identity;
+	}
+	void RenderManager::Start()
+	{
+		// ë²„í¼ ê¸°ë³¸ìƒ‰ìƒ
+		m_ClearColor = DirectX::SimpleMath::Vector4(0.45f, 0.55f, 0.60f, 1.00f);
 	}
 
-	void RenderManager::ResizeScreen(int width, int height)
+	void RenderManager::SetWorldMatrix(DirectX::SimpleMath::Matrix& _world)
 	{
-		m_rClientWidth = width;
-		m_rClientHeight = height;
-		ResizeRTVs(width, height);
+		m_worldMatrix = _world;
 	}
 
-	void RenderManager::SetCamera(ObjPtr<EditorCamera> _cameraComp)
+	void RenderManager::SetViewMatrix(DirectX::SimpleMath::Matrix& _view)
 	{
-		if (!_cameraComp)
-			return;
-		m_pCamera = _cameraComp;
+		m_viewMatrix = _view;
+	}
+
+	void RenderManager::SetProjMatrix(DirectX::SimpleMath::Matrix& _proj)
+	{
+		m_projMatrix = _proj;
+	}
+
+	void RenderManager::ResizeSwapChainSize(int width, int height)
+	{
+		m_clientWidth = width;
+		m_clientHeight = height;
+
+		// RTV ë“±ë¡í•´ì œ
+		m_pDeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+
+		// ê¸°ì¡´ RTV/DSV í•´ì œ
+		if (m_pRenderTargetView) m_pRenderTargetView->Release();
+		if (m_pDepthStencilView) m_pDepthStencilView->Release();
+		if (m_pDepthStencilBuffer) m_pDepthStencilBuffer->Release();
+
+		// ResizeBuffers í˜¸ì¶œ
+		HR_T(m_pSwapChain->ResizeBuffers(
+			0,
+			static_cast<UINT>(width),
+			static_cast<UINT>(height),
+			DXGI_FORMAT_UNKNOWN,
+			0
+		));
+
+		// ìƒˆ ë°±ë²„í¼ ê°€ì ¸ì˜¤ê¸°
+		ID3D11Texture2D1* buffer;
+		HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D1), (void**)&buffer));
+
+		// ìƒˆ RTV ìƒì„±
+		HR_T(m_pDevice->CreateRenderTargetView1(buffer, nullptr, m_pRenderTargetView.GetAddressOf()));
+		buffer->Release();
+
+		// Depth/Stencil ë²„í¼ ìƒì„±
+		D3D11_TEXTURE2D_DESC1 depthDesc = {};
+		depthDesc.Width = width;
+		depthDesc.Height = height;
+		depthDesc.MipLevels = 1;
+		depthDesc.ArraySize = 1;
+		depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthDesc.SampleDesc.Count = 1;
+		depthDesc.SampleDesc.Quality = 0;
+		depthDesc.Usage = D3D11_USAGE_DEFAULT;
+		depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, m_pDepthStencilBuffer.GetAddressOf()));
+		HR_T(m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer.Get(), nullptr, m_pDepthStencilView.GetAddressOf()));
+	}
+
+	void RenderManager::ResizeSceneSize(int _width, int _height, int _sceneWidth, int _sceneHeight)
+	{
+		m_sceneWidth = _sceneWidth;
+		m_sceneHeight = _sceneHeight;
+
+		// ê¸°ì¡´ ë¦¬ì†ŒìŠ¤ í•´ì œ
+		if (m_pSceneRTV) { m_pSceneRTV->Release();      m_pSceneRTV = nullptr; }
+		if (m_pSceneTexture) { m_pSceneTexture->Release();  m_pSceneTexture = nullptr; }
+		if (m_pSceneSRV) { m_pSceneSRV->Release();      m_pSceneSRV = nullptr; }
+		if (m_pSceneDSV) { m_pSceneDSV->Release();      m_pSceneDSV = nullptr; }
+		if (m_pSceneDSB) { m_pSceneDSB->Release();		m_pSceneDSB = nullptr; }
+
+		// ì»¬ëŸ¬ í…ìŠ¤ì²˜ ì„¤ëª…
+		D3D11_TEXTURE2D_DESC1 colorDesc = {};
+		colorDesc.Width = _width;
+		colorDesc.Height = _height;
+		colorDesc.MipLevels = 1;
+		colorDesc.ArraySize = 1;
+		colorDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // HDR ì§€ì› í¬ë§·
+		colorDesc.SampleDesc.Count = 1;
+		colorDesc.SampleDesc.Quality = 0;
+		colorDesc.Usage = D3D11_USAGE_DEFAULT;
+		colorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+		// Scene ì»¬ëŸ¬ í…ìŠ¤ì²˜ ìƒì„±
+		HR_T(m_pDevice->CreateTexture2D1(&colorDesc, nullptr, m_pSceneTexture.GetAddressOf()));
+
+		// RTV ìƒì„±
+		HR_T(m_pDevice->CreateRenderTargetView1(m_pSceneTexture.Get(), nullptr, m_pSceneRTV.GetAddressOf()));
+
+		// SRV ìƒì„± (ì‰ì´ë”ì—ì„œ ìƒ˜í”Œë§ ê°€ëŠ¥)
+		HR_T(m_pDevice->CreateShaderResourceView1(m_pSceneTexture.Get(), nullptr, m_pSceneSRV.GetAddressOf()));
+
+		// Depth/Stencil ë²„í¼ ì„¤ëª…
+		D3D11_TEXTURE2D_DESC1 depthDesc = {};
+		depthDesc.Width = _width;
+		depthDesc.Height = _height;
+		depthDesc.MipLevels = 1;
+		depthDesc.ArraySize = 1;
+		depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthDesc.SampleDesc.Count = 1;
+		depthDesc.SampleDesc.Quality = 0;
+		depthDesc.Usage = D3D11_USAGE_DEFAULT;
+		depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+		// Depth/Stencil í…ìŠ¤ì²˜ ìƒì„±
+		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, m_pSceneDSB.GetAddressOf()));
+
+		// DSV ìƒì„±
+		HR_T(m_pDevice->CreateDepthStencilView(m_pSceneDSB.Get(), nullptr, m_pSceneDSV.GetAddressOf()));
+		
+		float sceneAspect = (float)_sceneWidth / (float)_sceneHeight;
+		float backAspect = (float)_width / (float)_height;
+
+		float drawW, drawH;
+
+		if (backAspect > sceneAspect) {
+			drawH = (float)_height;
+			drawW = (float)_width * sceneAspect;
+		}
+		else {
+			drawW = (float)_width;
+			drawH = (float)_width / sceneAspect;
+		}
+
+		float offsetX = ((float)_width - drawW) * 0.5f;
+		float offsetY = ((float)_height - drawH) * 0.5f;
+
+		// ë·°í¬íŠ¸ ê°±ì‹ 
+		m_sceneViewport.Width = drawW;
+		m_sceneViewport.Height = drawH;
+		m_sceneViewport.MinDepth = 0.0f;
+		m_sceneViewport.MaxDepth = 1.0f;
+		m_sceneViewport.TopLeftX = offsetX;
+		m_sceneViewport.TopLeftY = offsetY;
+	}
+
+	void RenderManager::AddCommand(RenderType _type, RenderCommand&& _command)
+	{
+		m_renderCommands[_type].push_back(std::move(_command));
+	}
+
+	int RenderManager::AddMatrix(const DirectX::SimpleMath::Matrix& _worldMatrix)
+	{
+		int index = m_rObjIdx++;
+		m_objWorldMatMap[index] = _worldMatrix;
+
+		return index;
 	}
 
 	void RenderManager::BeginFrame()
@@ -336,68 +533,125 @@ namespace MMMEngine {
 		// Clear
 		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+		// ë Œë”ëŸ¬ ì»¨íŠ¸ë¡¤
+		InitRenderers();
+		UpdateRenderers();
+
+		// ì¹´ë©”ë¼ ìœ íš¨ì„± í™•ì¸
+		//if(!m_pMainCamera.IsValid())
+		//	m_pMainCamera = Camera::GetMainCamera();
+		//if (!m_pMainCamera.IsValid()) {
+		//	m_pMainCamera = Camera::CreateMainCamera()->GetComponent<Camera>();
+		//}
 	}
 
 	void RenderManager::Render()
 	{
-		// Ä«¸Ş¶ó ¾øÀ¸¸é ¾ÈÇØ
-		if (!m_pCamera) {
-			m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), m_pDepthStencilView.Get());
+		if (!m_pMainCamera.IsValid())
+		{
+			// Clear
+			m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
+			m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
 			return;
-		}
-			
-
-		// Init Queue Ã³¸®
-		while (!m_initQueue.empty()) {
-			auto& renderer = m_initQueue.front();
-			m_initQueue.pop();
-
-			renderer->Initialize();
 		}
 
 		// Clear
-		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), m_backColor);
-		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
+		m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-		// Ä· ¹öÆÛ ¾÷µ¥ÀÌÆ®
-		auto camTrans = m_pCamera->GetTransform();
-		m_camMat.camPos = (DirectX::SimpleMath::Vector4)camTrans->GetWorldPosition();
-		m_pCamera->GetViewMatrix(m_camMat.mView);
-		m_camMat.mView = DirectX::XMMatrixTranspose(m_camMat.mView);
-		m_camMat.mProjection = DirectX::XMMatrixTranspose(DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, m_rClientWidth / (FLOAT)m_rClientHeight, 0.01f, 100.0f));
+		// ìº  ë²„í¼ ì—…ë°ì´íŠ¸
+		Render_CamBuffer m_camMat = {};
+		m_camMat.mView = XMMatrixTranspose(m_pMainCamera->GetViewMatrix());
+		m_camMat.mProjection = XMMatrixTranspose(m_pMainCamera->GetProjMatrix());
+		m_camMat.camPos = XMMatrixInverse(nullptr, m_camMat.mView).r[3];
 
-		// ¸®¼Ò½º ¾÷µ¥ÀÌÆ®
+		// ë¦¬ì†ŒìŠ¤ ì—…ë°ì´íŠ¸
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
 
-		// ±âº» ·»´õ¼ÂÆÃ
+		// ê¸°ë³¸ ë Œë”ì…‹íŒ…
 		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 		m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
+		float blendFactor[4] = { 0,0,0,0 };
+		UINT sampleMask = 0xffffffff;
+		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
 
-		m_pDeviceContext->RSSetViewports(1, &m_defaultViewport);
+		m_pDeviceContext->RSSetViewports(1, &m_sceneViewport);
 		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
-		m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), m_pDepthStencilView.Get());
+		m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pSceneRTV.GetAddressOf()), m_pSceneDSV.Get());
+
+		// ë Œë”ì»¤ë§¨ë“œ ì†ŒíŒ…, ì‹¤í–‰
+		ExcuteCommands();
+		
+		// ì”¬ë Œë” í•´ì œ
+		m_pDeviceContext->RSSetViewports(1, &m_swapViewport);
+		m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
+	}
+
+	void RenderManager::RenderOnlyRenderer()
+	{
+		// ìº  ë²„í¼ ì—…ë°ì´íŠ¸
+		Render_CamBuffer m_camMat = {};
+		m_camMat.camPos = XMMatrixInverse(nullptr, m_viewMatrix).r[3];
+		m_camMat.mView = XMMatrixTranspose(m_viewMatrix);
+		m_camMat.mProjection = XMMatrixTranspose(m_projMatrix);
+
+		// ë¦¬ì†ŒìŠ¤ ì—…ë°ì´íŠ¸
+		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
+
+		// ê¸°ë³¸ ë Œë”ì…‹íŒ…
+		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
+		m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
+		float blendFactor[4] = { 0,0,0,0 };
+		UINT sampleMask = 0xffffffff;
+		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
+
+		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
 
 		// RenderPass
-		for (const auto& pass : m_Passes) {
-			for (const auto& renderer : pass.second) {
-				renderer->Render();
-			}
-		}
+		ExcuteCommands();
 	}
 
 	void RenderManager::EndFrame()
 	{
+		// ìºì‹±ëœ ë°ì´í„°ë“¤ í•´ì œ
+		InitCache();
+
 		// Present our back buffer to our front buffer
 		m_pSwapChain->Present(m_rSyncInterval, 0);
 	}
 
-	const int RenderManager::PropertyToIdx(const std::wstring& _propertyName) const
+	int RenderManager::AddRenderer(Renderer* _renderer)
+	{
+		int index = static_cast<int>(m_renderers.size());
+		if (_renderer == nullptr)
+			return -1;
+		
+		m_renderers.push_back(_renderer);
+		m_renInitQueue.push(_renderer);
+		return index;
+	}
+
+	void RenderManager::RemoveRenderer(int _idx)
+	{
+		if (_idx < m_renderers.size() && _idx >= 0)
+		{
+			std::swap(m_renderers[_idx], m_renderers.back());
+			m_renderers[_idx]->renderIndex = _idx;
+			m_renderers.pop_back();
+		}
+	}
+
+	/*const int RenderManager::PropertyToIdx(const std::wstring& _propertyName) const
 	{
 		auto it = m_propertyMap.find(_propertyName);
 		if (it == m_propertyMap.end())
 			return -1;
 
 		return it->second;
-	}
+	}*/
 }

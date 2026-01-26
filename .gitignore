@@ -403,3 +403,18 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# === Track engine prebuilt libs/bins under Common ===
+!Common/
+!Common/Lib/
+!Common/Lib/Release/
+!Common/Lib/Debug/
+!Common/Bin/
+!Common/Bin/Release/
+!Common/Bin/Debug/
+
+# allow files inside those folders (Release/Debug directories are ignored globally above)
+!Common/Lib/Release/**
+!Common/Lib/Debug/**
+!Common/Bin/Release/**
+!Common/Bin/Debug/**

@@ -7,16 +7,28 @@
 //#include <wrl/client.h>
 //#include <d3d11_4.h>
 
+#pragma warning(disable: 4506)
+
 RTTR_REGISTRATION
 {
 	using namespace rttr;
 	using namespace MMMEngine;
 
 	registration::class_<StaticMesh>("StaticMesh")
+		.constructor<>()(policy::ctor::as_std_shared_ptr)
 		.property("castShadows", &StaticMesh::castShadows)
 		.property("receiveShadows", &StaticMesh::receiveShadows)
 		.property("meshData", &StaticMesh::meshData)
 		.property("meshGroupData", &StaticMesh::meshGroupData);
+
+	type::register_converter_func(
+		[](std::shared_ptr<Resource> from, bool& ok) -> std::shared_ptr<StaticMesh>
+		{
+			auto result = std::dynamic_pointer_cast<StaticMesh>(from);
+			ok = (result != nullptr);
+			return result;
+		}
+	);
 }
 
 Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<MMMEngine::Mesh_Vertex>& _vertices)
@@ -33,6 +45,7 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<MMMEng
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.CPUAccessFlags = 0;
+	bd.MiscFlags = 0;
 
 	D3D11_SUBRESOURCE_DATA vbData = {};
 	bd.ByteWidth = UINT(sizeof(MMMEngine::Mesh_Vertex) * _vertices.size());
@@ -88,6 +101,7 @@ bool MMMEngine::StaticMesh::LoadFromFilePath(const std::wstring& filePath)
 	for (auto& indices : meshData.indices) {
 		Microsoft::WRL::ComPtr<ID3D11Buffer> subMeshBuffer = CreateIndexBuffer(indices);
 		gpuBuffer.indexBuffers.push_back(subMeshBuffer);
+		indexSizes.push_back(indices.size());
 	}
 
 	// CPU 데이터 정리

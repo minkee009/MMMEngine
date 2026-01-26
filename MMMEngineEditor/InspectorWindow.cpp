@@ -1,15 +1,21 @@
 #include "InspectorWindow.h"
 #include "SceneManager.h"
 #include "Transform.h"
+#include "Resource.h"
 
 #include "EditorRegistry.h"
 using namespace MMMEngine::EditorRegistry;
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
+#include "DragAndDrop.h"
+#include "StringHelper.h"
+#include "ProjectManager.h"
+#include "ResourceManager.h"
 
 #include <optional>
 
 using namespace MMMEngine;
+using namespace MMMEngine::Editor;
 using namespace MMMEngine::Utility;
 
 static Vector3 g_eulerCache;
@@ -60,21 +66,19 @@ void RenderProperties(rttr::instance inst)
         s_lastCachedObject = g_selectedGameObject;
     }
 
-
-
     auto t = inst.get_derived_type();
     rttr::property p = t.get_property("MUID");
-    rttr::variant v = p.get_value(inst);
-    if (v.is_valid() && v.is_type<MMMEngine::Utility::MUID>())
+    if (p.is_valid())
     {
-        const auto& muid = v.get_value<MMMEngine::Utility::MUID>();
-        std::string id = muid.ToStringWithoutHyphens(); // 또는 ToString()
-        ImGui::PushID(id.c_str());
+        auto v = p.get_value(inst);
+        if (v.is_valid() && v.is_type<MUID>())
+            ImGui::PushID(v.get_value<MUID>().ToStringWithoutHyphens().c_str());
+        else
+            ImGui::PushID(inst.try_convert<void*>()); // 주소 기반(예시)
     }
     else
     {
-        MUID tempId = MUID::NewMUID();
-        ImGui::PushID(tempId.ToString().c_str());
+        ImGui::PushID(inst.try_convert<void*>());
     }
 
     for (auto& prop : t.get_properties())
@@ -180,6 +184,126 @@ void RenderProperties(rttr::instance inst)
             if (changed && !readOnly)
                 prop.set_value(inst, ntger);
         }
+        else if (propType.get_name().to_string().find("shared_ptr") != std::string::npos)
+        {
+            auto args = propType.get_template_arguments();
+            if (args.begin() != args.end())
+            {
+                rttr::type innerType = *args.begin();
+
+                if (innerType.is_derived_from(rttr::type::get<Resource>()) ||
+                    innerType == rttr::type::get<Resource>())
+                {
+                    // 현재 리소스
+                    Resource* res = nullptr;
+                    auto sharedRes = var.get_value<std::shared_ptr<Resource>>();
+                    if (sharedRes)
+                        res = sharedRes.get();
+
+                    // 표시용 경로
+                    std::string displayPath = "None";
+                    if (res)
+                    {
+                        std::wstring fullPath = res->GetFilePath();
+                        if (!fullPath.empty())
+                        {
+                            displayPath = ProjectManager::Get().ToProjectRelativePath(
+                                StringHelper::WStringToString(fullPath)
+                            );
+                        }
+                    }
+
+                    // 프로퍼티 이름
+                    ImGui::Text("%s:", name.c_str());
+
+                    // 경로 표시 (클릭 가능하게)
+                    ImGui::PushID(name.c_str());
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
+                    ImGui::Button(displayPath.c_str(), ImVec2(-1, 0));
+                    ImGui::PopStyleColor();
+
+                    // Drag & Drop
+                    if (ImGui::BeginDragDropTarget())
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+                        {
+                            std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
+
+                            // 파일 확장자 검증 (선택사항)
+                            std::string ext = std::filesystem::path(absolutePath).extension().string();
+
+                            // TODO: 리소스 타입별 허용 확장자 체크
+                            // 예: StaticMesh -> .mesh, Texture -> .png/.jpg 등
+
+                            std::string relativePath = ProjectManager::Get().ToProjectRelativePath(absolutePath);
+                            std::wstring wRelativePath = StringHelper::StringToWString(relativePath);
+
+                            try
+                            {
+                                rttr::variant loadedResource = ResourceManager::Get().Load(innerType, wRelativePath);
+
+                                if (loadedResource.is_valid())
+                                {
+                                    if (!readOnly)
+                                    {
+                                        if (loadedResource.convert(prop.get_type()))                  // v를 내부적으로 target type으로 변환 (bool 리턴)
+                                        {
+                                            prop.set_value(inst, loadedResource);                     // v는 이제 shared_ptr<StaticMesh> 타입 variant
+                                        }
+                                        else
+                                        {
+                                            // 변환 실패 처리
+                                        }
+
+                                    }
+                                }
+                            }
+                            catch (const std::exception& e)
+                            {
+                                auto toUtf8 = [](const char* ansi) -> std::string
+                                    {
+                                        if (!ansi)
+                                            return {};
+
+                                        int wideLen = MultiByteToWideChar(CP_ACP, 0, ansi, -1, nullptr, 0);
+                                        if (wideLen <= 0)
+                                            return {};
+
+                                        std::wstring wide(wideLen, L'\0');
+                                        MultiByteToWideChar(CP_ACP, 0, ansi, -1, wide.data(), wideLen);
+
+                                        int utf8Len = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+                                        std::string utf8(utf8Len, '\0');
+                                        WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, utf8.data(), utf8Len, nullptr, nullptr);
+
+                                        return utf8;
+                                    };
+
+                                // TODO: 에러 로그
+                                std::cerr << "[Resource Load Error]\n"
+                                    << "Type: " << innerType.get_name().to_string() << "\n"
+                                    << "Path: " << StringHelper::WStringToString(wRelativePath) << "\n"
+                                    << "What: " << toUtf8(e.what()) << std::endl;
+                            }
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
+                    // Clear 버튼
+                    if (res != nullptr && !readOnly)
+                    {
+                        ImGui::SameLine();
+                        if (ImGui::SmallButton(("X##" + name).c_str()))
+                        {
+                            std::shared_ptr<Resource> nullPtr = nullptr;
+                            prop.set_value(inst, nullPtr);
+                        }
+                    }
+
+                    ImGui::PopID();
+                }
+            }
+        }
         else if (var.is_type<std::string>())
         {
             // MUID 가져오기
@@ -215,71 +339,112 @@ void RenderProperties(rttr::instance inst)
 
         else if (var.is_type<Quaternion>())
         {
-            // 표시용 캐시 계산은 readOnly든 아니든 가능
-            if (g_lastSelected != g_selectedGameObject)
-            {
-                Quaternion q = var.get_value<Quaternion>();
-                Vector3 e = q.ToEuler();
-                g_eulerCache = { e.x * (180.f / XM_PI), e.y * (180.f / XM_PI), e.z * (180.f / XM_PI) };
-                g_lastSelected = g_selectedGameObject;
-            }
-
-            float data[3] = { g_eulerCache.x, g_eulerCache.y, g_eulerCache.z };
-            auto SnapToZero = [](float& v, float eps = 1e-4f)
-                {
-                    if (fabsf(v) < eps) v = 0.0f; // +0로 만들어짐
+            auto SnapToZero = [](float& v, float eps = 1e-4f) {
+                if (fabsf(v) < eps) v = 0.0f;
                 };
-            SnapToZero(data[0]);
-            SnapToZero(data[1]);
-            SnapToZero(data[2]);
+            // 고유 키 (string 캐시처럼)
+            rttr::property muidProp = t.get_property("MUID");
+            rttr::variant muidVar = muidProp.get_value(inst);
+            std::string muidStr = (muidVar.is_valid() && muidVar.is_type<MMMEngine::Utility::MUID>())
+                ? muidVar.get_value<MMMEngine::Utility::MUID>().ToStringWithoutHyphens()
+                : "unknown";
+
+            std::string key = muidStr + "::" + inst.get_type().get_name().to_string() + "::" + name;
+
+            // Quaternion용 캐시를 별도로 두는게 깔끔 (static map)
+            static std::unordered_map<std::string, Vector3> eulerCache;
+
+            // 1) 실제 값에서 Euler 계산 (도 단위)
+            auto q = var.get_value<Quaternion>();
+            Vector3 eRad = q.ToEuler(); // (SimpleMath는 보통 rad 반환)
+            Vector3 eDeg = { eRad.x * (180.f / XM_PI), eRad.y * (180.f / XM_PI), eRad.z * (180.f / XM_PI) };
+
+            // 2) 캐시 없으면 초기화
+            if (eulerCache.find(key) == eulerCache.end())
+                eulerCache[key] = eDeg;
+
+            // 3) 인스펙터에서 "현재 이 항목을 편집 중"인지 판별하려면
+            //    DragFloat3 호출 후 IsItemActive를 볼 수 있으니,
+            //    호출 전에는 "이전 프레임의 상태"가 없어서 보통 이렇게 처리합니다:
+            //    - 일단 data를 캐시로 세팅
+            //    - DragFloat3 호출 후, Active가 아니고 changed도 아니면 실제 값으로 캐시를 동기화
+            float data[3] = { eulerCache[key].x, eulerCache[key].y, eulerCache[key].z };
+
 
             if (readOnly) ImGui::BeginDisabled(true);
             bool changed = ImGui::DragFloat3(name.c_str(), data, 0.1f);
+            bool active = ImGui::IsItemActive();
             if (readOnly) ImGui::EndDisabled();
 
+            // 4) 사용자가 편집하지 않는 동안엔 gizmo 등 외부 변경을 반영
+            if (!active && !changed)
+            {
+                SnapToZero(eDeg.x);
+                SnapToZero(eDeg.y);
+                SnapToZero(eDeg.z);
+                eulerCache[key] = eDeg; // 외부 변경 반영(= gizmo 최신화)
+            }
+
+            // 5) 사용자가 인스펙터에서 편집한 경우만 set_value
             if (changed && !readOnly)
             {
-                g_eulerCache = { data[0], data[1], data[2] };
+
+                SnapToZero(data[0]);
+                SnapToZero(data[1]);
+                SnapToZero(data[2]);
+
+                eulerCache[key] = { data[0], data[1], data[2] };
+
                 Quaternion updatedQ = Quaternion::CreateFromYawPitchRoll(
-                    g_eulerCache.y * (XM_PI / 180.f),
-                    g_eulerCache.x * (XM_PI / 180.f),
-                    g_eulerCache.z * (XM_PI / 180.f)
+                    eulerCache[key].y * (XM_PI / 180.f),
+                    eulerCache[key].x * (XM_PI / 180.f),
+                    eulerCache[key].z * (XM_PI / 180.f)
                 );
+
+
+
+                updatedQ.Normalize();
                 prop.set_value(inst, updatedQ);
             }
         }
-        //else if (var.is_type<std::string>())
-        //{
-        //    const bool readOnly = prop.is_readonly();
-        //    const std::string name = prop.get_name().to_string();
+        else if (propType.get_name().to_string().find("ResPtr") != std::string::npos)
+        {
+            Resource* res = nullptr;
+            auto sharedRes = var.get_value<std::shared_ptr<Resource>>();
+            if (sharedRes)
+                res = sharedRes.get();
 
-        //    std::string current = var.get_value<std::string>();
+            std::string displayPath = res ? StringHelper::WStringToString(res->GetFilePath()) : "None";
 
-        //    // 캐시에 없으면 현재 값을 넣어 초기화
-        //    std::string key = MakeStringKey(inst, prop);
-        //    auto& buf = g_stringEditCache[key];
-        //    if (buf.empty() && !current.empty())
-        //        buf = current;
+            // 경로 표시 버튼
+            if (ImGui::Button(displayPath.c_str()))
+            {
+                ImGui::OpenPopup("Select Resource");
+            }
 
-        //    // 값이 외부에서 바뀌었을 수도 있으니(Undo/Redo 등) 동기화 정책 선택:
-        //    // 1) 편집 중이 아니면 current로 덮어쓰기
-        //    // 2) 항상 덮어쓰기 (비추천)
-        //    // 여기서는 "선택 변경 시 cache clear"를 전제로 단순 유지
-
-        //    if (readOnly) ImGui::BeginDisabled(true);
-
-        //    // ImGui::InputText는 std::string 직접 지원(버전에 따라) 또는 callback 방식 필요
-        //    bool changed = ImGui::InputText(name.c_str(), );
-
-        //    if (readOnly) ImGui::EndDisabled();
-
-        //    if (changed && !readOnly)
-        //    {
-        //        prop.set_value(inst, buf);
-        //    }
-        //}
+            // Drag & Drop 지원
+            // None으로 설정 버튼 (X)
+        }
     }
     ImGui::PopID();
+}
+
+void AddComponentFromDropFilePath(std::string filePath)
+{
+    if (!filePath.empty())
+    {
+        std::string ext = Utility::StringHelper::ExtractFileFormat(filePath);
+        if (ext != "cpp" && ext != "h")
+            return;
+
+        std::string typeName = Utility::StringHelper::ExtractFileName(filePath);
+        rttr::type t = rttr::type::get_by_name(typeName);
+
+        if (t.is_valid())
+        {
+            g_selectedGameObject->AddComponent(t);
+        }
+    }
 }
 
 void MMMEngine::Editor::InspectorWindow::Render()
@@ -403,42 +568,75 @@ void MMMEngine::Editor::InspectorWindow::Render()
 
         ImGui::Separator();
 
-        float width = ImGui::GetContentRegionAvail().x;
-        if (ImGui::Button(u8"컴포넌트 추가", ImVec2{ width, 0 })) { ImGui::OpenPopup(u8"컴포넌트 선택"); }
 
-        //// script drag and drop area
-        //ImGui.InvisibleButton("##", ImGui.GetContentRegionAvail());
-        //string file = DragAndDrop.GetString("file_path");
-        //if (file != null)
-        //{
-        //    string relative = Path.GetRelativePath(ProjectManager.projectRoot, file);
-        //    string extension = Path.GetExtension(relative);
-
-        //    // if file is script
-        //    if (extension == ".cs")
-        //    {
-        //        var type = ScriptManager.GetClassTypeOfScript(file);
-        //        HierarchyWindow.selectedGameObject.AddComponentOfType(type);
-        //    }
-        //}
 
         // add component popup
+        float width = ImGui::GetContentRegionAvail().x;
+        if (ImGui::Button(u8"컴포넌트 추가", ImVec2{ width, 0 }))
+        {
+            ImGui::OpenPopup(u8"컴포넌트 선택");
+        }
+
+        // add component popup
+        static char searchBuffer[256] = "";
         int selectedIndex = -1;
+
         if (ImGui::BeginPopup(u8"컴포넌트 선택"))
         {
             RefreshComponentTypes();
+
+            // 검색 입력 필드
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::IsWindowAppearing())
+            {
+                ImGui::SetKeyboardFocusHere();
+                searchBuffer[0] = '\0'; // 팝업 열릴 때마다 검색어 초기화
+            }
+            ImGui::InputTextWithHint("##search", u8"검색...", searchBuffer, IM_ARRAYSIZE(searchBuffer));
+
+            ImGui::Separator();
+
+            // 스크롤 영역 (최대 8개 항목 높이)
+            const float itemHeight = ImGui::GetTextLineHeightWithSpacing();
+            const float maxHeight = itemHeight * 8;
+
+            ImGui::BeginChild("ComponentList", ImVec2(300, maxHeight), false);
+
+            std::string searchStr = searchBuffer;
+            std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(), ::tolower);
+
             for (int i = 0; i < g_componentTypes.size(); ++i)
             {
                 auto type = g_componentTypes[i];
-                if (ImGui::Selectable(type.get_name().to_string().c_str()))
+                std::string typeName = type.get_name().to_string();
+
+                // 검색 필터링
+                if (searchStr.length() > 0)
+                {
+                    std::string lowerTypeName = typeName;
+                    std::transform(lowerTypeName.begin(), lowerTypeName.end(), lowerTypeName.begin(), ::tolower);
+
+                    if (lowerTypeName.find(searchStr) == std::string::npos)
+                        continue;
+                }
+
+                if (ImGui::Selectable(typeName.c_str()))
                 {
                     selectedIndex = i;
                     auto selected = g_componentTypes[selectedIndex];
                     g_selectedGameObject->AddComponent(type);
+                    ImGui::CloseCurrentPopup();
                 }
             }
+
+            ImGui::EndChild();
             ImGui::EndPopup();
         }
+
+        // script drag and drop area
+        ImGui::InvisibleButton("##", ImGui::GetContentRegionAvail());
+        std::string file = Editor::GetString("FILE_PATH");
+        AddComponentFromDropFilePath(file);
     }
     else
     {

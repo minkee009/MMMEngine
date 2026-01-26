@@ -7,6 +7,7 @@
 #include "GameObject.h"
 #include "Scene.h"
 #include "SceneRef.h"
+#include "Delegates.hpp"
 
 namespace MMMEngine
 {
@@ -34,17 +35,23 @@ namespace MMMEngine
 		void RegisterGameObjectToDDOL(ObjPtr<GameObject> go);
 
 		const std::unordered_map<std::string, size_t>& GetScenesHash();
+
+		void ReloadSnapShotCurrentScene(); // 현재 씬의 스냅샷을 갱신 (하드디스크 저장 X, 온 메모리 체인지)
 		
-		void UpdateAndReloadScenes(std::vector<std::string> sceneList);
+		void RebulidAndApplySceneList(std::vector<std::string> sceneList);
+		void ClearDDOLScene();
 
 		std::vector<ObjPtr<GameObject>> GetAllGameObjectInCurrentScene();
 		std::vector<ObjPtr<GameObject>> GetAllGameObjectInDDOL();
 		SceneRef GetSceneRef(const Scene* pScene);
 		std::vector<Scene*> GetAllSceneToRaw();
+		Scene* GetCurrentSceneRaw() { return m_scenes[m_currentSceneID].get(); }
 		//=====================================//
 
 		Scene* GetSceneRaw(const SceneRef& ref);
 		const SceneRef GetCurrentScene() const;
+
+		Utility::Event<SceneManager, void(void)> onSceneInitBefore{ this };
 
 		const std::wstring GetSceneListPath() const;
 

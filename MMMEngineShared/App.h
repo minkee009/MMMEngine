@@ -53,6 +53,7 @@ namespace MMMEngine::Utility
 		Event<App, void(int,int)> OnWindowSizeChanged{ this };
 		Event<App, void(HWND, UINT, WPARAM, LPARAM)> OnBeforeWindowMessage{ this };
 		Event<App, void(HWND, UINT, WPARAM, LPARAM)> OnAfterWindowMessage{ this };
+		Event<App, void(WPARAM, LPARAM)> OnMouseWheelUpdate{ this };
 
 		DisplayMode GetDisplayMode() const;
 

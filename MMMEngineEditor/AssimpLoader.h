@@ -9,12 +9,9 @@
 #include <assimp/postprocess.h>
 #include <unordered_map>
 #include <string>
-#include <SimpleMath.h>
+#include "SimpleMath.h"
 #include "RenderShared.h"
 #include "ResourceManager.h"
-
-#pragma warning(push)
-#pragma warning(disable: 4251)
 
 namespace MMMEngine {
 	enum class ModelType {
