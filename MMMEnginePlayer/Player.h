@@ -19,6 +19,7 @@ namespace MMMEngine {
 		bool PlayerDeath() const { return HP <= 0; }
 		bool AttachSnowball(ObjPtr<GameObject> snow);
 		void DetachSnowball();
+		void SnapToSnowball();
 		float GetPickupRange() const { return pickupRange; }
 		ObjPtr<GameObject> GetMatchedSnowball()const { return matchedSnowball; }
 	private:
@@ -41,6 +42,7 @@ namespace MMMEngine {
 		float attackTimer = 0.0f;
 		float attackDelay = 0.65f; //플레이어 공격 간격
 		float pickupRange = 1.0f; //눈 픽업 거리
+		float offset = 1.5f; //눈과 플레이어간의 거리
 		float healTimer = 0.0f;
 		float healDelay = 1.0f;
 		float nonfightTimer = 0.0f;

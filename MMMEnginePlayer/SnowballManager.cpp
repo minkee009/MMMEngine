@@ -65,6 +65,7 @@ void MMMEngine::SnowballManager::OnScoopStart(Player& player)
 	{
 		nearest->GetComponent<Snowball>()->carrier = &player;
 		player.AttachSnowball(nearest);
+		player.SnapToSnowball();
 		scoopStates[&player] = {};
 	}
 	else
@@ -105,6 +106,7 @@ void MMMEngine::SnowballManager::OnScoopHold(Player& player)
 
 	// 2) ´« »ý¼º + µî·Ï
 	auto obj = NewObject<GameObject>();
+	obj->SetTag("Snowball");
 	obj->AddComponent<Snowball>();
 	obj->GetTransform()->SetWorldPosition(spawnPos);
 	Snows.push_back(obj);

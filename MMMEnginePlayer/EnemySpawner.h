@@ -9,8 +9,9 @@ namespace MMMEngine {
 		void Initialize() override;
 		void UnInitialize() override;
 		void Update();
+		void MakeNormalEnemy();
+		static ObjPtr<EnemySpawner> instance;
 	private:
-		void MakeEnemy();
 		float EnemySpawnTimer = 10.0f;
 		std::vector<ObjPtr<GameObject>> Enemys;
 	};

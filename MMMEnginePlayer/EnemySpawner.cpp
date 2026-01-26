@@ -1,12 +1,14 @@
 #include "EnemySpawner.h"
 #include "Enemy.h"
+#include "NormalEnemy.h"
 #include "Player.h"
 #include "MMMTime.h"
 #include "Transform.h"
+#include "MeshRenderer.h"
 
 void MMMEngine::EnemySpawner::Initialize()
 {
-
+	instance = GetGameObject()->GetComponent<EnemySpawner>();
 }
 
 void MMMEngine::EnemySpawner::UnInitialize()
@@ -20,28 +22,24 @@ void MMMEngine::EnemySpawner::UnInitialize()
 
 void MMMEngine::EnemySpawner::Update()
 {
-	Enemys.erase(
-		std::remove_if(Enemys.begin(), Enemys.end(),
-			[](const ObjPtr<GameObject>& e)
-			{
-				return !e;
-			}),
-		Enemys.end()
-	);
-
-	EnemySpawnTimer -= Time::GetDeltaTime();
-	if (EnemySpawnTimer <= 0.0f)
+	for (auto it = Enemys.begin(); it != Enemys.end(); )
 	{
-		MakeEnemy();
-		EnemySpawnTimer = 10.0f;
+		if (!(*it))   // ObjPtr가 Destroy되면 nullptr로 바뀐다면
+		{
+			it = Enemys.erase(it);
+			continue;
+		}
 	}
 }
 
-void MMMEngine::EnemySpawner::MakeEnemy()
+void MMMEngine::EnemySpawner::MakeNormalEnemy()
 {
 	auto newEnemy = NewObject<GameObject>();
-	newEnemy->AddComponent<Enemy>();
+	newEnemy->AddComponent<NormalEnemy>();
 	newEnemy->SetTag("Enemy");
+	newEnemy->AddComponent<MeshRenderer>();
+	auto mesh = ResourceManager::Get().Load<StaticMesh>(L"Assets/Castle_StaticMesh.staticmesh");
+	newEnemy->GetComponent<MeshRenderer>()->SetMesh(mesh);
 	Enemys.push_back(newEnemy);
 	ObjPtr<GameObject> created = newEnemy;
 
@@ -49,6 +47,7 @@ void MMMEngine::EnemySpawner::MakeEnemy()
 	auto enemytr = created->GetTransform();
 	auto enemypos = enemytr->GetWorldPosition();
 	
+	//좌표는 임의로 설정. 추후 수정
 	enemypos.x = 50.f;
 	enemypos.z = 50.f;
 

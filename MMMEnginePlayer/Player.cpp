@@ -227,3 +227,29 @@ void MMMEngine::Player::GetDamage(int t)
 
 	damageTimer = damageDelay; // 무적 타이머 시작
 }
+
+void MMMEngine::Player::SnapToSnowball()
+{
+	if (!matchedSnowball) return;
+
+	auto sTr = matchedSnowball->GetTransform();
+	if (!sTr) return;
+
+	auto snowPos = sTr->GetWorldPosition();
+
+	float dx = snowPos.x - pos.x;
+	float dz = snowPos.z - pos.z;
+	float len = sqrtf(dx * dx + dz * dz);
+	if (len < 0.0001f) return;
+
+	float nx = dx / len;
+	float nz = dz / len;
+	
+	pos.x = snowPos.x - nx * offset;
+	pos.z = snowPos.z - nz * offset;
+	tr->SetWorldPosition(pos);
+
+	yawRad = WrapPi(atan2f(nx, nz));
+	auto q = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(yawRad, 0.0f, 0.0f);
+	tr->SetWorldRotation(q);
+}
