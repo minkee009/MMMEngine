@@ -49,7 +49,11 @@ void AfterProjectLoaded()
 	// 리소스 매니저 부팅
 	ResourceManager::Get().StartUp(projectPath.generic_wstring() + L"/");
 
+	// 쉐이더 인포 시작하기
+	ShaderInfo::Get().StartUp();
+	
 	BuildManager::Get().SetProgressCallbackString([](const std::string& progress) { std::cout << progress.c_str() << std::endl; });
+	ShaderInfo::Get().StartUp();
 }
 
 void Initialize()
@@ -60,9 +64,9 @@ void Initialize()
 	auto windowInfo = app->GetWindowInfo();
 
 	RenderManager::Get().StartUp(hwnd, windowInfo.width, windowInfo.height);
-	ShaderInfo::Get().StartUp();
 	InputManager::Get().StartUp(hwnd);
 	app->OnWindowSizeChanged.AddListener<InputManager, &InputManager::HandleWindowResize>(&InputManager::Get());
+	app->OnMouseWheelUpdate.AddListener<InputManager, &InputManager::HandleMouseWheelEvent>(&InputManager::Get());
 	
 	TimeManager::Get().StartUp();
 
@@ -130,13 +134,16 @@ void Update()
 		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
 	}
 
-	if (EditorRegistry::g_editor_scene_playing)
+	if (EditorRegistry::g_editor_scene_playing
+		&& !EditorRegistry::g_editor_scene_pause)
 	{
 		BehaviourManager::Get().InitializeBehaviours();
 	}
+
 	TimeManager::Get().ConsumeFixedSteps([&](float fixedDt)
 		{
-			if (!EditorRegistry::g_editor_scene_playing)
+			if (!EditorRegistry::g_editor_scene_playing
+				|| EditorRegistry::g_editor_scene_pause)
 				return;
 
 			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
@@ -174,8 +181,13 @@ void Update()
 			}
 		});
 
-	BehaviourManager::Get().BroadCastBehaviourMessage("Update");
-	BehaviourManager::Get().BroadCastBehaviourMessage("LateUpdate");
+
+	if (EditorRegistry::g_editor_scene_playing
+		&& !EditorRegistry::g_editor_scene_pause)
+	{
+		BehaviourManager::Get().BroadCastBehaviourMessage("Update");
+		BehaviourManager::Get().BroadCastBehaviourMessage("LateUpdate");
+	}
 
 	RenderManager::Get().BeginFrame();
 	RenderManager::Get().Render();
@@ -184,8 +196,13 @@ void Update()
 	ImGuiEditorContext::Get().EndFrame();
 	RenderManager::Get().EndFrame();
 
-	ObjectManager::Get().UpdateInternalTimer(dt);
-	BehaviourManager::Get().DisableBehaviours();
+
+	if (EditorRegistry::g_editor_scene_playing
+		&& !EditorRegistry::g_editor_scene_pause)
+	{
+		ObjectManager::Get().UpdateInternalTimer(dt);
+		BehaviourManager::Get().DisableBehaviours();
+	}
 	ObjectManager::Get().ProcessPendingDestroy();
 }
 
@@ -206,13 +223,26 @@ void Release()
 	DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
 }
 
+#ifdef _DEBUG
 int main()
+#else
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR    lpCmdLine,
+	_In_ int       nCmdShow)
+#endif
 {
-	App app{ L"MMMEditor",1600,900 };
+#ifdef _DEBUG
+	HINSTANCE hInstance = GetModuleHandle(nullptr);
+#endif
+
+	App app{ hInstance, L"MMMEditor",1600,900 };
 	GlobalRegistry::g_pApp = &app;
 
 	app.OnInitialize.AddListener<&Initialize>();
 	app.OnUpdate.AddListener<&Update>();
 	app.OnRelease.AddListener<&Release>();
 	app.Run();
+
+	return 0;
 }

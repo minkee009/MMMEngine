@@ -29,17 +29,27 @@ namespace MMMEngine
         //std::array<XInputGamepadDevice*, 4> m_gamepads;
         //void InitGamepads(); // 게임패드 초기화
         //void CleanupGamepads(); // 게임패드 정리
+        int m_wheelFrame = 0;   // 이번 프레임 휠 누적(120 단위)
+        int m_wheelPending = 0;   // 이번 프레임 휠 누적(120 단위)
+        int m_wheelDeltaAccum = 0;   // 필요하면 누적용(옵션)
+
     public:
         InputManager() = default;
         ~InputManager() = default;
 
         void HandleWindowResize(int newWidth, int newHeight);
+        void HandleMouseWheelEvent(WPARAM wParam, LPARAM /*lParam*/);
 
         DirectX::SimpleMath::Vector2 GetMousePos();
         bool GetKey(KeyCode keyCode);
         bool GetKeyDown(KeyCode keyCode);
         bool GetKeyUp(KeyCode keyCode);
         DirectX::SimpleMath::Vector2 GetMouseDelta();
+
+        int  GetMouseScrollDelta();        // 이번 프레임 델타 (예: 120, -120, 240...)
+        float GetMouseScrollNotches();     // 이번 프레임 휠 칸 수 (1.0, -1.0, 2.0...)
+        bool GetMouseScrollUp();           // 이번 프레임 위로 굴림
+        bool GetMouseScrollDown();         // 이번 프레임 아래로 굴림
 
         void StartUp(HANDLE windowHandle);
         void ShutDown();

@@ -1,30 +1,28 @@
 #pragma once
 
 #include "Export.h"
-#include "Behaviour.h"
 #include "ResourceManager.h"
+#include "Renderer.h"
+#include "rttr/type"
 
 namespace MMMEngine {
 	class StaticMesh;
-	class RendererBase;
-	class MMMENGINE_API MeshRenderer : public Behaviour
-	{
-		RTTR_ENABLE(Behaviour)
-			RTTR_REGISTRATION_FRIEND
-			friend class BehaviourManager;
-			friend class GameObject;
+	class MMMENGINE_API MeshRenderer : public Renderer {
+		RTTR_ENABLE(Renderer)
+		RTTR_REGISTRATION_FRIEND
 	private:
 		// GPU 버퍼
 		ResPtr<StaticMesh> mesh = nullptr;
-		// 메테리얼 path맵
-		std::unordered_map<int, std::wstring> m_shaderPathMap;
+
+		void Initialize() override;
+		void Init() override;
+		void Render() override;
 	public:
-		MeshRenderer();
+		~MeshRenderer() override;
 		 
 		ResPtr<StaticMesh>& GetMesh() { return mesh; }
 ;		void SetMesh(ResPtr<StaticMesh>& _mesh);
-		void Start();
-		void Update();
+		
 	};
 }
 

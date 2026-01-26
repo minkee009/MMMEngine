@@ -1,12 +1,12 @@
 #include "MeshRenderer.h"
-#include "StaticMesh.h"
 #include "RenderManager.h"
 #include "RenderCommand.h"
-#include "Object.h"
+#include "GameObject.h"
 #include "Transform.h"
 #include "ShaderInfo.h"
 #include "PShader.h"
 
+#include "StaticMesh.h"
 #include "rttr/registration.h"
 
 RTTR_REGISTRATION
@@ -28,34 +28,30 @@ RTTR_REGISTRATION
 	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<MeshRenderer>>();
 }
 
-MMMEngine::MeshRenderer::MeshRenderer()
+MMMEngine::MeshRenderer::~MeshRenderer()
 {
-	REGISTER_BEHAVIOUR_MESSAGE(Start);
-	REGISTER_BEHAVIOUR_MESSAGE(Update);
+	RenderManager::Get().RemoveRenderer(renderIndex);
 }
 
 void MMMEngine::MeshRenderer::SetMesh(ResPtr<StaticMesh>& _mesh)
 {
 	mesh = _mesh;
-	Start();
 }
-
-void MMMEngine::MeshRenderer::Start()
+ 
+void MMMEngine::MeshRenderer::Initialize()
 {
-	// 메시 없으면 리턴
-	if (!mesh)
-		return;
-
-	// 메테리얼 인덱스별로 파일경로 캐싱
-	for (int i = 0; i < mesh->materials.size(); ++i) {
-		m_shaderPathMap[i] = mesh->materials[i]->GetPShader()->GetFilePath();
-	}
+	renderIndex = RenderManager::Get().AddRenderer(this);
 }
 
-void MMMEngine::MeshRenderer::Update()
+void MMMEngine::MeshRenderer::Init()
+{
+	
+}
+
+void MMMEngine::MeshRenderer::Render()
 {
 	// 유효성 확인
-	if (!mesh || !GetGameObject()->GetTransform())
+	if (!mesh || !GetTransform())
 		return;
 
 	for (auto& [matIdx, meshIndices] : mesh->meshGroupData) {
@@ -69,18 +65,14 @@ void MMMEngine::MeshRenderer::Update()
 			command.vertexBuffer = meshBuffer.Get();
 			command.indexBuffer = indicesBuffer.Get();
 			command.material = material.get();
-			command.worldMatIndex = RenderManager::Get().AddMatrix(GetGameObject()->GetTransform()->GetWorldMatrix());
+			command.worldMatIndex = RenderManager::Get().AddMatrix(GetTransform()->GetWorldMatrix());
 			command.indiciesSize = mesh->indexSizes[idx];
 
 			// TODO::CamDistance 보내줘야함!!
 			command.camDistance = 0.0f;
 
-			RenderType type = RenderType::R_GEOMETRY;
-
-			auto it = m_shaderPathMap.find(idx);
-			if (it != m_shaderPathMap.end()) {
-				type = ShaderInfo::Get().GetRenderType(it->second);
-			}
+			std::wstring shaderPath = material->GetPShader()->GetFilePath();
+			RenderType type = ShaderInfo::Get().GetRenderType(shaderPath);
 
 			RenderManager::Get().AddCommand(type, std::move(command));
 		}

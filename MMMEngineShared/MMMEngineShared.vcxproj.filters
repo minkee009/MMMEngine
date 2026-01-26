@@ -3,7 +3,7 @@
   <ItemGroup>
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Behaviour.cpp" />
-    <ClCompile Include="BehaviourManger.cpp" />
+    <ClCompile Include="BehaviourManager.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="dxtk\Src\SimpleMath.cpp" />
     <ClCompile Include="GameObject.cpp" />
@@ -56,17 +56,23 @@
     <ClCompile Include="RigidBodyComponent.cpp">
       <Filter>소스 파일\Core\Physcis API</Filter>
     </ClCompile>
-    <ClCompile Include="BoxColliderComponent.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SphereColliderComponent.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="RenderCommand.cpp">
       <Filter>소스 파일\Core\Render API</Filter>
     </ClCompile>
     <ClCompile Include="RenderStateGuard.cpp">
       <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="SphereColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="BoxColliderComponent.cpp">
+      <Filter>소스 파일\Core\Physcis API</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -159,15 +165,6 @@
     <Filter Include="소스 파일\Utility">
       <UniqueIdentifier>{bb817747-9bed-4c9b-9d18-d3727af467be}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DXTK">
-      <UniqueIdentifier>{c1f31de4-7de7-4812-9d2f-5225d890f3e4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK\Src">
-      <UniqueIdentifier>{22a3ca23-ec10-4a58-9d4d-c71761373146}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DXTK\Inc">
-      <UniqueIdentifier>{d2942064-b39a-40f4-86b6-3aa64d93dc96}</UniqueIdentifier>
-    </Filter>
     <Filter Include="헤더 파일\Core\Resource API">
       <UniqueIdentifier>{9429d884-7bed-4e3a-8a66-6736b614e7c7}</UniqueIdentifier>
     </Filter>
@@ -258,9 +255,6 @@
     <Filter Include="헤더 파일\Core\Core Test">
       <UniqueIdentifier>{64ea75a6-7e6a-4817-801f-f9612da1250c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\Core\Core Test">
-      <UniqueIdentifier>{44b49f8c-3077-4d0a-be63-9f9da05c9b52}</UniqueIdentifier>
-    </Filter>
     <ClInclude Include="CapsuleColliderComponent.h">
       <Filter>헤더 파일\Core\Physics API</Filter>
     </ClInclude>
@@ -291,12 +285,6 @@
     <ClInclude Include="RigidBodyComponent.h">
       <Filter>헤더 파일\Core\Physics API</Filter>
     </ClInclude>
-    <ClInclude Include="BoxColliderComponent.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SphereColliderComponent.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="RenderCommand.h">
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
@@ -306,8 +294,17 @@
     <ClInclude Include="RenderStateGuard.h">
       <Filter>헤더 파일\Utility</Filter>
     </ClInclude>
+    <ClInclude Include="BoxColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
+    <ClInclude Include="SphereColliderComponent.h">
+      <Filter>헤더 파일\Core\Physics API</Filter>
+    </ClInclude>
     <ClInclude Include="Camera.h">
-      <Filter>헤더 파일\Core\Render API</Filter>
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -562,9 +559,6 @@
     <ClCompile Include="Behaviour.cpp">
       <Filter>소스 파일\Core\Behaviour API</Filter>
     </ClCompile>
-    <ClCompile Include="BehaviourManger.cpp">
-      <Filter>소스 파일\Core\Behaviour API</Filter>
-    </ClCompile>
     <ClCompile Include="ResourceManager.cpp">
       <Filter>소스 파일\Core\Resource API</Filter>
     </ClCompile>
@@ -637,9 +631,6 @@
     <ClCompile Include="MaterialSerializer.cpp">
       <Filter>소스 파일\Core\Render API\Tools</Filter>
     </ClCompile>
-    <ClCompile Include="TextResource.cpp">
-      <Filter>소스 파일\Core\Core Test</Filter>
-    </ClCompile>
     <ClCompile Include="ResourceSerializer.cpp">
       <Filter>소스 파일\Core\Render API\Tools</Filter>
     </ClCompile>
@@ -653,9 +644,6 @@
   <ItemGroup>
     <None Include="Object.inl">
       <Filter>헤더 파일\Core\Object API</Filter>
-    </None>
-    <None Include="dxtk\Inc\SimpleMath.inl">
-      <Filter>DXTK\Inc</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

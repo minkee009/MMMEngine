@@ -1,16 +1,29 @@
 #include "RenderManager.h"
-#include "GameObject.h"
-#include "Transform.h"
-//#include <EditorCamera.h>
-#include <RendererTools.h>
+
+#include "RendererTools.h"
+#include "RenderShared.h"
 #include "ShaderInfo.h"
 #include "ResourceManager.h"
+#include "GameObject.h"
+#include "Transform.h"
+#include "Camera.h"
+#include "Renderer.h"
+
+#include "rttr/registration.h"
 
 DEFINE_SINGLETON(MMMEngine::RenderManager)
 
 using namespace Microsoft::WRL;
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
+
+RTTR_REGISTRATION{
+	using namespace rttr;
+	using namespace MMMEngine;
+	
+	rttr::registration::class_<RenderManager>("RenderManager")
+		.property("maincamera", &RenderManager::GetCamera, &RenderManager::SetCamera);
+}
 
 namespace MMMEngine {
 
@@ -23,7 +36,6 @@ namespace MMMEngine {
 
 	void RenderManager::ApplyMatToContext(ID3D11DeviceContext4* _context, Material* _material)
 	{
-		
 		auto VS = _material->GetVShader()->m_pVShader;
 		auto PS = _material->GetPShader()->m_pPShader;
 		_context->IASetInputLayout(_material->GetVShader()->m_pInputLayout.Get());
@@ -109,6 +121,29 @@ namespace MMMEngine {
 		m_objWorldMatMap.clear();
 		m_renderCommands.clear();
 		m_rObjIdx = 0;
+	}
+
+	void RenderManager::InitRenderers()
+	{
+		int size = static_cast<int>(m_renInitQueue.size());
+		for (int i = 0; i < size; ++i) {
+			auto renderer = m_renInitQueue.front();
+			m_renInitQueue.pop();
+
+			if (!renderer->isEnabled)
+				m_renInitQueue.push(renderer);
+			else
+				renderer->Init();
+		}
+	}
+
+	void RenderManager::UpdateRenderers()
+	{
+		for (auto& renderer : m_renderers) {
+			if (renderer->isEnabled) {
+				renderer->Render();
+			}
+		}
 	}
 
 	void RenderManager::StartUp(HWND _hwnd, UINT _ClientWidth, UINT _ClientHeight)
@@ -492,24 +527,50 @@ namespace MMMEngine {
 		return index;
 	}
 
+	void RenderManager::ClearAllCommands()
+	{
+		m_renderCommands.clear();
+	}
+
 	void RenderManager::BeginFrame()
 	{
 		// Clear
 		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+		// 렌더러 컨트롤
+		InitRenderers();
+		UpdateRenderers();
+
+		// 카메라 유효성 확인
+		//if(!m_pMainCamera.IsValid())
+		//	m_pMainCamera = Camera::GetMainCamera();
+		//if (!m_pMainCamera.IsValid()) {
+		//	m_pMainCamera = Camera::CreateMainCamera()->GetComponent<Camera>();
+		//}
 	}
 
 	void RenderManager::Render()
 	{
+		if (!m_pMainCamera.IsValid())
+		{
+			// Clear
+			m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
+			m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
+			return;
+		}
+
 		// Clear
 		m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 		// 캠 버퍼 업데이트
 		Render_CamBuffer m_camMat = {};
-		m_camMat.camPos = {.0f, .0f, .0f, 1.0f};
-		m_camMat.mView = Matrix::Identity;
-		m_camMat.mProjection = Matrix::Identity;
+		m_camMat.mView = XMMatrixTranspose(m_pMainCamera->GetViewMatrix());
+		m_camMat.mProjection = XMMatrixTranspose(m_pMainCamera->GetProjMatrix());
+		m_camMat.camPos = XMMatrixInverse(nullptr, m_camMat.mView).r[3];
 
 		// 리소스 업데이트
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
@@ -566,6 +627,27 @@ namespace MMMEngine {
 
 		// Present our back buffer to our front buffer
 		m_pSwapChain->Present(m_rSyncInterval, 0);
+	}
+
+	int RenderManager::AddRenderer(Renderer* _renderer)
+	{
+		int index = static_cast<int>(m_renderers.size());
+		if (_renderer == nullptr)
+			return -1;
+		
+		m_renderers.push_back(_renderer);
+		m_renInitQueue.push(_renderer);
+		return index;
+	}
+
+	void RenderManager::RemoveRenderer(int _idx)
+	{
+		if (_idx < m_renderers.size() && _idx >= 0)
+		{
+			std::swap(m_renderers[_idx], m_renderers.back());
+			m_renderers[_idx]->renderIndex = _idx;
+			m_renderers.pop_back();
+		}
 	}
 
 	/*const int RenderManager::PropertyToIdx(const std::wstring& _propertyName) const

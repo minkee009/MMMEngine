@@ -17,6 +17,10 @@
 
 namespace fs = std::filesystem;
 
+#pragma warning(disable: 4251)
+#pragma warning(disable: 4834)
+#pragma warning(disable: 4244)
+
 RTTR_REGISTRATION
 {
 	using namespace rttr;

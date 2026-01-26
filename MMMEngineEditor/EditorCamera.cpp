@@ -112,6 +112,8 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
     Vector3 targetMovement = Vector3::Zero;
     static Vector3 movement = Vector3::Zero;
 
+    float wheel = Input::GetMouseScrollNotches();
+
     if (m_focusState.active)
     {
         m_focusState.elapsedTime += Time::GetUnscaledDeltaTime();
@@ -173,6 +175,20 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
         targetMovement += worldMat.Backward() * move.z;
         targetMovement += worldMat.Right() * move.x;
         targetMovement += worldMat.Up() * move.y;
+    }
+    else if (wheel != 0.0f)
+    {
+        // 관성 제거: 휠로 움직일 때는 기존 movement 스무딩을 끊어줌
+        movement = Vector3::Zero;
+        targetMovement = Vector3::Zero;
+
+        // 현재 카메라의 진행방향(앞/뒤)로 이동
+        Matrix worldMat = GetTransformMatrix();
+        Vector3 forward = worldMat.Backward(); // 카메라가 바라보는 방향
+
+        // 스크롤 방향/속도: 필요하면 부호만 바꿔
+        const float zoomSpeed = 2.0f; // 조절값(노치당 몇 유닛 이동)
+        SetPosition(GetPosition() + forward * (wheel * zoomSpeed));
     }
     else if (currentOp == 0 && Input::GetKey(KeyCode::MouseLeft))
     {

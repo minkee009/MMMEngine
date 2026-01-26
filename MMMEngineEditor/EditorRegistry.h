@@ -15,6 +15,6 @@ namespace MMMEngine::EditorRegistry
 	inline bool g_editor_project_loaded = false;
 
 	inline bool g_editor_scene_playing = false;     // 게임 진행중
-	inline bool g_editor_scene_stop = true;			// 시간정지 인가 아닌가
+	inline bool g_editor_scene_pause = true;		// 시간정지 인가 아닌가
 }
 

@@ -3,6 +3,8 @@
 #include "ProjectManager.h"
 #include "DLLHotLoadHelper.h"
 #include "BehaviourManager.h"
+#include "RenderManager.h"
+#include "ShaderInfo.h"
 #include "SceneManager.h"
 #include "SceneSerializer.h"
 #include "StringHelper.h"
@@ -42,7 +44,11 @@ namespace MMMEngine::Editor
                 const auto projectRoot =
                     ProjectManager::Get().GetActiveProject().rootPath;
 
+#ifdef _DEBUG
                 auto out = bm.BuildUserScripts(projectRoot, BuildConfiguration::Debug);
+#else
+                auto out = bm.BuildUserScripts(projectRoot, BuildConfiguration::Release);
+#endif
 
                 m_exitCode.store(out.exitCode);
                 m_building.store(false);
@@ -79,6 +85,8 @@ namespace MMMEngine::Editor
 
                 // 씬 매니저를 셧다운
                 // 오브젝트 매니저를 셧다운
+                RenderManager::Get().ClearAllCommands();
+
                 SceneManager::Get().ShutDown();
                 ObjectManager::Get().ShutDown();
 

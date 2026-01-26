@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <d3dcompiler.h>
 
+#include "RenderManager.h"
+
 namespace fs = std::filesystem;
 
 DEFINE_SINGLETON(MMMEngine::ShaderInfo);
@@ -14,7 +16,11 @@ void MMMEngine::ShaderInfo::CreateShaderReflection(std::wstring&& _filePath)
 
 	ShaderType _type = m_shaderTypeMap[_filePath];
 
-	fs::path filePath (_filePath);
+	// 절대경로 만들기
+	fs::path realPath(ResourceManager::Get().GetCurrentRootPath());
+	realPath = realPath / _filePath;
+
+	fs::path filePath (realPath);
 	if (!fs::exists(filePath))
 		throw std::runtime_error("ShaderInfo::CreateShaderReflection : Shader File not found !!");
 

@@ -1,6 +1,8 @@
 #include "SkeletalMesh.h"
 #include <rttr/registration.h>
 
+#pragma warning(disable: 4506)
+
 RTTR_REGISTRATION
 {
 	using namespace rttr;

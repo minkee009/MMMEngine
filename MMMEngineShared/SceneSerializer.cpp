@@ -550,7 +550,7 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
     g_objectTable.clear();
 }
 
-void MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene, SnapShot& snapshot)
+void MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene, SnapShot& snapshot, bool makeDefaultObjects)
 {
     auto sceneMUID = scene.GetMUID().IsEmpty() ? Utility::MUID::NewMUID() : scene.GetMUID();
 
@@ -580,6 +580,47 @@ void MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene, SnapShot&
         goJson["Components"] = compArray;
 
         goArray.push_back(goJson);
+    }
+
+    if (makeDefaultObjects)
+    {
+        // 카메라 생성
+        json goJson;
+        goJson["Name"] = "MainCamera";
+        goJson["MUID"] = Utility::MUID::NewMUID().ToString();
+        goJson["Layer"] = 0;
+        goJson["Tag"] = "MainCamera";
+        goJson["Active"] = true;
+
+        json compJson;
+        json compArray = json::array();
+        compJson["Type"] = "Transform";
+        compJson["Props"]["Position"] = json::array({ 0, 0, 0 });
+        compJson["Props"]["Rotation"] = json::array({ 0, 0, 0, 1 });
+        compJson["Props"]["Scale"] = json::array({ 1.0f, 1.0f, 1.0f });
+        compJson["Props"]["MUID"] = Utility::MUID::NewMUID().ToString();
+        compJson["Props"]["Parent"] = nullptr;
+
+        compArray.push_back(compJson);
+
+        compJson.clear();
+        compJson["Type"] = "Camera";
+        compJson["Props"]["FOV"] = 60;
+        compJson["Props"]["Near"] = 0.1f;
+        compJson["Props"]["Far"] = 1000.0f;
+        compJson["Props"]["AspectRatio"] = 16.0f / 9.0f;
+        compJson["Props"]["Enabled"] = true;
+        compJson["Props"]["MUID"] = Utility::MUID::NewMUID().ToString();
+
+        compArray.push_back(compJson);
+       
+        goJson["Components"] = compArray;
+        goArray.push_back(goJson);
+
+        // Directional Light 생성
+        //goJson.clear();
+        //compJson.clear();
+        //compArray.clear();
     }
 
     snapshot["GameObjects"] = goArray;

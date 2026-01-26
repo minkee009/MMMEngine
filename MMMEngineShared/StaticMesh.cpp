@@ -7,6 +7,8 @@
 //#include <wrl/client.h>
 //#include <d3d11_4.h>
 
+#pragma warning(disable: 4506)
+
 RTTR_REGISTRATION
 {
 	using namespace rttr;

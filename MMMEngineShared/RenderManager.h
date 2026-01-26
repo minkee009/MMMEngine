@@ -1,7 +1,10 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #pragma once
 #include "Export.h"
 #include "ExportSingleton.hpp"
-#include <RendererBase.h>
 #include <map>
 #include <vector>
 #include <memory>
@@ -12,9 +15,7 @@
 #include <wrl/client.h>
 #include <SimpleMath.h>
 
-#include <RenderShared.h>
 #include <Object.h>
-#include "json/json.hpp"
 #include <RenderCommand.h>
 
 #pragma comment (lib, "d3d11.lib")
@@ -22,20 +23,15 @@
 
 namespace MMMEngine
 {
-	class Transform;
-	class EditorCamera;
 	class Material;
-	class VShader;
-	class PShader;
+	class Camera;
+	class Renderer;
 	class MMMENGINE_API RenderManager : public Utility::ExportSingleton<RenderManager>
 	{
 		friend class Utility::ExportSingleton<RenderManager>;
-		friend class RendererBase;
 		friend class Material;
 	private:
 		RenderManager();
-		//std::map<int, std::vector<std::shared_ptr<RendererBase>>> m_Passes;
-		//std::queue<std::shared_ptr<RendererBase>> m_initQueue;
 
 		bool useBackBuffer = true;
 		DirectX::SimpleMath::Matrix m_worldMatrix;
@@ -44,11 +40,19 @@ namespace MMMEngine
 
 		std::map<RenderType, std::vector<RenderCommand>> m_renderCommands;
 		std::unordered_map<int, DirectX::SimpleMath::Matrix> m_objWorldMatMap;
+		std::vector<Renderer*> m_renderers;
+		std::queue<Renderer*> m_renInitQueue;
 		unsigned int m_rObjIdx = 0;
 		
 		void ApplyMatToContext(ID3D11DeviceContext4* _context, Material* _material);
 		void ExcuteCommands();
 		void InitCache();
+
+		void InitRenderers();
+		void UpdateRenderers();
+
+		void InitD3D();
+		void Start();
 	protected:
 		HWND m_hWnd;
 
@@ -97,14 +101,12 @@ namespace MMMEngine
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pTransbuffer = nullptr;		// 캠 버퍼
 
 		// 카메라 관련
-		//ObjPtr<EditorCamera> m_pCamera;
+		ObjPtr<Camera> m_pMainCamera;	// 메인 카메라 참조
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCambuffer = nullptr;		// 캠 버퍼
 
 	public:
 		void StartUp(HWND _hwnd, UINT _ClientWidth, UINT _ClientHeight);
-		void InitD3D();
 		void ShutDown();
-		void Start();
 
 		// 이 3개는 업데이트때마다 호출해서 관리할것
 		void SetWorldMatrix(DirectX::SimpleMath::Matrix& _world);
@@ -113,7 +115,7 @@ namespace MMMEngine
 
 		void ResizeSwapChainSize(int width, int height);
 		void ResizeSceneSize(int _width, int _height, int _sceneWidth, int _sceneHeight);
-		void UseBackBuffer(const bool _value) { useBackBuffer = _value; }
+		void UseBackBufferDraw(const bool _value) { useBackBuffer = _value; }
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView1> GetSceneRTV() { return m_pSceneRTV; }
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> GetSceneSRV() { return m_pSceneSRV; }
@@ -126,10 +128,17 @@ namespace MMMEngine
 		void AddCommand(RenderType _type, RenderCommand&& _command);	// 렌더커맨드 추가
 		int AddMatrix(const DirectX::SimpleMath::Matrix& _worldMatrix);		// 월드매트릭스 추가
 
+		void ClearAllCommands();
+
 		void BeginFrame();
 		void Render();
 		void RenderOnlyRenderer();
 		void EndFrame();
+
+		ObjPtr<Camera> GetCamera() { return m_pMainCamera; }
+		void SetCamera(const ObjPtr<Camera> _camera) { if(_camera) m_pMainCamera = _camera; }
+		int AddRenderer(Renderer* _renderer);
+		void RemoveRenderer(int _idx);
 
 		const Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_pDevice; }
 		const Microsoft::WRL::ComPtr<ID3D11DeviceContext4> GetContext() const { return m_pDeviceContext; }

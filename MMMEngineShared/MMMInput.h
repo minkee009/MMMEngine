@@ -10,6 +10,10 @@ namespace MMMEngine::Input
     inline bool GetKey(KeyCode keyCode) { return InputManager::Get().GetKey(keyCode); }
     inline bool GetKeyDown(KeyCode keyCode) { return InputManager::Get().GetKeyDown(keyCode); }
     inline bool GetKeyUp(KeyCode keyCode) { return InputManager::Get().GetKeyUp(keyCode); }
+    inline int  GetMouseScrollDelta() { return InputManager::Get().GetMouseScrollDelta(); }       // 이번 프레임 델타 (예: 120, -120, 240...)
+    inline float GetMouseScrollNotches() { return InputManager::Get().GetMouseScrollNotches(); }    // 이번 프레임 휠 칸 수 (1.0, -1.0, 2.0...)
+    inline bool GetMouseScrollUp() { return InputManager::Get().GetMouseScrollUp(); }          // 이번 프레임 위로 굴림
+    inline bool GetMouseScrollDown() { return InputManager::Get().GetMouseScrollDown(); }        // 이번 프레임 아래로 굴림
 
     //// 게임패드 버튼 (플랫폼 독립적)
     //enum class GamepadButton
