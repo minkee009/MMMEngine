@@ -76,7 +76,7 @@ namespace MMMEngine::Editor
     {
         BuildOutput output;
 
-        const char* configStr = "Release";//(config == BuildConfiguration::Debug) ? "Debug" : "Release";
+        const char* configStr = (config == BuildConfiguration::Debug) ? "Debug" : "Release";
 
         // MSBuild 명령 구성
         std::ostringstream cmdStream;
