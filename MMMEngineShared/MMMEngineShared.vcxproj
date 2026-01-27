@@ -201,6 +201,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="PhysicsEventCallback.h" />
     <ClInclude Include="PhysicsFilter.h" />
+    <ClInclude Include="PhysicsSettings.h" />
     <ClInclude Include="PhysScene.h" />
     <ClInclude Include="PhysX.h" />
     <ClInclude Include="PhysxHelper.h" />
