@@ -3,11 +3,12 @@
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include "Export.h"
 
 
 namespace MMMEngine
 {
-	class PhysXSimulationCallback : public physx::PxSimulationEventCallback
+	class MMMENGINE_API PhysXSimulationCallback : public physx::PxSimulationEventCallback
 	{
 	public:
 		~PhysXSimulationCallback() override = default;

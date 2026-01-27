@@ -76,7 +76,7 @@ namespace MMMEngine::Editor
     {
         BuildOutput output;
 
-        const char* configStr = "Release";//(config == BuildConfiguration::Debug) ? "Debug" : "Release";
+        const char* configStr = (config == BuildConfiguration::Debug) ? "Debug" : "Release";
 
         // MSBuild 명령 구성
         std::ostringstream cmdStream;
@@ -84,10 +84,10 @@ namespace MMMEngine::Editor
             << "\"" << vcxprojPath.string() << "\" "
             << "/p:Configuration=" << configStr << " "
             << "/p:Platform=x64 "
-            << "/m:" << std::thread::hardware_concurrency() << " "  // 병렬 빌드 (CPU 코어 수만큼)
-            << "/p:CL_MPCount=" << std::thread::hardware_concurrency() << " "  // 컴파일러 병렬화
-            << "/p:UseMultiToolTask=true "
-            << "/p:EnforceProcessCountAcrossBuilds=true "
+            //<< "/m:" << std::thread::hardware_concurrency() << " "  // 병렬 빌드 (CPU 코어 수만큼)
+            //<< "/p:CL_MPCount=" << std::thread::hardware_concurrency() << " "  // 컴파일러 병렬화
+            //<< "/p:UseMultiToolTask=true "
+            //<< "/p:EnforceProcessCountAcrossBuilds=true "
             << "/v:minimal "  // 최소 출력
             << "/nologo";     // 로고 숨김
 
@@ -167,7 +167,6 @@ namespace MMMEngine::Editor
 
         while (ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
         {
-            currentFileCount++;
             float percent = (static_cast<float>(currentFileCount) / totalFiles) * 100.0f;
 
             buffer[bytesRead] = '\0';

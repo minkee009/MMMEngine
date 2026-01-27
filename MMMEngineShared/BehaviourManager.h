@@ -62,6 +62,7 @@ namespace MMMEngine
 
 
 		void ReloadUserScripts(const std::string& name);
+		void UnloadUserScripts();
 
 		template<typename... Args>
 		void AllBroadCastBehaviourMessage(const std::string& messageName, Args&&... args)

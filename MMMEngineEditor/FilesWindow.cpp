@@ -1,4 +1,4 @@
-#include "FilesWindow.h"
+ï»¿#include "FilesWindow.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -8,7 +8,7 @@
 
 using namespace MMMEngine::EditorRegistry;
 
-// ¶Ç´Â unordered_setÀ¸·Î (°Ë»ö ¼º´É Çâ»ó)
+// ë˜ëŠ” unordered_setìœ¼ë¡œ (ê²€ìƒ‰ ì„±ëŠ¥ í–¥ìƒ)
 static inline std::unordered_set<std::string> fileExclusionsSet = {
     ".obj", ".csproj", ".vcxproj", ".filters", ".user", ".dll", ".exp", ".lib"
 };
@@ -20,7 +20,7 @@ void MMMEngine::Editor::FilesWindow::Render()
 
     ImGuiWindowClass wc;
     wc.ParentViewportId = ImGui::GetMainViewport()->ID;
-    wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // ÇÊ¿ä ½Ã ¼³Á¤
+    wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // í•„ìš” ì‹œ ì„¤ì •
 
     ImGui::SetNextWindowClass(&wc);
 
@@ -49,10 +49,7 @@ void MMMEngine::Editor::FilesWindow::Render()
     }
     m_moveQueue.clear();
 
-    static const char* ICON_FOLDER = "\xef\x81\xbc";
-
-    std::string title = std::string(ICON_FOLDER) + u8" ÆÄÀÏ ºä¾î";
-    ImGui::Begin(title.c_str(), &g_editor_window_files);
+    ImGui::Begin(u8"\uf07c íŒŒì¼ ë·°ì–´", &g_editor_window_files);
 
     hovered = ImGui::IsWindowHovered();
 
@@ -61,7 +58,7 @@ void MMMEngine::Editor::FilesWindow::Render()
         const auto& project = ProjectManager::Get().GetActiveProject();
         fs::path root = fs::path(project.rootPath);
 
-        // ÃÊ±âÈ­: ÇöÀç µğ·ºÅä¸®°¡ ºñ¾îÀÖÀ¸¸é ·çÆ®·Î ¼³Á¤
+        // ì´ˆê¸°í™”: í˜„ì¬ ë””ë ‰í† ë¦¬ê°€ ë¹„ì–´ìˆìœ¼ë©´ ë£¨íŠ¸ë¡œ ì„¤ì •
         if (m_currentDirectory.empty())
         {
             m_currentDirectory = root;
@@ -85,7 +82,7 @@ void MMMEngine::Editor::FilesWindow::DrawToolbar(const fs::path& root)
     float windowVisibleX2 = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
     float spacing = ImGui::GetStyle().ItemSpacing.x;
 
-    // µµ¿ì¹Ì ÇÔ¼ö: ÀÌÀü ¾ÆÀÌÅÛ ÀÌÈÄ¿¡ ´ÙÀ½ ¾ÆÀÌÅÛÀÌ µé¾î°¥ °ø°£ÀÌ ÀÖ´ÂÁö È®ÀÎ
+    // ë„ìš°ë¯¸ í•¨ìˆ˜: ì´ì „ ì•„ì´í…œ ì´í›„ì— ë‹¤ìŒ ì•„ì´í…œì´ ë“¤ì–´ê°ˆ ê³µê°„ì´ ìˆëŠ”ì§€ í™•ì¸
     auto ConfirmSameLine = [&](float nextItemWidth) {
         float lastItemX2 = ImGui::GetItemRectMax().x;
         float nextItemX2 = lastItemX2 + spacing + nextItemWidth;
@@ -93,7 +90,7 @@ void MMMEngine::Editor::FilesWindow::DrawToolbar(const fs::path& root)
             ImGui::SameLine();
         };
 
-    // 1. µÚ·Î °¡±â (Ã¹ ¹øÂ° ¾ÆÀÌÅÛÀº SameLine Ã¼Å©°¡ ÇÊ¿ä ¾øÀ½)
+    // 1. ë’¤ë¡œ ê°€ê¸° (ì²« ë²ˆì§¸ ì•„ì´í…œì€ SameLine ì²´í¬ê°€ í•„ìš” ì—†ìŒ)
     ImGui::BeginDisabled(m_historyIndex <= 0);
     if (ImGui::Button("\xef\x81\xa0"))
     {
@@ -103,9 +100,9 @@ void MMMEngine::Editor::FilesWindow::DrawToolbar(const fs::path& root)
         }
     }
     ImGui::EndDisabled();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip(u8"µÚ·Î °¡±â");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip(u8"ë’¤ë¡œ ê°€ê¸°");
 
-    // 2. ¾ÕÀ¸·Î °¡±â
+    // 2. ì•ìœ¼ë¡œ ê°€ê¸°
     ConfirmSameLine(ImGui::GetFrameHeight());
     ImGui::BeginDisabled(m_historyIndex >= (int)m_navigationHistory.size() - 1);
     if (ImGui::Button("\xef\x81\xa1"))
@@ -116,9 +113,9 @@ void MMMEngine::Editor::FilesWindow::DrawToolbar(const fs::path& root)
         }
     }
     ImGui::EndDisabled();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip(u8"¾ÕÀ¸·Î °¡±â");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip(u8"ì•ìœ¼ë¡œ ê°€ê¸°");
 
-    // 3. »óÀ§ Æú´õ·Î
+    // 3. ìƒìœ„ í´ë”ë¡œ
     ConfirmSameLine(ImGui::GetFrameHeight());
     ImGui::BeginDisabled(m_currentDirectory == root);
     if (ImGui::Button("\xef\x81\xa2"))
@@ -128,33 +125,33 @@ void MMMEngine::Editor::FilesWindow::DrawToolbar(const fs::path& root)
         }
     }
     ImGui::EndDisabled();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip(u8"»óÀ§ Æú´õ·Î");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip(u8"ìƒìœ„ í´ë”ë¡œ");
 
-    // 4. ¾ÆÀÌÄÜ Å©±â ½½¶óÀÌ´õ (±×·ìÈ­)
+    // 4. ì•„ì´ì½˜ í¬ê¸° ìŠ¬ë¼ì´ë” (ê·¸ë£¹í™”)
     float sliderWidth = 100.0f;
-    float sliderGroupWidth = ImGui::CalcTextSize(u8"¾ÆÀÌÄÜ Å©±â:").x + spacing + sliderWidth;
+    float sliderGroupWidth = ImGui::CalcTextSize(u8"ì•„ì´ì½˜ í¬ê¸°:").x + spacing + sliderWidth;
     ConfirmSameLine(sliderGroupWidth);
     ImGui::BeginGroup();
-    ImGui::Text(u8"¾ÆÀÌÄÜ Å©±â:");
+    ImGui::Text(u8"ì•„ì´ì½˜ í¬ê¸°:");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(sliderWidth);
     ImGui::SliderFloat("##iconsize", &m_iconSize, 50.0f, 150.0f, "%.0f");
     ImGui::EndGroup();
 
-    // 5. »õ Æú´õ ¹öÆ°
-    float newFolderBtnWidth = ImGui::CalcTextSize(u8"»õ Æú´õ").x + ImGui::GetStyle().FramePadding.x * 2;
+    // 5. ìƒˆ í´ë” ë²„íŠ¼
+    float newFolderBtnWidth = ImGui::CalcTextSize(u8"ìƒˆ í´ë”").x + ImGui::GetStyle().FramePadding.x * 2;
     ConfirmSameLine(newFolderBtnWidth);
-    if (ImGui::Button(u8"»õ Æú´õ"))
+    if (ImGui::Button(u8"ìƒˆ í´ë”"))
     {
         fs::path newFolderPath = MakeFolderUnique(m_currentDirectory, "folder");
         fs::create_directories(newFolderPath);
     }
 
-    // 6. »èÁ¦ ¹öÆ°
-    float deleteBtnWidth = ImGui::CalcTextSize(u8"»èÁ¦").x + ImGui::GetStyle().FramePadding.x * 2;
+    // 6. ì‚­ì œ ë²„íŠ¼
+    float deleteBtnWidth = ImGui::CalcTextSize(u8"ì‚­ì œ").x + ImGui::GetStyle().FramePadding.x * 2;
     ConfirmSameLine(deleteBtnWidth);
     ImGui::BeginDisabled(selectedFileOrDir.empty());
-    if (ImGui::Button(u8"»èÁ¦"))
+    if (ImGui::Button(u8"ì‚­ì œ"))
     {
         try {
             fs::path toDelete(selectedFileOrDir);
@@ -192,7 +189,7 @@ void MMMEngine::Editor::FilesWindow::DrawNavigationBar(const fs::path& root)
             ImGui::SameLine();
         }
 
-        // imgui id push·Î ÆÄÀÏ ¾È¿¡ °°Àº ÀÌ¸§ÀÇ ÆÄÀÏÀÌ ÀÖ´õ¶óµµ UI ID°ãÄ§ ¹æÁö
+        // imgui id pushë¡œ íŒŒì¼ ì•ˆì— ê°™ì€ ì´ë¦„ì˜ íŒŒì¼ì´ ìˆë”ë¼ë„ UI IDê²¹ì¹¨ ë°©ì§€
         ImGui::PushID(static_cast<int>(i));
 
         std::string label = (i == 0) ? "Root" : pathParts[i].filename().string();
@@ -306,13 +303,13 @@ void MMMEngine::Editor::FilesWindow::DrawGridView(const fs::path& root)
     // Right click menu on empty space
     if (ImGui::BeginPopupContextItem("EmptySpaceRightClickMenu"))
     {
-        if (ImGui::MenuItem(u8"»õ Æú´õ"))
+        if (ImGui::MenuItem(u8"ìƒˆ í´ë”"))
         {
             fs::path newFolderPath = MakeFolderUnique(m_currentDirectory, "folder");
             fs::create_directories(newFolderPath);
         }
 
-        if (ImGui::MenuItem(u8"»õ ½ºÅ©¸³Æ®"))
+        if (ImGui::MenuItem(u8"ìƒˆ ìŠ¤í¬ë¦½íŠ¸"))
         {
             m_openCreateScriptModalRequest = true;
             m_newScriptParentDirectory = m_currentDirectory.string();
@@ -324,20 +321,20 @@ void MMMEngine::Editor::FilesWindow::DrawGridView(const fs::path& root)
     // Create Script Modal
     if (m_openCreateScriptModalRequest)
     {
-        ImGui::OpenPopup(u8"½ºÅ©¸³Æ® »ı¼º");
+        ImGui::OpenPopup(u8"ìŠ¤í¬ë¦½íŠ¸ ìƒì„±");
         m_openCreateScriptModalRequest = false;
     }
 
     ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver);
-    if (ImGui::BeginPopupModal(u8"½ºÅ©¸³Æ® »ı¼º", nullptr, ImGuiWindowFlags_NoResize))
+    if (ImGui::BeginPopupModal(u8"ìŠ¤í¬ë¦½íŠ¸ ìƒì„±", nullptr, ImGuiWindowFlags_NoResize))
     {
-        ImGui::Text(u8"ÀÌ¸§:");
+        ImGui::Text(u8"ì´ë¦„:");
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
         ImGui::InputText("##scriptname", m_newScriptName, sizeof(m_newScriptName));
 
         bool emptyName = strlen(m_newScriptName) == 0;
         ImGui::BeginDisabled(emptyName);
-        if (ImGui::Button(u8"»ı¼º"))
+        if (ImGui::Button(u8"ìƒì„±"))
         {
             CreateNewScript(m_newScriptParentDirectory, m_newScriptName);
             memset(m_newScriptName, 0, sizeof(m_newScriptName));
@@ -347,7 +344,7 @@ void MMMEngine::Editor::FilesWindow::DrawGridView(const fs::path& root)
 
         ImGui::SameLine();
 
-        if (ImGui::Button(u8"Ãë¼Ò"))
+        if (ImGui::Button(u8"ì·¨ì†Œ"))
         {
             memset(m_newScriptName, 0, sizeof(m_newScriptName));
             ImGui::CloseCurrentPopup();
@@ -430,10 +427,10 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
     ImGui::GetWindowDrawList()->AddRectFilled(iconMin, iconMax, iconColor, 8.0f);
 
     // Draw icon glyph (centered)
-// ¾ÆÀÌÄÜ ÅØ½ºÆ® Å©±â °è»ê
+// ì•„ì´ì½˜ í…ìŠ¤íŠ¸ í¬ê¸° ê³„ì‚°
     ImVec2 iconTextSize = ImGui::CalcTextSize(iconGlyph);
 
-    // Áß¾Ó Á¤·Ä À§Ä¡ °è»ê
+    // ì¤‘ì•™ ì •ë ¬ ìœ„ì¹˜ ê³„ì‚°
     ImVec2 iconTextPos(
         iconMin.x + (m_iconSize - iconTextSize.x) * 0.5f,
         iconMin.y + (m_iconSize - iconTextSize.y) * 0.5f
@@ -500,7 +497,7 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
     // Right click menu
     if (ImGui::BeginPopupContextItem("ItemContextMenu"))
     {
-        if (ImGui::MenuItem(u8"»èÁ¦"))
+        if (ImGui::MenuItem(u8"ì‚­ì œ"))
         {
             try
             {
@@ -523,13 +520,13 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
         if (isDirectory)
         {
             ImGui::Separator();
-            if (ImGui::MenuItem(u8"»õ Æú´õ"))
+            if (ImGui::MenuItem(u8"ìƒˆ í´ë”"))
             {
                 fs::path newFolderPath = MakeFolderUnique(path, "folder");
                 fs::create_directories(newFolderPath);
             }
 
-            if (ImGui::MenuItem(u8"»õ ½ºÅ©¸³Æ®"))
+            if (ImGui::MenuItem(u8"ìƒˆ ìŠ¤í¬ë¦½íŠ¸"))
             {
                 m_openCreateScriptModalRequest = true;
                 m_newScriptParentDirectory = pathStr;
@@ -670,10 +667,10 @@ void MMMEngine::Editor::FilesWindow::OpenFileInEditor(const fs::path& filePath)
 {
     std::string ext = filePath.extension().string();
 
-    // C++ ¼Ò½º ÆÄÀÏÀÎ °æ¿ì Visual Studio·Î ¿­±â
+    // C++ ì†ŒìŠ¤ íŒŒì¼ì¸ ê²½ìš° Visual Studioë¡œ ì—´ê¸°
     if (ext == ".cpp" || ext == ".h" || ext == ".hpp" || ext == ".c")
     {
-        // ÇÁ·ÎÁ§Æ® °æ·Î °¡Á®¿À±â
+        // í”„ë¡œì íŠ¸ ê²½ë¡œ ê°€ì ¸ì˜¤ê¸°
         const auto& project = ProjectManager::Get().GetActiveProject();
         fs::path projectRoot = fs::path(project.rootPath);
         fs::path vcxprojPath = projectRoot / "Source" / "UserScripts" / "UserScripts.vcxproj";
@@ -681,19 +678,19 @@ void MMMEngine::Editor::FilesWindow::OpenFileInEditor(const fs::path& filePath)
         if (fs::exists(vcxprojPath))
         {
 #ifdef _WIN32
-            // Visual Studio¿¡¼­ ÇÁ·ÎÁ§Æ®¿Í ÆÄÀÏÀ» ÇÔ²² ¿­±â
+            // Visual Studioì—ì„œ í”„ë¡œì íŠ¸ì™€ íŒŒì¼ì„ í•¨ê»˜ ì—´ê¸°
             std::string cmd = "start devenv \"" + vcxprojPath.string() + "\" \"" + filePath.string() + "\"";
             int result = system(cmd.c_str());
 
             if (result == 0)
             {
-                return; // ¼º°øÀûÀ¸·Î ¿­·ÈÀ¸¸é Á¾·á
+                return; // ì„±ê³µì ìœ¼ë¡œ ì—´ë ¸ìœ¼ë©´ ì¢…ë£Œ
             }
 #endif
         }
     }
 
-    // ±âº» ¿¡µğÅÍ·Î ¿­±â (Æú¹é)
+    // ê¸°ë³¸ ì—ë””í„°ë¡œ ì—´ê¸° (í´ë°±)
 #ifdef _WIN32
     std::string cmd = "code \"" + filePath.string() + "\"";
     int result = system(cmd.c_str());

@@ -24,11 +24,16 @@ bool MMMEngine::ScriptLoader::LoadScriptDLL(const std::string& dllName)
     return true;
 }
 
-MMMEngine::ScriptLoader::~ScriptLoader()
+void MMMEngine::ScriptLoader::UnloadScript()
 {
     if (m_pLoadedModule)
     {
         m_pLoadedModule->unload();
         m_pLoadedModule.reset();
     }
+}
+
+MMMEngine::ScriptLoader::~ScriptLoader()
+{
+    UnloadScript();
 }
