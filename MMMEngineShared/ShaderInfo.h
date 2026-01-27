@@ -92,7 +92,7 @@ namespace MMMEngine {
 		// 상수버퍼 저장용 맵 <constantBufferName, ID3D11Buffer>
 		std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<ID3D11Buffer>> m_CBBufferMap;
 
-
+		// 라이트
 
 		
 		//// 텍스쳐 버퍼인덱스 주는 맵 <propertyName, index> (int == shader tN)

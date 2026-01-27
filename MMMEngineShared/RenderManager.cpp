@@ -36,7 +36,9 @@ namespace MMMEngine {
 
 	void RenderManager::ApplyMatToContext(ID3D11DeviceContext4* _context, Material* _material)
 	{
-		
+		if (_material->GetFilePath().empty())
+			return;
+
 		auto VS = _material->GetVShader();
 		auto PS = _material->GetPShader();
 		_context->VSSetShader(VS->m_pVShader.Get(), nullptr, 0);
@@ -147,7 +149,7 @@ namespace MMMEngine {
 			auto renderer = m_renInitQueue.front();
 			m_renInitQueue.pop();
 
-			if (!renderer->isEnabled)
+			if (!renderer->IsActiveAndEnabled())
 				m_renInitQueue.push(renderer);
 			else
 				renderer->Init();
@@ -157,7 +159,7 @@ namespace MMMEngine {
 	void RenderManager::UpdateRenderers()
 	{
 		for (auto& renderer : m_renderers) {
-			if (renderer->isEnabled) {
+			if (renderer->IsActiveAndEnabled()) {
 				renderer->Render();
 			}
 		}
