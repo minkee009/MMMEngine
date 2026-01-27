@@ -4,6 +4,30 @@
 #include "Building.h"
 #include "MMMTime.h"
 #include "Transform.h"
+#include "rttr/registration"
+#include "rttr/detail/policies/ctor_policies.h"
+
+RTTR_PLUGIN_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<Enemy>("Enemy")
+		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<Enemy>>()));
+
+	registration::class_<ObjPtr<Enemy>>("ObjPtr<Enemy>")
+		.constructor(
+			[]() {
+				return Object::NewObject<Enemy>();
+			});
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Enemy>>();
+}
+
+void MMMEngine::Enemy::Start()
+{
+
+}
 
 void MMMEngine::Enemy::Initialize()
 {
@@ -147,7 +171,5 @@ void MMMEngine::Enemy::CheckPlayer()
 
 void MMMEngine::Enemy::PlayerHitMe()
 {
-	if (!attackCastle) {
-		playerFind = true;
-	}
+	playerFind = true;
 }

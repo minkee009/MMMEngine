@@ -53,26 +53,12 @@ static float StepYaw(float current, float target, float maxStep)
 
 void MMMEngine::Player::Start()
 {
-}
-
-void MMMEngine::Player::Initialize()
-{
 	tr = GetTransform();
-	targetEnemy = nullptr;
-	matchedSnowball = nullptr;
 	auto fwd = tr->GetWorldMatrix().Forward();
 
 	// +Z가 전방인 LH 기준 yaw 계산
 	yawRad = atan2f(fwd.x, fwd.z);
 	yawRad = WrapPi(yawRad);
-}
-
-void MMMEngine::Player::UnInitialize()
-{
-	if (targetEnemy)
-		targetEnemy = nullptr;
-	if (matchedSnowball)
-		matchedSnowball = nullptr;
 }
 
 void MMMEngine::Player::Update()

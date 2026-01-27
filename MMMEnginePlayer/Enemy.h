@@ -1,16 +1,26 @@
 #pragma once
 #include "ScriptBehaviour.h"
 #include <SimpleMath.h>
+#include "Export.h"
+#include "rttr/type"
 
 namespace MMMEngine {
 	class Transform;
 	class Player;
 	class Castle;
-	class Enemy : public ScriptBehaviour
+	class MMMENGINE_API Enemy : public ScriptBehaviour
 	{
+		RTTR_ENABLE(ScriptBehaviour)
+		RTTR_REGISTRATION_FRIEND
 	public:
+		Enemy()
+		{
+			REGISTER_BEHAVIOUR_MESSAGE(Start)
+			REGISTER_BEHAVIOUR_MESSAGE(Update)
+		}
 		void Initialize() override;
 		void UnInitialize() override;
+		void Start();
 		void Update();
 		void GetDamage(int t) { HP - t; HP = std::max(HP, 0); };
 		void PlayerHitMe();

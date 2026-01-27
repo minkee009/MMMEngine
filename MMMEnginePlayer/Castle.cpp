@@ -1,5 +1,29 @@
 #include "Castle.h"
 #include "MMMTime.h"
+#include "rttr/registration"
+#include "rttr/detail/policies/ctor_policies.h"
+
+RTTR_PLUGIN_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<Castle>("Castle")
+		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<Castle>>()));
+
+	registration::class_<ObjPtr<Castle>>("ObjPtr<Castle>")
+		.constructor(
+			[]() {
+				return Object::NewObject<Castle>();
+			});
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Castle>>();
+}
+
+void MMMEngine::Castle::Start()
+{
+
+}
 
 void MMMEngine::Castle::Initialize()
 {

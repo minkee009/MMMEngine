@@ -1,15 +1,25 @@
 #pragma once
 #include "ScriptBehaviour.h"
 #include "SimpleMath.h"
+#include "Export.h"
+#include "rttr/type"
 
 namespace MMMEngine {
 	class Transform;
 	class Player;
-	class Snowball : public ScriptBehaviour
+	class MMMENGINE_API Snowball : public ScriptBehaviour
 	{
+		RTTR_ENABLE(ScriptBehaviour)
+		RTTR_REGISTRATION_FRIEND
 	public:
+		Snowball()
+		{
+			REGISTER_BEHAVIOUR_MESSAGE(Start)
+			REGISTER_BEHAVIOUR_MESSAGE(Update)
+		}
 		void Initialize() override;
 		void UnInitialize() override;
+		void Start();
 		void Update();
 		void EatSnow(ObjPtr<GameObject> other);
 		float GetScale() const { return scale; };

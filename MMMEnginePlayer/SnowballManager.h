@@ -3,6 +3,8 @@
 #include <vector>
 #include <unordered_map>
 #include <SimpleMath.h>
+#include "Export.h"
+#include "rttr/type"
 
 namespace MMMEngine {
 	class Player;
@@ -10,9 +12,17 @@ namespace MMMEngine {
 	class Transform;
 	class SnowballManager : public ScriptBehaviour
 	{
+		RTTR_ENABLE(ScriptBehaviour)
+		RTTR_REGISTRATION_FRIEND
 	public:
+		SnowballManager()
+		{
+			REGISTER_BEHAVIOUR_MESSAGE(Start)
+			REGISTER_BEHAVIOUR_MESSAGE(Update)
+		}
 		void Initialize() override;
 		void UnInitialize() override;
+		void Start();
 		void Update();
 		void OnScoopStart(Player& player);
 		void OnScoopHold(Player& player);

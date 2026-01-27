@@ -2,8 +2,16 @@
 #include "Enemy.h"
 
 namespace MMMEngine {
-	class NormalEnemy : public Enemy
+	class MMMENGINE_API NormalEnemy : public Enemy
 	{
+		RTTR_ENABLE(Enemy)
+		RTTR_REGISTRATION_FRIEND
+	public:
+		NormalEnemy()
+		{
+			REGISTER_BEHAVIOUR_MESSAGE(Start)
+			REGISTER_BEHAVIOUR_MESSAGE(Update)
+		}
 	protected:
 		void Configure() override
 		{

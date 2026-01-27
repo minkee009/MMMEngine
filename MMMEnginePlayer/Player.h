@@ -45,7 +45,7 @@ namespace MMMEngine {
 		float offset = 1.5f; //눈과 플레이어간의 거리
 		bool isMoving = false;
 		bool scoopHeld = false;
-		ObjPtr<Transform> tr;
+		ObjPtr<Transform> tr = GetTransform();
 		DirectX::SimpleMath::Vector3 pos;
 		DirectX::SimpleMath::Quaternion rot;
 	public:
@@ -54,8 +54,6 @@ namespace MMMEngine {
 			REGISTER_BEHAVIOUR_MESSAGE(Start)
 			REGISTER_BEHAVIOUR_MESSAGE(Update)
 		}
-		void Initialize() override;
-		void UnInitialize() override;
 		void Start();
 		void Update();
 		void GetDamage(int t);

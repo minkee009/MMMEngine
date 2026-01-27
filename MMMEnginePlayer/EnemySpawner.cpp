@@ -5,6 +5,30 @@
 #include "MMMTime.h"
 #include "Transform.h"
 #include "MeshRenderer.h"
+#include "rttr/registration"
+#include "rttr/detail/policies/ctor_policies.h"
+
+RTTR_PLUGIN_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<EnemySpawner>("EnemySpawner")
+		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<EnemySpawner>>()));
+
+	registration::class_<ObjPtr<EnemySpawner>>("ObjPtr<EnemySpawner>")
+		.constructor(
+			[]() {
+				return Object::NewObject<EnemySpawner>();
+			});
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<EnemySpawner>>();
+}
+
+void MMMEngine::EnemySpawner::Start()
+{
+
+}
 
 void MMMEngine::EnemySpawner::Initialize()
 {

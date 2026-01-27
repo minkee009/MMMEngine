@@ -2,6 +2,30 @@
 #include "MMMTime.h"
 #include "Player.h"
 #include "Transform.h"
+#include "rttr/registration"
+#include "rttr/detail/policies/ctor_policies.h"
+
+RTTR_PLUGIN_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<Player>("Snowball")
+		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<Snowball>>()));
+
+	registration::class_<ObjPtr<Snowball>>("ObjPtr<Snowball>")
+		.constructor(
+			[]() {
+				return Object::NewObject<Snowball>();
+			});
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Snowball>>();
+}
+
+void Start()
+{
+
+}
 
 void MMMEngine::Snowball::Initialize()
 {

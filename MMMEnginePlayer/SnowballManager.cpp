@@ -6,6 +6,30 @@
 #include "Transform.h"
 #include "Castle.h"
 #include "Building.h"
+#include "rttr/registration"
+#include "rttr/detail/policies/ctor_policies.h"
+
+RTTR_PLUGIN_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<SnowballManager>("SnowballManager")
+		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<SnowballManager>>()));
+
+	registration::class_<ObjPtr<SnowballManager>>("ObjPtr<SnowballManager>")
+		.constructor(
+			[]() {
+				return Object::NewObject<SnowballManager>();
+			});
+
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<SnowballManager>>();
+}
+
+void MMMEngine::SnowballManager::Start()
+{
+
+}
 
 void MMMEngine::SnowballManager::Initialize()
 {
