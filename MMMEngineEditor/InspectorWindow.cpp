@@ -1,4 +1,4 @@
-#include "InspectorWindow.h"
+ï»¿#include "InspectorWindow.h"
 #include "SceneManager.h"
 #include "Transform.h"
 #include "Resource.h"
@@ -26,7 +26,7 @@ static std::unordered_map<std::string, std::string> g_stringEditCache;
 
 static std::string MakeStringKey(const rttr::instance& inst, const rttr::property& prop)
 {
-    // °£´ÜÈ÷: Å¸ÀÔ¸í + ÇÁ·ÎÆÛÆ¼¸í (ÀÎ½ºÅÏ½ºº° ±¸ºĞ±îÁö ÇÏ·Á¸é ÁÖ¼Ò/ID Ãß°¡ ±ÇÀå)
+    // ê°„ë‹¨íˆ: íƒ€ì…ëª… + í”„ë¡œí¼í‹°ëª… (ì¸ìŠ¤í„´ìŠ¤ë³„ êµ¬ë¶„ê¹Œì§€ í•˜ë ¤ë©´ ì£¼ì†Œ/ID ì¶”ê°€ ê¶Œì¥)
     auto tname = inst.get_derived_type().get_name().to_string();
     auto pname = prop.get_name().to_string();
     return tname + "::" + pname;
@@ -40,7 +40,7 @@ void RefreshComponentTypes()
 
     for (const rttr::type& t : rttr::type::get_types())
     {
-        // Æ÷ÀÎÅÍ/±âº»Çü/ÄÁÅ×ÀÌ³Ê µîÀº Á¦¿ÜÇÏ°í, "Å¬·¡½º/±¸Á¶Ã¼(record)"¸¸
+        // í¬ì¸í„°/ê¸°ë³¸í˜•/ì»¨í…Œì´ë„ˆ ë“±ì€ ì œì™¸í•˜ê³ , "í´ë˜ìŠ¤/êµ¬ì¡°ì²´(record)"ë§Œ
         if (!t.is_class())
             continue;
 
@@ -62,7 +62,7 @@ void RenderProperties(rttr::instance inst)
     if (s_lastCachedObject != g_selectedGameObject)
     {
         static std::unordered_map<std::string, std::string> emptyCache;
-        cache.swap(emptyCache); // Ä³½Ã Å¬¸®¾î
+        cache.swap(emptyCache); // ìºì‹œ í´ë¦¬ì–´
         s_lastCachedObject = g_selectedGameObject;
     }
 
@@ -74,7 +74,7 @@ void RenderProperties(rttr::instance inst)
         if (v.is_valid() && v.is_type<MUID>())
             ImGui::PushID(v.get_value<MUID>().ToStringWithoutHyphens().c_str());
         else
-            ImGui::PushID(inst.try_convert<void*>()); // ÁÖ¼Ò ±â¹İ(¿¹½Ã)
+            ImGui::PushID(inst.try_convert<void*>()); // ì£¼ì†Œ ê¸°ë°˜(ì˜ˆì‹œ)
     }
     else
     {
@@ -89,7 +89,7 @@ void RenderProperties(rttr::instance inst)
 
         rttr::variant var = prop.get_value(inst);
         if (!var.is_valid())
-            continue; // ÀĞ±â ºÒ°¡(Á¢±ÙÁ¤Ã¥/µî·Ï¹®Á¦ µî)
+            continue; // ì½ê¸° ë¶ˆê°€(ì ‘ê·¼ì •ì±…/ë“±ë¡ë¬¸ì œ ë“±)
 
 
         const std::string name = prop.get_name().to_string();
@@ -102,7 +102,7 @@ void RenderProperties(rttr::instance inst)
             float data[3] = { v.x, v.y, v.z };
             auto SnapToZero = [](float& v, float eps = 1e-4f)
                 {
-                    if (fabsf(v) < eps) v = 0.0f; // +0·Î ¸¸µé¾îÁü
+                    if (fabsf(v) < eps) v = 0.0f; // +0ë¡œ ë§Œë“¤ì–´ì§
                 };
             SnapToZero(data[0]);
             SnapToZero(data[1]);
@@ -194,13 +194,13 @@ void RenderProperties(rttr::instance inst)
                 if (innerType.is_derived_from(rttr::type::get<Resource>()) ||
                     innerType == rttr::type::get<Resource>())
                 {
-                    // ÇöÀç ¸®¼Ò½º
+                    // í˜„ì¬ ë¦¬ì†ŒìŠ¤
                     Resource* res = nullptr;
                     auto sharedRes = var.get_value<std::shared_ptr<Resource>>();
                     if (sharedRes)
                         res = sharedRes.get();
 
-                    // Ç¥½Ã¿ë °æ·Î
+                    // í‘œì‹œìš© ê²½ë¡œ
                     std::string displayPath = "None";
                     if (res)
                     {
@@ -213,10 +213,10 @@ void RenderProperties(rttr::instance inst)
                         }
                     }
 
-                    // ÇÁ·ÎÆÛÆ¼ ÀÌ¸§
+                    // í”„ë¡œí¼í‹° ì´ë¦„
                     ImGui::Text("%s:", name.c_str());
 
-                    // °æ·Î Ç¥½Ã (Å¬¸¯ °¡´ÉÇÏ°Ô)
+                    // ê²½ë¡œ í‘œì‹œ (í´ë¦­ ê°€ëŠ¥í•˜ê²Œ)
                     ImGui::PushID(name.c_str());
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
                     ImGui::Button(displayPath.c_str(), ImVec2(-1, 0));
@@ -229,11 +229,11 @@ void RenderProperties(rttr::instance inst)
                         {
                             std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
 
-                            // ÆÄÀÏ È®ÀåÀÚ °ËÁõ (¼±ÅÃ»çÇ×)
+                            // íŒŒì¼ í™•ì¥ì ê²€ì¦ (ì„ íƒì‚¬í•­)
                             std::string ext = std::filesystem::path(absolutePath).extension().string();
 
-                            // TODO: ¸®¼Ò½º Å¸ÀÔº° Çã¿ë È®ÀåÀÚ Ã¼Å©
-                            // ¿¹: StaticMesh -> .mesh, Texture -> .png/.jpg µî
+                            // TODO: ë¦¬ì†ŒìŠ¤ íƒ€ì…ë³„ í—ˆìš© í™•ì¥ì ì²´í¬
+                            // ì˜ˆ: StaticMesh -> .mesh, Texture -> .png/.jpg ë“±
 
                             std::string relativePath = ProjectManager::Get().ToProjectRelativePath(absolutePath);
                             std::wstring wRelativePath = StringHelper::StringToWString(relativePath);
@@ -246,13 +246,13 @@ void RenderProperties(rttr::instance inst)
                                 {
                                     if (!readOnly)
                                     {
-                                        if (loadedResource.convert(prop.get_type()))                  // v¸¦ ³»ºÎÀûÀ¸·Î target typeÀ¸·Î º¯È¯ (bool ¸®ÅÏ)
+                                        if (loadedResource.convert(prop.get_type()))                  // vë¥¼ ë‚´ë¶€ì ìœ¼ë¡œ target typeìœ¼ë¡œ ë³€í™˜ (bool ë¦¬í„´)
                                         {
-                                            prop.set_value(inst, loadedResource);                     // v´Â ÀÌÁ¦ shared_ptr<StaticMesh> Å¸ÀÔ variant
+                                            prop.set_value(inst, loadedResource);                     // vëŠ” ì´ì œ shared_ptr<StaticMesh> íƒ€ì… variant
                                         }
                                         else
                                         {
-                                            // º¯È¯ ½ÇÆĞ Ã³¸®
+                                            // ë³€í™˜ ì‹¤íŒ¨ ì²˜ë¦¬
                                         }
 
                                     }
@@ -279,7 +279,7 @@ void RenderProperties(rttr::instance inst)
                                         return utf8;
                                     };
 
-                                // TODO: ¿¡·¯ ·Î±×
+                                // TODO: ì—ëŸ¬ ë¡œê·¸
                                 std::cerr << "[Resource Load Error]\n"
                                     << "Type: " << innerType.get_name().to_string() << "\n"
                                     << "Path: " << StringHelper::WStringToString(wRelativePath) << "\n"
@@ -289,7 +289,7 @@ void RenderProperties(rttr::instance inst)
                         ImGui::EndDragDropTarget();
                     }
 
-                    // Clear ¹öÆ°
+                    // Clear ë²„íŠ¼
                     if (res != nullptr && !readOnly)
                     {
                         ImGui::SameLine();
@@ -306,7 +306,7 @@ void RenderProperties(rttr::instance inst)
         }
         else if (var.is_type<std::string>())
         {
-            // MUID °¡Á®¿À±â
+            // MUID ê°€ì ¸ì˜¤ê¸°
             rttr::property muidProp = t.get_property("MUID");
             rttr::variant muidVar = muidProp.get_value(inst);
             std::string muidStr = "unknown";
@@ -315,7 +315,7 @@ void RenderProperties(rttr::instance inst)
                 muidStr = muidVar.get_value<MMMEngine::Utility::MUID>().ToStringWithoutHyphens();
             }
 
-            // °íÀ¯ Å°: MUID + Å¸ÀÔ¸í + ÇÁ·ÎÆÛÆ¼¸í
+            // ê³ ìœ  í‚¤: MUID + íƒ€ì…ëª… + í”„ë¡œí¼í‹°ëª…
             std::string key = muidStr + "::" + inst.get_type().get_name().to_string() + "::" + name;
 
             std::string& editing = cache[key];
@@ -342,7 +342,7 @@ void RenderProperties(rttr::instance inst)
             auto SnapToZero = [](float& v, float eps = 1e-4f) {
                 if (fabsf(v) < eps) v = 0.0f;
                 };
-            // °íÀ¯ Å° (string Ä³½ÃÃ³·³)
+            // ê³ ìœ  í‚¤ (string ìºì‹œì²˜ëŸ¼)
             rttr::property muidProp = t.get_property("MUID");
             rttr::variant muidVar = muidProp.get_value(inst);
             std::string muidStr = (muidVar.is_valid() && muidVar.is_type<MMMEngine::Utility::MUID>())
@@ -351,23 +351,23 @@ void RenderProperties(rttr::instance inst)
 
             std::string key = muidStr + "::" + inst.get_type().get_name().to_string() + "::" + name;
 
-            // Quaternion¿ë Ä³½Ã¸¦ º°µµ·Î µÎ´Â°Ô ±ò²û (static map)
+            // Quaternionìš© ìºì‹œë¥¼ ë³„ë„ë¡œ ë‘ëŠ”ê²Œ ê¹”ë” (static map)
             static std::unordered_map<std::string, Vector3> eulerCache;
 
-            // 1) ½ÇÁ¦ °ª¿¡¼­ Euler °è»ê (µµ ´ÜÀ§)
+            // 1) ì‹¤ì œ ê°’ì—ì„œ Euler ê³„ì‚° (ë„ ë‹¨ìœ„)
             auto q = var.get_value<Quaternion>();
-            Vector3 eRad = q.ToEuler(); // (SimpleMath´Â º¸Åë rad ¹İÈ¯)
+            Vector3 eRad = q.ToEuler(); // (SimpleMathëŠ” ë³´í†µ rad ë°˜í™˜)
             Vector3 eDeg = { eRad.x * (180.f / XM_PI), eRad.y * (180.f / XM_PI), eRad.z * (180.f / XM_PI) };
 
-            // 2) Ä³½Ã ¾øÀ¸¸é ÃÊ±âÈ­
+            // 2) ìºì‹œ ì—†ìœ¼ë©´ ì´ˆê¸°í™”
             if (eulerCache.find(key) == eulerCache.end())
                 eulerCache[key] = eDeg;
 
-            // 3) ÀÎ½ºÆåÅÍ¿¡¼­ "ÇöÀç ÀÌ Ç×¸ñÀ» ÆíÁı Áß"ÀÎÁö ÆÇº°ÇÏ·Á¸é
-            //    DragFloat3 È£Ãâ ÈÄ IsItemActive¸¦ º¼ ¼ö ÀÖÀ¸´Ï,
-            //    È£Ãâ Àü¿¡´Â "ÀÌÀü ÇÁ·¹ÀÓÀÇ »óÅÂ"°¡ ¾ø¾î¼­ º¸Åë ÀÌ·¸°Ô Ã³¸®ÇÕ´Ï´Ù:
-            //    - ÀÏ´Ü data¸¦ Ä³½Ã·Î ¼¼ÆÃ
-            //    - DragFloat3 È£Ãâ ÈÄ, Active°¡ ¾Æ´Ï°í changedµµ ¾Æ´Ï¸é ½ÇÁ¦ °ªÀ¸·Î Ä³½Ã¸¦ µ¿±âÈ­
+            // 3) ì¸ìŠ¤í™í„°ì—ì„œ "í˜„ì¬ ì´ í•­ëª©ì„ í¸ì§‘ ì¤‘"ì¸ì§€ íŒë³„í•˜ë ¤ë©´
+            //    DragFloat3 í˜¸ì¶œ í›„ IsItemActiveë¥¼ ë³¼ ìˆ˜ ìˆìœ¼ë‹ˆ,
+            //    í˜¸ì¶œ ì „ì—ëŠ” "ì´ì „ í”„ë ˆì„ì˜ ìƒíƒœ"ê°€ ì—†ì–´ì„œ ë³´í†µ ì´ë ‡ê²Œ ì²˜ë¦¬í•©ë‹ˆë‹¤:
+            //    - ì¼ë‹¨ dataë¥¼ ìºì‹œë¡œ ì„¸íŒ…
+            //    - DragFloat3 í˜¸ì¶œ í›„, Activeê°€ ì•„ë‹ˆê³  changedë„ ì•„ë‹ˆë©´ ì‹¤ì œ ê°’ìœ¼ë¡œ ìºì‹œë¥¼ ë™ê¸°í™”
             float data[3] = { eulerCache[key].x, eulerCache[key].y, eulerCache[key].z };
 
 
@@ -376,16 +376,16 @@ void RenderProperties(rttr::instance inst)
             bool active = ImGui::IsItemActive();
             if (readOnly) ImGui::EndDisabled();
 
-            // 4) »ç¿ëÀÚ°¡ ÆíÁıÇÏÁö ¾Ê´Â µ¿¾È¿£ gizmo µî ¿ÜºÎ º¯°æÀ» ¹İ¿µ
+            // 4) ì‚¬ìš©ìê°€ í¸ì§‘í•˜ì§€ ì•ŠëŠ” ë™ì•ˆì—” gizmo ë“± ì™¸ë¶€ ë³€ê²½ì„ ë°˜ì˜
             if (!active && !changed)
             {
                 SnapToZero(eDeg.x);
                 SnapToZero(eDeg.y);
                 SnapToZero(eDeg.z);
-                eulerCache[key] = eDeg; // ¿ÜºÎ º¯°æ ¹İ¿µ(= gizmo ÃÖ½ÅÈ­)
+                eulerCache[key] = eDeg; // ì™¸ë¶€ ë³€ê²½ ë°˜ì˜(= gizmo ìµœì‹ í™”)
             }
 
-            // 5) »ç¿ëÀÚ°¡ ÀÎ½ºÆåÅÍ¿¡¼­ ÆíÁıÇÑ °æ¿ì¸¸ set_value
+            // 5) ì‚¬ìš©ìê°€ ì¸ìŠ¤í™í„°ì—ì„œ í¸ì§‘í•œ ê²½ìš°ë§Œ set_value
             if (changed && !readOnly)
             {
 
@@ -416,14 +416,14 @@ void RenderProperties(rttr::instance inst)
 
             std::string displayPath = res ? StringHelper::WStringToString(res->GetFilePath()) : "None";
 
-            // °æ·Î Ç¥½Ã ¹öÆ°
+            // ê²½ë¡œ í‘œì‹œ ë²„íŠ¼
             if (ImGui::Button(displayPath.c_str()))
             {
                 ImGui::OpenPopup("Select Resource");
             }
 
-            // Drag & Drop Áö¿ø
-            // NoneÀ¸·Î ¼³Á¤ ¹öÆ° (X)
+            // Drag & Drop ì§€ì›
+            // Noneìœ¼ë¡œ ì„¤ì • ë²„íŠ¼ (X)
         }
     }
     ImGui::PopID();
@@ -453,10 +453,10 @@ void MMMEngine::Editor::InspectorWindow::Render()
 		return;
 
 	ImGuiWindowClass wc;
-	// ÇÙ½É: ¸ŞÀÎ ºäÆ÷Æ®¿¡ ÀÌ À©µµ¿ì¸¦ Á¾¼Ó½ÃÅµ´Ï´Ù.
-	// ÀÌ·¸°Ô ÇÏ¸é ¸ŞÀÎ Ã¢À» Å¬¸¯ÇØµµ ÀÌ Ã¢ÀÌ '¸ŞÀÎ Ã¢ÀÇ ÀÏºÎ'·Î¼­ Ãë±ŞµÇ¾î ¿ì¼±¼øÀ§¸¦ °¡Áı´Ï´Ù.
+	// í•µì‹¬: ë©”ì¸ ë·°í¬íŠ¸ì— ì´ ìœˆë„ìš°ë¥¼ ì¢…ì†ì‹œí‚µë‹ˆë‹¤.
+	// ì´ë ‡ê²Œ í•˜ë©´ ë©”ì¸ ì°½ì„ í´ë¦­í•´ë„ ì´ ì°½ì´ 'ë©”ì¸ ì°½ì˜ ì¼ë¶€'ë¡œì„œ ì·¨ê¸‰ë˜ì–´ ìš°ì„ ìˆœìœ„ë¥¼ ê°€ì§‘ë‹ˆë‹¤.
 	wc.ParentViewportId = ImGui::GetMainViewport()->ID;
-	wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // ÇÊ¿ä ½Ã ¼³Á¤
+	wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // í•„ìš” ì‹œ ì„¤ì •
 
 	ImGui::SetNextWindowClass(&wc);
 
@@ -464,16 +464,12 @@ void MMMEngine::Editor::InspectorWindow::Render()
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
 
-    static const char* ICON_HIERARCHY = "\xef\x80\x82";
+	ImGui::Begin(u8"\uf002 ì¸ìŠ¤í™í„°", &g_editor_window_inspector);
 
-    std::string title = std::string(ICON_HIERARCHY) + u8" ÀÎ½ºÆåÅÍ";
-
-	ImGui::Begin(title.c_str(), &g_editor_window_inspector);
-
-    // 1. ¼±ÅÃµÈ °ÔÀÓ ¿ÀºêÁ§Æ®°¡ ÀÖ´ÂÁö È®ÀÎ
+    // 1. ì„ íƒëœ ê²Œì„ ì˜¤ë¸Œì íŠ¸ê°€ ìˆëŠ”ì§€ í™•ì¸
     if (g_selectedGameObject.IsValid())
     {
-        // 2. ¿ÀºêÁ§Æ® ÀÌ¸§ Ãâ·Â ¹× È°¼ºÈ­ »óÅÂ Ã¼Å©¹Ú½º
+        // 2. ì˜¤ë¸Œì íŠ¸ ì´ë¦„ ì¶œë ¥ ë° í™œì„±í™” ìƒíƒœ ì²´í¬ë°•ìŠ¤
         char buf[256];
         strcpy_s(buf, g_selectedGameObject->GetName().c_str());
         if (ImGui::InputText("##ObjName", buf, IM_ARRAYSIZE(buf)))
@@ -485,7 +481,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
 
         bool isActive = g_selectedGameObject->IsActiveSelf();
 
-        if (ImGui::Checkbox(u8"È°¼ºÈ­", &isActive))
+        if (ImGui::Checkbox(u8"í™œì„±í™”", &isActive))
         {
             g_selectedGameObject->SetActive(isActive);
         }
@@ -493,32 +489,32 @@ void MMMEngine::Editor::InspectorWindow::Render()
         char buf2[256];
         strcpy_s(buf2, g_selectedGameObject->GetTag().c_str());
         ImGui::SetNextItemWidth(150);
-        if (ImGui::InputText(u8"ÅÂ±×", buf2, IM_ARRAYSIZE(buf2)))
+        if (ImGui::InputText(u8"íƒœê·¸", buf2, IM_ARRAYSIZE(buf2)))
         {
             g_selectedGameObject->SetTag(buf2);
         }
 
         ImGui::SameLine();
 
-        // ÇöÀç ¿ÀºêÁ§Æ® ·¹ÀÌ¾î (0~31 °¡Á¤)
-        int curLayer = g_selectedGameObject->GetLayer();   // ¾øÀ¸¸é ¸â¹ö/ÀúÀå°ª ¾²¼¼¿ä
+        // í˜„ì¬ ì˜¤ë¸Œì íŠ¸ ë ˆì´ì–´ (0~31 ê°€ì •)
+        int curLayer = g_selectedGameObject->GetLayer();   // ì—†ìœ¼ë©´ ë©¤ë²„/ì €ì¥ê°’ ì“°ì„¸ìš”
         curLayer = (curLayer < 0) ? 0 : (curLayer > 31 ? 31 : curLayer);
 
-        // ¹Ì¸®º¸±â ÅØ½ºÆ®
+        // ë¯¸ë¦¬ë³´ê¸° í…ìŠ¤íŠ¸
         char preview[8];
         sprintf_s(preview, "%d", curLayer);
 
-        // Æø ÁöÁ¤
+        // í­ ì§€ì •
         ImGui::SetNextItemWidth(53);
 
-        if (ImGui::BeginCombo(u8"·¹ÀÌ¾î", preview))
+        if (ImGui::BeginCombo(u8"ë ˆì´ì–´", preview))
         {
             for (int n = 0; n <= 31; ++n)
             {
                 bool selected = (n == curLayer);
                 if (ImGui::Selectable(std::to_string(n).c_str(), selected))
                 {
-                    // ¼±ÅÃÇÏ´Â ¼ø°£ Áï½Ã ¹İ¿µ
+                    // ì„ íƒí•˜ëŠ” ìˆœê°„ ì¦‰ì‹œ ë°˜ì˜
                     g_selectedGameObject->SetLayer(n);
                     curLayer = n;
                 }
@@ -533,12 +529,12 @@ void MMMEngine::Editor::InspectorWindow::Render()
 
         g_pendingRemoveComponents.clear();
 
-        // 3. ¸ğµç ÄÄÆ÷³ÍÆ® ¼øÈ¸ ¹× ·»´õ¸µ
+        // 3. ëª¨ë“  ì»´í¬ë„ŒíŠ¸ ìˆœíšŒ ë° ë Œë”ë§
         auto& components = g_selectedGameObject->GetAllComponents();
         int compCount = 0;
         for (auto& comp : components)
         {
-            // °¢ ÄÄÆ÷³ÍÆ®ÀÇ µ¥ÀÌÅÍ¸¦ ImGui·Î Ãâ·Â
+            // ê° ì»´í¬ë„ŒíŠ¸ì˜ ë°ì´í„°ë¥¼ ImGuië¡œ ì¶œë ¥
             bool visible = true;
 
             std::string typeName = comp->get_type().get_name().to_string();
@@ -572,31 +568,31 @@ void MMMEngine::Editor::InspectorWindow::Render()
 
         // add component popup
         float width = ImGui::GetContentRegionAvail().x;
-        if (ImGui::Button(u8"ÄÄÆ÷³ÍÆ® Ãß°¡", ImVec2{ width, 0 }))
+        if (ImGui::Button(u8"ì»´í¬ë„ŒíŠ¸ ì¶”ê°€", ImVec2{ width, 0 }))
         {
-            ImGui::OpenPopup(u8"ÄÄÆ÷³ÍÆ® ¼±ÅÃ");
+            ImGui::OpenPopup(u8"ì»´í¬ë„ŒíŠ¸ ì„ íƒ");
         }
 
         // add component popup
         static char searchBuffer[256] = "";
         int selectedIndex = -1;
 
-        if (ImGui::BeginPopup(u8"ÄÄÆ÷³ÍÆ® ¼±ÅÃ"))
+        if (ImGui::BeginPopup(u8"ì»´í¬ë„ŒíŠ¸ ì„ íƒ"))
         {
             RefreshComponentTypes();
 
-            // °Ë»ö ÀÔ·Â ÇÊµå
+            // ê²€ìƒ‰ ì…ë ¥ í•„ë“œ
             ImGui::SetNextItemWidth(-1);
             if (ImGui::IsWindowAppearing())
             {
                 ImGui::SetKeyboardFocusHere();
-                searchBuffer[0] = '\0'; // ÆË¾÷ ¿­¸± ¶§¸¶´Ù °Ë»ö¾î ÃÊ±âÈ­
+                searchBuffer[0] = '\0'; // íŒì—… ì—´ë¦´ ë•Œë§ˆë‹¤ ê²€ìƒ‰ì–´ ì´ˆê¸°í™”
             }
-            ImGui::InputTextWithHint("##search", u8"°Ë»ö...", searchBuffer, IM_ARRAYSIZE(searchBuffer));
+            ImGui::InputTextWithHint("##search", u8"ê²€ìƒ‰...", searchBuffer, IM_ARRAYSIZE(searchBuffer));
 
             ImGui::Separator();
 
-            // ½ºÅ©·Ñ ¿µ¿ª (ÃÖ´ë 8°³ Ç×¸ñ ³ôÀÌ)
+            // ìŠ¤í¬ë¡¤ ì˜ì—­ (ìµœëŒ€ 8ê°œ í•­ëª© ë†’ì´)
             const float itemHeight = ImGui::GetTextLineHeightWithSpacing();
             const float maxHeight = itemHeight * 8;
 
@@ -610,7 +606,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
                 auto type = g_componentTypes[i];
                 std::string typeName = type.get_name().to_string();
 
-                // °Ë»ö ÇÊÅÍ¸µ
+                // ê²€ìƒ‰ í•„í„°ë§
                 if (searchStr.length() > 0)
                 {
                     std::string lowerTypeName = typeName;
@@ -640,7 +636,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
     }
     else
     {
-        ImGui::Text(u8"¼±ÅÃµÈ ¿ÀºêÁ§Æ®°¡ ¾ø½À´Ï´Ù.");
+        ImGui::Text(u8"ì„ íƒëœ ì˜¤ë¸Œì íŠ¸ê°€ ì—†ìŠµë‹ˆë‹¤.");
     }
 
 	ImGui::End();

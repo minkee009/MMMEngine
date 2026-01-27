@@ -75,6 +75,9 @@
     <ClCompile Include="BehaviourManager.cpp">
       <Filter>소스 파일\Core\Behaviour API</Filter>
     </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
@@ -187,9 +190,6 @@
     <Filter Include="소스 파일\Core\GlobalRegistry">
       <UniqueIdentifier>{217c690e-d5d9-466a-adc0-74b9d1005041}</UniqueIdentifier>
     </Filter>
-    <Filter Include="헤더 파일\Core\Resource API\Importer">
-      <UniqueIdentifier>{39633105-b094-4f7f-b6a0-edf4b5acd602}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Core\Scene API">
       <UniqueIdentifier>{46632266-5bac-4656-8d00-478461ab2139}</UniqueIdentifier>
     </Filter>
@@ -223,17 +223,11 @@
     <Filter Include="소스 파일\Core\Render API\Renderer">
       <UniqueIdentifier>{e46f436c-e8ee-434c-b526-196ceb6d57fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="헤더 파일\Core\Render API\Renderer">
-      <UniqueIdentifier>{284d5cdc-81e6-4563-b6e2-af7346ef182a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="헤더 파일\Core\Behaviour API\ScriptLoader">
       <UniqueIdentifier>{26e64790-fb4f-41a4-ab03-f82ee13aa8ad}</UniqueIdentifier>
     </Filter>
     <Filter Include="소스 파일\Core\Behaviour API\ScriptLoader">
       <UniqueIdentifier>{ac9c3fcd-296c-4781-9f20-4ea519460450}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="헤더 파일\Core\Core Test">
-      <UniqueIdentifier>{64ea75a6-7e6a-4817-801f-f9612da1250c}</UniqueIdentifier>
     </Filter>
     <ClInclude Include="CapsuleColliderComponent.h">
       <Filter>헤더 파일\Core\Physics API</Filter>
@@ -288,6 +282,12 @@
     </ClInclude>
     <ClInclude Include="UserScriptsCommon.h">
       <Filter>헤더 파일\Core\Behaviour API</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderShared.h">
+      <Filter>헤더 파일\Core\Render API</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -435,9 +435,6 @@
     <ClInclude Include="MissingScriptBehaviour.h">
       <Filter>헤더 파일\Core\Behaviour API</Filter>
     </ClInclude>
-    <ClInclude Include="TextResource.h">
-      <Filter>헤더 파일\Core\Core Test</Filter>
-    </ClInclude>
     <ClInclude Include="ResourceSerializer.h">
       <Filter>헤더 파일\Core\Render API\Tool</Filter>
     </ClInclude>
@@ -503,9 +500,6 @@
     <ClCompile Include="RenderManager.cpp">
       <Filter>소스 파일\Core\Render API</Filter>
     </ClCompile>
-    <ClCompile Include="RenderShared.h">
-      <Filter>헤더 파일\Core\Render API</Filter>
-    </ClCompile>
     <ClCompile Include="MeshRenderer.cpp">
       <Filter>소스 파일\Core\Render API\Component</Filter>
     </ClCompile>
@@ -562,11 +556,6 @@
     <None Include="Object.inl">
       <Filter>헤더 파일\Core\Object API</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="MMMEngineShared.rc">
-      <Filter>리소스 파일</Filter>
-    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="헤더 파일\Core\Physics API">

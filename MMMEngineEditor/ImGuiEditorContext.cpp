@@ -1,4 +1,4 @@
-#define NOMINMAX
+ï»¿#define NOMINMAX
 #include "ImGuiEditorContext.h"
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -33,22 +33,22 @@ void MMMEngine::Editor::ImGuiEditorContext::UpdateInfiniteDrag()
 
     static ImVec2 lastMousePosBeforeWarp = ImVec2(-1, 1);
 
-    // µå·¡±× ÁßÀÌ ¾Æ´Ï¸é ¸®¼Â
+    // ë“œë˜ê·¸ ì¤‘ì´ ì•„ë‹ˆë©´ ë¦¬ì…‹
     if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
     {
         lastMousePosBeforeWarp = ImVec2(-1, -1);
         return;
     }
 
-    // ÇöÀç À©µµ¿ì ÇÚµé °¡Á®¿À±â
-    HWND hwnd = GetActiveWindow(); // ¶Ç´Â ¸ŞÀÎ À©µµ¿ì ÇÚµé ÀúÀåÇØµÎ±â
+    // í˜„ì¬ ìœˆë„ìš° í•¸ë“¤ ê°€ì ¸ì˜¤ê¸°
+    HWND hwnd = GetActiveWindow(); // ë˜ëŠ” ë©”ì¸ ìœˆë„ìš° í•¸ë“¤ ì €ì¥í•´ë‘ê¸°
     if (!hwnd) return;
 
-    // ÇöÀç ¸¶¿ì½º À§Ä¡ (½ºÅ©¸° ÁÂÇ¥)
+    // í˜„ì¬ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ (ìŠ¤í¬ë¦° ì¢Œí‘œ)
     POINT screenPos;
     GetCursorPos(&screenPos);
 
-    // À©µµ¿ì Å¬¶óÀÌ¾ğÆ® ¿µ¿ª Á¤º¸
+    // ìœˆë„ìš° í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ ì •ë³´
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
     POINT clientOrigin = { 0, 0 };
@@ -57,14 +57,14 @@ void MMMEngine::Editor::ImGuiEditorContext::UpdateInfiniteDrag()
     int clientW = clientRect.right - clientRect.left;
     int clientH = clientRect.bottom - clientRect.top;
 
-    // Å¬¶óÀÌ¾ğÆ® ¿µ¿ª ±âÁØÀ¸·Î º¯È¯
+    // í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ ê¸°ì¤€ìœ¼ë¡œ ë³€í™˜
     int localX = screenPos.x - clientOrigin.x;
     int localY = screenPos.y - clientOrigin.y;
 
-    // ¿öÇÁ Á÷Àü µ¨Å¸ ÀúÀå
+    // ì›Œí”„ ì§ì „ ë¸íƒ€ ì €ì¥
     ImVec2 currentDelta = io.MouseDelta;
 
-    // °æ°è Ã¼Å© ¹× ¿öÇÁ (¿©À¯ °ø°£ 10px)
+    // ê²½ê³„ ì²´í¬ ë° ì›Œí”„ (ì—¬ìœ  ê³µê°„ 10px)
     const int margin = 10;
     bool wrapped = false;
     POINT newScreenPos = screenPos;
@@ -93,35 +93,35 @@ void MMMEngine::Editor::ImGuiEditorContext::UpdateInfiniteDrag()
 
     if (wrapped)
     {
-        // ¿öÇÁ Á÷Àü À§Ä¡ ÀúÀå
+        // ì›Œí”„ ì§ì „ ìœ„ì¹˜ ì €ì¥
         lastMousePosBeforeWarp = io.MousePos;
 
-        // Ä¿¼­ ¿öÇÁ
+        // ì»¤ì„œ ì›Œí”„
         SetCursorPos(newScreenPos.x, newScreenPos.y);
 
-        // ImGui¿¡°Ô »õ À§Ä¡ ¾Ë¸®±â (Å¬¶óÀÌ¾ğÆ® ÁÂÇ¥·Î)
+        // ImGuiì—ê²Œ ìƒˆ ìœ„ì¹˜ ì•Œë¦¬ê¸° (í´ë¼ì´ì–¸íŠ¸ ì¢Œí‘œë¡œ)
         io.MousePos = ImVec2(
             (float)(newScreenPos.x - clientOrigin.x),
             (float)(newScreenPos.y - clientOrigin.y)
         );
 
-        // Áß¿ä: Delta´Â À¯Áö! ¿öÇÁ´Â È­¸é»ó À§Ä¡¸¸ ¹Ù²Ü »Ó
-        // ½ÇÁ¦ ¸¶¿ì½º ÀÌµ¿·®Àº ±×´ë·Î Àü´ŞµÇ¾î¾ß ÇÔ
+        // ì¤‘ìš”: DeltaëŠ” ìœ ì§€! ì›Œí”„ëŠ” í™”ë©´ìƒ ìœ„ì¹˜ë§Œ ë°”ê¿€ ë¿
+        // ì‹¤ì œ ë§ˆìš°ìŠ¤ ì´ë™ëŸ‰ì€ ê·¸ëŒ€ë¡œ ì „ë‹¬ë˜ì–´ì•¼ í•¨
         io.MouseDelta = currentDelta;
 
-        // WantSetMousePos·Î ImGui¿¡°Ô À§Ä¡ º¯°æ ¾Ë¸²
+        // WantSetMousePosë¡œ ImGuiì—ê²Œ ìœ„ì¹˜ ë³€ê²½ ì•Œë¦¼
         io.WantSetMousePos = true;
     }
     else if (lastMousePosBeforeWarp.x >= 0)
     {
-        // ¿öÇÁ Á÷ÈÄ Ã¹ ÇÁ·¹ÀÓ
-        // ÀÌ¶§ Delta°¡ ºñÁ¤»óÀûÀ¸·Î Å¬ ¼ö ÀÖÀ¸¹Ç·Î º¸Á¤
+        // ì›Œí”„ ì§í›„ ì²« í”„ë ˆì„
+        // ì´ë•Œ Deltaê°€ ë¹„ì •ìƒì ìœ¼ë¡œ í´ ìˆ˜ ìˆìœ¼ë¯€ë¡œ ë³´ì •
         ImVec2 expectedDelta = ImVec2(
             io.MousePos.x - lastMousePosBeforeWarp.x,
             io.MousePos.y - lastMousePosBeforeWarp.y
         );
 
-        // Delta°¡ ºñÁ¤»óÀûÀ¸·Î Å©¸é (È­¸é ¹İ´ëÆíÀ¸·Î Á¡ÇÁ) ¹«½Ã
+        // Deltaê°€ ë¹„ì •ìƒì ìœ¼ë¡œ í¬ë©´ (í™”ë©´ ë°˜ëŒ€í¸ìœ¼ë¡œ ì í”„) ë¬´ì‹œ
         float deltaLen = sqrtf(expectedDelta.x * expectedDelta.x +
             expectedDelta.y * expectedDelta.y);
         if (deltaLen > 100.0f) // threshold
@@ -139,7 +139,7 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
     m_pD3DDevice = pDevice;
     m_pD3DContext = pContext;
 
-    // ÄÚ¾î ÄÁÅØ½ºÆ® »ı¼º
+    // ì½”ì–´ ì»¨í…ìŠ¤íŠ¸ ìƒì„±
     if (!ImGui::CreateContext()) {
         return false;
     }
@@ -152,7 +152,7 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
 
     io.ConfigWindowsMoveFromTitleBarOnly = true;
 
-    // Áß¿ä: ±âº» ÆùÆ®¸¦ ¸ÕÀú Ãß°¡
+    // ì¤‘ìš”: ê¸°ë³¸ í°íŠ¸ë¥¼ ë¨¼ì € ì¶”ê°€
     m_defaultFont = io.Fonts->AddFontFromFileTTF(
         "C:/Windows/Fonts/malgun.ttf",
         16.0f,
@@ -160,7 +160,7 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
         io.Fonts->GetGlyphRangesKorean()
     );
 
-    // Font Awesome¸¦ MergeMode·Î Ãß°¡ (±âº» ÆùÆ®¿¡ º´ÇÕ)
+    // Font Awesomeë¥¼ MergeModeë¡œ ì¶”ê°€ (ê¸°ë³¸ í°íŠ¸ì— ë³‘í•©)
     const char* engineDirEnv = std::getenv("MMMENGINE_DIR");
     std::string engineDir = engineDirEnv ? std::string(engineDirEnv) : "";
 
@@ -168,14 +168,14 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
     {
         std::string iconFontPath = engineDir + "/Common/Resources/fontawesome_free_solid.otf";
 
-        // ÆÄÀÏ Á¸Àç È®ÀÎ
+        // íŒŒì¼ ì¡´ì¬ í™•ì¸
         if (std::filesystem::exists(iconFontPath))
         {
             static const ImWchar icons_ranges[] = { 0xf000, 0xf3ff, 0 };
             ImFontConfig icons_config;
-            icons_config.MergeMode = true;  // ±âÁ¸ ÆùÆ®¿¡ º´ÇÕ
+            icons_config.MergeMode = true;  // ê¸°ì¡´ í°íŠ¸ì— ë³‘í•©
             icons_config.PixelSnapH = true;
-            icons_config.GlyphMinAdvanceX = 16.0f; // ¾ÆÀÌÄÜ ÃÖ¼Ò ³Êºñ
+            icons_config.GlyphMinAdvanceX = 16.0f; // ì•„ì´ì½˜ ìµœì†Œ ë„ˆë¹„
 
             io.Fonts->AddFontFromFileTTF(
                 iconFontPath.c_str(),
@@ -186,12 +186,12 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
         }
         else
         {
-            // ÆùÆ® ÆÄÀÏÀÌ ¾øÀ» ¶§ °æ°í ·Î±×
-            // TODO: ·Î±× Ãâ·Â
+            // í°íŠ¸ íŒŒì¼ì´ ì—†ì„ ë•Œ ê²½ê³  ë¡œê·¸
+            // TODO: ë¡œê·¸ ì¶œë ¥
         }
     }
 
-    // Å« ÆùÆ®´Â º°µµ·Î Ãß°¡ (MergeMode ¾Æ´Ô)
+    // í° í°íŠ¸ëŠ” ë³„ë„ë¡œ ì¶”ê°€ (MergeMode ì•„ë‹˜)
     m_bigFont = io.Fonts->AddFontFromFileTTF(
         "C:/Windows/Fonts/malgun.ttf",
         36.0f,
@@ -199,7 +199,7 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
         io.Fonts->GetGlyphRangesKorean()
     );
 
-    // ½ºÅ¸ÀÏ ¼³Á¤
+    // ìŠ¤íƒ€ì¼ ì„¤ì •
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameRounding = 6.0f;
@@ -207,14 +207,14 @@ bool MMMEngine::Editor::ImGuiEditorContext::Initialize(HWND hWnd, ID3D11Device* 
     style.GrabRounding = 6.0f;
     style.ScrollbarRounding = 6.0f;
 
-    // Win32 ¹é¿£µå ÃÊ±âÈ­
+    // Win32 ë°±ì—”ë“œ ì´ˆê¸°í™”
     if (!ImGui_ImplWin32_Init(m_hWnd)) {
         ImGui::DestroyContext();
         return false;
     }
     m_isWin32BackendInit = true;
 
-    // DirectX 11 ¹é¿£µå ÃÊ±âÈ­
+    // DirectX 11 ë°±ì—”ë“œ ì´ˆê¸°í™”
     if (!ImGui_ImplDX11_Init(m_pD3DDevice, m_pD3DContext)) {
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
@@ -232,12 +232,12 @@ void MMMEngine::Editor::ImGuiEditorContext::BeginFrame()
     RECT clientRect;
     GetClientRect(m_hWnd, &clientRect);
 
-    // ³Êºñ¿Í ³ôÀÌ¸¦ ¸í½ÃÀûÀ¸·Î °è»ê
+    // ë„ˆë¹„ì™€ ë†’ì´ë¥¼ ëª…ì‹œì ìœ¼ë¡œ ê³„ì‚°
     LONG width = clientRect.right - clientRect.left;
     LONG height = clientRect.bottom - clientRect.top;
 
     ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2((float)width, (float)height); // floatÀ¸·Î Çüº¯È¯
+    io.DisplaySize = ImVec2((float)width, (float)height); // floatìœ¼ë¡œ í˜•ë³€í™˜
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -253,7 +253,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         ImGuiViewport* vp = ImGui::GetMainViewport();
         ImDrawList* dl = ImGui::GetBackgroundDrawList(vp);
 
-        ImU32 bgColor = IM_COL32(30, 30, 30, 255); // ¾îµÎ¿î È¸»ö
+        ImU32 bgColor = IM_COL32(30, 30, 30, 255); // ì–´ë‘ìš´ íšŒìƒ‰
         dl->AddRectFilled(
             vp->Pos,
             ImVec2(vp->Pos.x + vp->Size.x, vp->Pos.y + vp->Size.y),
@@ -264,7 +264,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     }
 
 
-    // 1. ¸ŞÀÎ ºäÆ÷Æ® Á¤º¸ °¡Á®¿À±â
+    // 1. ë©”ì¸ ë·°í¬íŠ¸ ì •ë³´ ê°€ì ¸ì˜¤ê¸°
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -272,68 +272,68 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
 
 
-    // 2. ¹è°æ À©µµ¿ì ½ºÅ¸ÀÏ ¼³Á¤ (Å×µÎ¸®¿Í ¶ó¿îµù Á¦°Å)
+    // 2. ë°°ê²½ ìœˆë„ìš° ìŠ¤íƒ€ì¼ ì„¤ì • (í…Œë‘ë¦¬ì™€ ë¼ìš´ë”© ì œê±°)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-    // 3. ¹è°æ Ã¢À» À§ÇÑ ÇÃ·¡±× ¼³Á¤ (¸Ş´º¹Ù Æ÷ÇÔ ÇÊ¼ö)
+    // 3. ë°°ê²½ ì°½ì„ ìœ„í•œ í”Œë˜ê·¸ ì„¤ì • (ë©”ë‰´ë°” í¬í•¨ í•„ìˆ˜)
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
     window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-    // 4. ¹è°æ Ã¢ ½ÃÀÛ
+    // 4. ë°°ê²½ ì°½ ì‹œì‘
     bool p_open = true;
     ImGui::Begin("MyMainDockSpaceWindow", &p_open, window_flags);
-    ImGui::PopStyleVar(3); // StyleVar 2°³(Rounding, BorderSize) º¹±¸
+    ImGui::PopStyleVar(3); // StyleVar 2ê°œ(Rounding, BorderSize) ë³µêµ¬
 
-    // 5. DockSpace »ı¼º
+    // 5. DockSpace ìƒì„±
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui::PopStyleColor(1);
 
-    // ¸Ş´º¹Ù ·»´õ¸µ Èò»öÀ¸·Î
+    // ë©”ë‰´ë°” ë Œë”ë§ í°ìƒ‰ìœ¼ë¡œ
     {
         ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 3.0f);
-        //   ±âº» »ö»ó (Èò»ö ¹è°æ, °ËÁ¤ ÅØ½ºÆ®, ImGui ±âº» °­Á¶»ö)
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));        // ¹è°æ: Èò»ö
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));         // ÀÚ½Ä ¹è°æ: Èò»ö
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));         // ÆË¾÷ ¹è°æ: Èò»ö
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));          // Å×µÎ¸®: ¿¬ÇÑ È¸»ö
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.95f, 0.95f, 0.95f, 1.0f));      // ÇÁ·¹ÀÓ ¹è°æ: ¿¬ÇÑ È¸»ö
-        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.85f, 0.85f, 0.85f, 1.0f)); // ÇÁ·¹ÀÓ È£¹ö: ¾à°£ ¾îµÎ¿î È¸»ö
-        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));  // ÇÁ·¹ÀÓ È°¼º: ´õ ¾îµÎ¿î È¸»ö
-        ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));         // Å¸ÀÌÆ² ¹è°æ
-        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));   // Å¸ÀÌÆ² È°¼º
-        ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.95f, 0.95f, 0.95f, 1.0f)); // Å¸ÀÌÆ² Ãà¼Ò
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.95f, 0.95f, 0.95f, 1.0f));  // ½ºÅ©·Ñ¹Ù ¹è°æ
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));   // ½ºÅ©·Ñ¹Ù Àâ±â
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.6f, 0.6f, 0.6f, 1.0f)); // ½ºÅ©·Ñ¹Ù È£¹ö
-        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));  // ½ºÅ©·Ñ¹Ù È°¼º
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));            // ÅØ½ºÆ®: °ËÁ¤
+        //   ê¸°ë³¸ ìƒ‰ìƒ (í°ìƒ‰ ë°°ê²½, ê²€ì • í…ìŠ¤íŠ¸, ImGui ê¸°ë³¸ ê°•ì¡°ìƒ‰)
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));        // ë°°ê²½: í°ìƒ‰
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));         // ìì‹ ë°°ê²½: í°ìƒ‰
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));         // íŒì—… ë°°ê²½: í°ìƒ‰
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));          // í…Œë‘ë¦¬: ì—°í•œ íšŒìƒ‰
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.95f, 0.95f, 0.95f, 1.0f));      // í”„ë ˆì„ ë°°ê²½: ì—°í•œ íšŒìƒ‰
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.85f, 0.85f, 0.85f, 1.0f)); // í”„ë ˆì„ í˜¸ë²„: ì•½ê°„ ì–´ë‘ìš´ íšŒìƒ‰
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));  // í”„ë ˆì„ í™œì„±: ë” ì–´ë‘ìš´ íšŒìƒ‰
+        ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));         // íƒ€ì´í‹€ ë°°ê²½
+        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));   // íƒ€ì´í‹€ í™œì„±
+        ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.95f, 0.95f, 0.95f, 1.0f)); // íƒ€ì´í‹€ ì¶•ì†Œ
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.95f, 0.95f, 0.95f, 1.0f));  // ìŠ¤í¬ë¡¤ë°” ë°°ê²½
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));   // ìŠ¤í¬ë¡¤ë°” ì¡ê¸°
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.6f, 0.6f, 0.6f, 1.0f)); // ìŠ¤í¬ë¡¤ë°” í˜¸ë²„
+        ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));  // ìŠ¤í¬ë¡¤ë°” í™œì„±
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));            // í…ìŠ¤íŠ¸: ê²€ì •
 
-        //   ¼±ÅÃ/°­Á¶»öÀº ImGui ±âº» ÆÄ¶õ»ö À¯Áö
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));      // Çì´õ
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.85f, 0.85f, 0.85f, 1.0f)); // Çì´õ È£¹ö
-        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));  // Çì´õ È°¼º
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.59f, 0.98f, 0.40f));       // ¹öÆ°
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.26f, 0.59f, 0.98f, 1.00f)); // ¹öÆ° È£¹ö
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.06f, 0.53f, 0.98f, 1.00f));  // ¹öÆ° È°¼º
+        //   ì„ íƒ/ê°•ì¡°ìƒ‰ì€ ImGui ê¸°ë³¸ íŒŒë€ìƒ‰ ìœ ì§€
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));      // í—¤ë”
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.85f, 0.85f, 0.85f, 1.0f)); // í—¤ë” í˜¸ë²„
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.75f, 0.75f, 0.75f, 1.0f));  // í—¤ë” í™œì„±
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.59f, 0.98f, 0.40f));       // ë²„íŠ¼
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.26f, 0.59f, 0.98f, 1.00f)); // ë²„íŠ¼ í˜¸ë²„
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.06f, 0.53f, 0.98f, 1.00f));  // ë²„íŠ¼ í™œì„±
 
 
 
-        // 6. ¸Ş´º¹Ù ±¸Çö
+        // 6. ë©”ë‰´ë°” êµ¬í˜„
         if (ImGui::BeginMenuBar())
         {
-            if (ImGui::BeginMenu(u8"ÆÄÀÏ"))
+            if (ImGui::BeginMenu(u8"íŒŒì¼"))
             {
-                if (ImGui::MenuItem(u8"¾À °ü¸®"))
+                if (ImGui::MenuItem(u8"ì”¬ ê´€ë¦¬"))
                 {
                     g_editor_window_scenelist = true;
                     p_open = false;
                 }
-                if (ImGui::MenuItem(u8"¾À ÀúÀå"))
+                if (ImGui::MenuItem(u8"ì”¬ ì €ì¥"))
                 {
                     auto sceneRef = SceneManager::Get().GetCurrentScene();
                     auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
@@ -345,23 +345,23 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu(u8"Ã¢"))
+            if (ImGui::BeginMenu(u8"ì°½"))
             {
-                ImGui::MenuItem(u8"ÄÜ¼Ö", nullptr, &g_editor_window_console);
-                ImGui::MenuItem(u8"ÇÏÀÌ¾î¶óÅ°", nullptr, &g_editor_window_hierarchy);
-                ImGui::MenuItem(u8"ÀÎ½ºÆåÅÍ", nullptr, &g_editor_window_inspector);
-                ImGui::MenuItem(u8"ÆÄÀÏ ºä¾î", nullptr, &g_editor_window_files);
-                ImGui::MenuItem(u8"¾À", nullptr, &g_editor_window_sceneView);
-                ImGui::MenuItem(u8"°ÔÀÓ", nullptr, &g_editor_window_gameView);
+                ImGui::MenuItem(u8"ì½˜ì†”", nullptr, &g_editor_window_console);
+                ImGui::MenuItem(u8"í•˜ì´ì–´ë¼í‚¤", nullptr, &g_editor_window_hierarchy);
+                ImGui::MenuItem(u8"ì¸ìŠ¤í™í„°", nullptr, &g_editor_window_inspector);
+                ImGui::MenuItem(u8"íŒŒì¼ ë·°ì–´", nullptr, &g_editor_window_files);
+                ImGui::MenuItem(u8"ì”¬", nullptr, &g_editor_window_sceneView);
+                ImGui::MenuItem(u8"ê²Œì„", nullptr, &g_editor_window_gameView);
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu(u8"ºôµå"))
+            if (ImGui::BeginMenu(u8"ë¹Œë“œ"))
             {
-                if (ImGui::MenuItem(u8"½ºÅ©¸³Æ® ºôµå"))
+                if (ImGui::MenuItem(u8"ìŠ¤í¬ë¦½íŠ¸ ë¹Œë“œ"))
                 {
                     ScriptBuildWindow::Get().StartBuild();
                 }
-                ImGui::MenuItem(u8"ÇÁ·ÎÁ§Æ® ºôµå");
+                ImGui::MenuItem(u8"í”„ë¡œì íŠ¸ ë¹Œë“œ");
                 ImGui::EndMenu();
             }
 
@@ -374,84 +374,84 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
 
         {
-            const float line_h = 1.0f; // Á¤È®È÷ 1ÇÈ¼¿
+            const float line_h = 1.0f; // ì •í™•íˆ 1í”½ì…€
             ImDrawList* dl = ImGui::GetWindowDrawList();
 
-            // ÇöÀç Ä¿¼­ À§Ä¡ (¸Ş´º¹Ù ¹Ù·Î ¾Æ·§´Ü)
+            // í˜„ì¬ ì»¤ì„œ ìœ„ì¹˜ (ë©”ë‰´ë°” ë°”ë¡œ ì•„ë«ë‹¨)
             ImVec2 p = ImGui::GetCursorScreenPos();
             float w = ImGui::GetContentRegionAvail().x;
 
-            // È¸»ö ¶óÀÎ ±×¸®±â (IM_COL32ÀÇ ¸¶Áö¸· ÀÎÀÚ´Â ¾ËÆÄ°ª 255)
+            // íšŒìƒ‰ ë¼ì¸ ê·¸ë¦¬ê¸° (IM_COL32ì˜ ë§ˆì§€ë§‰ ì¸ìëŠ” ì•ŒíŒŒê°’ 255)
             dl->AddRectFilled(p, ImVec2(p.x + w, p.y + line_h), IM_COL32(180, 180, 180, 255));
 
-            // Ä¿¼­¸¦ 1px¸¸Å­¸¸ Á¤È®È÷ ÀÌµ¿½ÃÄÑ¼­ DockSpace°¡ ÀÌ ¼± ¹Ù·Î ¹Ø¿¡ ºÙ°Ô ÇÔ
+            // ì»¤ì„œë¥¼ 1pxë§Œí¼ë§Œ ì •í™•íˆ ì´ë™ì‹œì¼œì„œ DockSpaceê°€ ì´ ì„  ë°”ë¡œ ë°‘ì— ë¶™ê²Œ í•¨
             ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + line_h));
         }
 
-        // 2) Â£Àº »ö Å×¸¶ º¹±¸ (PopStyleColor 21°³)
+        // 2) ì§™ì€ ìƒ‰ í…Œë§ˆ ë³µêµ¬ (PopStyleColor 21ê°œ)
         ImGui::PopStyleColor(21);
 
 
-        // 1. Åø¹Ù ½ºÅ¸ÀÏ ¹× ¹è°æ ¼³Á¤
+        // 1. íˆ´ë°” ìŠ¤íƒ€ì¼ ë° ë°°ê²½ ì„¤ì •
         ImVec4 toolbarBg = ImGui::GetStyleColorVec4(ImGuiCol_MenuBarBg);
         ImGui::PushStyleColor(ImGuiCol_ChildBg, toolbarBg);
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f)); // ¹öÆ° »çÀÌ °£°İ 4px (Àû´çÇÔ)
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f)); // ë²„íŠ¼ ì‚¬ì´ ê°„ê²© 4px (ì ë‹¹í•¨)
 
         static int g_fpsDisplayMode = 0;
 
-        // --- ³ôÀÌ¸¦ 32px·Î ¼³Á¤ (³Ê¹« Á¼Áöµµ, ³ĞÁöµµ ¾ÊÀº Ç¥ÁØ ³ôÀÌ) ---
+        // --- ë†’ì´ë¥¼ 32pxë¡œ ì„¤ì • (ë„ˆë¬´ ì¢ì§€ë„, ë„“ì§€ë„ ì•Šì€ í‘œì¤€ ë†’ì´) ---
         bool openPopup = false;
         float toolbarHeight = 32.0f;
         if (ImGui::BeginChild("EditorToolbar", ImVec2(0, toolbarHeight), false, ImGuiWindowFlags_NoScrollbar))
         {
-            float logoBtnWidth = 85.0f;  // ¾ÆÀÌÄÜ + "MMM" ÅØ½ºÆ®¸¦ ´ã±â¿¡ ÃæºĞÇÑ ³Êºñ
-            float logoBtnHeight = 24.0f; // Áß¾Ó ¹öÆ°µé°ú ºñ½ÁÇÑ ³ôÀÌ (¶Ç´Â »ìÂ¦ ÀÛ°Ô)
+            float logoBtnWidth = 85.0f;  // ì•„ì´ì½˜ + "MMM" í…ìŠ¤íŠ¸ë¥¼ ë‹´ê¸°ì— ì¶©ë¶„í•œ ë„ˆë¹„
+            float logoBtnHeight = 24.0f; // ì¤‘ì•™ ë²„íŠ¼ë“¤ê³¼ ë¹„ìŠ·í•œ ë†’ì´ (ë˜ëŠ” ì‚´ì§ ì‘ê²Œ)
 
-            // ¿ŞÂÊ ¿©¹é 10px, ¼öÁ÷ Áß¾Ó Á¤·Ä
+            // ì™¼ìª½ ì—¬ë°± 10px, ìˆ˜ì§ ì¤‘ì•™ ì •ë ¬
             ImGui::SetCursorPos(ImVec2(10.0f, (toolbarHeight - logoBtnHeight) * 0.5f));
 
-            // ·Î°í ¹öÆ° Àü¿ë ½ºÅ¸ÀÏ (Áß¾Ó ¹öÆ°°ú ÅëÀÏ°¨ ºÎ¿©)
+            // ë¡œê³  ë²„íŠ¼ ì „ìš© ìŠ¤íƒ€ì¼ (ì¤‘ì•™ ë²„íŠ¼ê³¼ í†µì¼ê° ë¶€ì—¬)
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.24f, 0.24f, 0.24f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.35f, 0.35f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.8f, 1.0f, 1.0f)); // ÇÏ´Ã»ö ·Î°í ÅØ½ºÆ®
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.8f, 1.0f, 1.0f)); // í•˜ëŠ˜ìƒ‰ ë¡œê³  í…ìŠ¤íŠ¸
 
-            // ºó ¹öÆ°À» ¸ÕÀú »ı¼º (ID¸¸ ºÎ¿©)
+            // ë¹ˆ ë²„íŠ¼ì„ ë¨¼ì € ìƒì„± (IDë§Œ ë¶€ì—¬)
             if (ImGui::Button("##AboutLogo", ImVec2(logoBtnWidth, logoBtnHeight)))
             {
                 openPopup = true;
             }
 
-            // --- ¹öÆ° ³»ºÎ ¾ÆÀÌÄÜ+ÅØ½ºÆ® ¼öÁ÷ Á¤·ÄÀ» À§ÇÑ ¼öµ¿ ·»´õ¸µ ---
+            // --- ë²„íŠ¼ ë‚´ë¶€ ì•„ì´ì½˜+í…ìŠ¤íŠ¸ ìˆ˜ì§ ì •ë ¬ì„ ìœ„í•œ ìˆ˜ë™ ë Œë”ë§ ---
             ImVec2 min = ImGui::GetItemRectMin();
             ImVec2 max = ImGui::GetItemRectMax();
             ImDrawList* dl = ImGui::GetWindowDrawList();
 
-            // ¾ÆÀÌÄÜ°ú ÅØ½ºÆ®°¡ Á¤Áß¾Ó¿¡ ¿Àµµ·Ï ÁÂÇ¥ °è»ê
+            // ì•„ì´ì½˜ê³¼ í…ìŠ¤íŠ¸ê°€ ì •ì¤‘ì•™ì— ì˜¤ë„ë¡ ì¢Œí‘œ ê³„ì‚°
             const char* logoStr = (const char*)u8"\uf1b2 MMM";
             ImVec2 textSize = ImGui::CalcTextSize(logoStr);
 
-            // ¹öÆ°ÀÇ Áß¾Ó ÁÂÇ¥¿¡ ÅØ½ºÆ® Àı¹İ Å©±â¸¦ »©¼­ Á¤·Ä
+            // ë²„íŠ¼ì˜ ì¤‘ì•™ ì¢Œí‘œì— í…ìŠ¤íŠ¸ ì ˆë°˜ í¬ê¸°ë¥¼ ë¹¼ì„œ ì •ë ¬
             ImVec2 textPos = ImVec2(
                 min.x + (logoBtnWidth - textSize.x) * 0.5f,
-                min.y + (logoBtnHeight - textSize.y) * 0.5f // +1pxÀº ÆùÆ® º£ÀÌ½º¶óÀÎ º¸Á¤¿ë
+                min.y + (logoBtnHeight - textSize.y) * 0.5f // +1pxì€ í°íŠ¸ ë² ì´ìŠ¤ë¼ì¸ ë³´ì •ìš©
             );
 
             dl->AddText(textPos, ImGui::GetColorU32(ImGuiCol_Text), logoStr);
 
             ImGui::PopStyleColor(1);
 
-            // --- ¹öÆ° ³»ºÎ ¿©¹é ¹× ¶ó¿îµù (½É¹Ì¼º °­È­) ---
+            // --- ë²„íŠ¼ ë‚´ë¶€ ì—¬ë°± ë° ë¼ìš´ë”© (ì‹¬ë¯¸ì„± ê°•í™”) ---
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 4.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
 
             float buttonWidth = 40.0f;
-            float buttonHeight = 26.0f; // Åø¹Ù(32) ³»¿¡¼­ »óÇÏ 3px¾¿ ¿©¹éÀÌ ³²´Â Å©±â
+            float buttonHeight = 26.0f; // íˆ´ë°”(32) ë‚´ì—ì„œ ìƒí•˜ 3pxì”© ì—¬ë°±ì´ ë‚¨ëŠ” í¬ê¸°
             float totalWidth = (buttonWidth * 3) + (ImGui::GetStyle().ItemSpacing.x * 2);
 
             ImGui::SetCursorPosX((ImGui::GetWindowWidth() - totalWidth) * 0.5f);
-            // ¼öÁ÷ Áß¾Ó Á¤·Ä: (32 - 26) / 2 = 3px
+            // ìˆ˜ì§ ì¤‘ì•™ ì •ë ¬: (32 - 26) / 2 = 3px
             ImGui::SetCursorPosY((toolbarHeight - buttonHeight) * 0.5f);
 
             // --- [Play / Stop] ---
@@ -492,28 +492,28 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
             // --- [Next Frame] ---
             ImGui::Button((const char*)u8"\uf051", ImVec2(buttonWidth, buttonHeight));
 
-            // --- [¿À¸¥ÂÊ ¿µ¿ª: »óÅÂ Á¤º¸ ¹× FPS Ä«¿îÅÍ] ---
+            // --- [ì˜¤ë¥¸ìª½ ì˜ì—­: ìƒíƒœ ì •ë³´ ë° FPS ì¹´ìš´í„°] ---
             {
-                // »óÅÂ °áÁ¤Àº µ¿ÀÏ
+                // ìƒíƒœ ê²°ì •ì€ ë™ì¼
                 ImGuiIO& io = ImGui::GetIO();
                 float fps = io.Framerate;
 
                 ImVec4 statusColor;
                 const char* statusStr = "";
-                if (fps >= 120.0f) { statusStr = u8"¾çÈ£"; statusColor = ImVec4(1, 1, 1, 1); }
-                else if (fps >= 20.0f) { statusStr = u8"³ª»İ"; statusColor = ImVec4(1, 0.6f, 0, 1); }
-                else { statusStr = u8"¸Å¿ì ³ª»İ"; statusColor = ImVec4(1, 0.2f, 0.2f, 1); }
+                if (fps >= 120.0f) { statusStr = u8"ì–‘í˜¸"; statusColor = ImVec4(1, 1, 1, 1); }
+                else if (fps >= 20.0f) { statusStr = u8"ë‚˜ì¨"; statusColor = ImVec4(1, 0.6f, 0, 1); }
+                else { statusStr = u8"ë§¤ìš° ë‚˜ì¨"; statusColor = ImVec4(1, 0.2f, 0.2f, 1); }
 
-                // ¸ğµåº° Ç¥½Ã ¹®ÀÚ¿­
+                // ëª¨ë“œë³„ í‘œì‹œ ë¬¸ìì—´
                 char displayText[128];
                 if (g_fpsDisplayMode == 0) {
                     sprintf_s(displayText, "%.1f FPS (%.2f ms/f)", fps, 1000.0f / fps);
                 }
                 else {
-                    sprintf_s(displayText, u8"ÇÁ·¹ÀÓ »óÅÂ : %s", statusStr);
+                    sprintf_s(displayText, u8"í”„ë ˆì„ ìƒíƒœ : %s", statusStr);
                 }
 
-                // ÅØ½ºÆ® Æø ±â¹İ ÀÚµ¿ ³Êºñ
+                // í…ìŠ¤íŠ¸ í­ ê¸°ë°˜ ìë™ ë„ˆë¹„
                 const float padX = 16.0f;
                 float textW = ImGui::CalcTextSize(displayText).x;
                 float badgeWidth = textW + padX * 2.0f;
@@ -522,7 +522,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
                 ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - badgeWidth - 10.0f,
                     (toolbarHeight - badgeHeight) * 0.5f));
 
-                // ¹öÆ°(°íÁ¤ ID) + ÅØ½ºÆ®(º°µµ draw)
+                // ë²„íŠ¼(ê³ ì • ID) + í…ìŠ¤íŠ¸(ë³„ë„ draw)
                 ImVec2 p0 = ImGui::GetCursorScreenPos();
                 ImVec2 size(badgeWidth, badgeHeight);
 
@@ -536,11 +536,11 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
                 if (clicked) {
                     g_fpsDisplayMode ^= 1;
-                    // µğ¹ö±× È®ÀÎ
+                    // ë””ë²„ê·¸ í™•ì¸
                     // printf("mode=%d\n", g_fpsDisplayMode);
                 }
             }
-            ImGui::PopStyleColor(3); // Button »ö»óµé Pop
+            ImGui::PopStyleColor(3); // Button ìƒ‰ìƒë“¤ Pop
             ImGui::PopStyleVar(2);   // FramePadding, FrameRounding Pop
         }
         ImGui::EndChild();
@@ -549,44 +549,44 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         ImGui::PopStyleColor(1); // ChildBg Pop
 
         if(openPopup)
-            ImGui::OpenPopup(u8"Á¤º¸");
+            ImGui::OpenPopup(u8"ì •ë³´");
 
-        // --- Áß¾Ó ¹èÄ¡¸¦ À§ÇÑ ¼³Á¤ ---
-        ImVec2 center = ImGui::GetMainViewport()->GetCenter(); // ¸ŞÀÎ Ã¢ÀÇ Áß½É ÁÂÇ¥ °¡Á®¿À±â
+        // --- ì¤‘ì•™ ë°°ì¹˜ë¥¼ ìœ„í•œ ì„¤ì • ---
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter(); // ë©”ì¸ ì°½ì˜ ì¤‘ì‹¬ ì¢Œí‘œ ê°€ì ¸ì˜¤ê¸°
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0f, 20.0f));
-        if (ImGui::BeginPopupModal(u8"Á¤º¸", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+        if (ImGui::BeginPopupModal(u8"ì •ë³´", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
         {
-            // Á¦¸ñ ¹× ¿£Áø Á¤º¸
-            ImGui::PushFont(m_bigFont); // Initialize¿¡¼­ ¸¸µç Å« ÆùÆ® »ç¿ë (¼±ÅÃ »çÇ×)
+            // ì œëª© ë° ì—”ì§„ ì •ë³´
+            ImGui::PushFont(m_bigFont); // Initializeì—ì„œ ë§Œë“  í° í°íŠ¸ ì‚¬ìš© (ì„ íƒ ì‚¬í•­)
             ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "MMM Engine");
             ImGui::PopFont();
 
-            ImGui::TextDisabled(u8"³»¼ö¿ë ¿£Áø (Reverse WWW)");
+            ImGui::TextDisabled(u8"ë‚´ìˆ˜ìš© ì—”ì§„ (Reverse WWW)");
             ImGui::Separator();
-            ImGui::Dummy(ImVec2(0.0f, 5.0f)); // ¾à°£ÀÇ °£°İ
+            ImGui::Dummy(ImVec2(0.0f, 5.0f)); // ì•½ê°„ì˜ ê°„ê²©
 
-            // ±â¿©ÀÚ Á¤º¸ Ç¥ Çü½ÄÀ¸·Î ±ò²ûÇÏ°Ô Á¤¸®
-            ImGui::Text(u8"±â¿©ÀÚ : 4¸í");
+            // ê¸°ì—¬ì ì •ë³´ í‘œ í˜•ì‹ìœ¼ë¡œ ê¹”ë”í•˜ê²Œ ì •ë¦¬
+            ImGui::Text(u8"ê¸°ì—¬ì : 4ëª…");
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
             if (ImGui::BeginTable("ContributorsTable", 2, ImGuiTableFlags_SizingFixedFit))
             {
                 ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"¿£ÁøÄÚ¾î :");
-                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ¤·¤·¤·");
+                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"ì—”ì§„ì½”ì–´ :");
+                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ã…‡ã…‡ã…‡");
 
                 ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"·»´õ¸µ   :");
-                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ¤·¤·¤·");
+                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"ë Œë”ë§   :");
+                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ã…‡ã…‡ã…‡");
 
                 ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"¹°¸®     :");
-                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ¤·¤·¤·");
+                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"ë¬¼ë¦¬     :");
+                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ã…‡ã…‡ã…‡");
 
                 ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"»ç¿îµå   :");
-                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ¤·¤·¤·");
+                ImGui::TableSetColumnIndex(0); ImGui::TextDisabled(u8"ì‚¬ìš´ë“œ   :");
+                ImGui::TableSetColumnIndex(1); ImGui::Text(u8" ã…‡ã…‡ã…‡");
 
                 ImGui::EndTable();
             }
@@ -595,10 +595,10 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
             ImGui::Separator();
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-            // ´İ±â ¹öÆ° (Áß¾Ó Á¤·Ä)
+            // ë‹«ê¸° ë²„íŠ¼ (ì¤‘ì•™ ì •ë ¬)
             float buttonWidth = 100.0f;
             ImGui::SetCursorPosX((ImGui::GetWindowSize().x - buttonWidth) * 0.5f);
-            if (ImGui::Button(u8"È®ÀÎ", ImVec2(buttonWidth, 0)))
+            if (ImGui::Button(u8"í™•ì¸", ImVec2(buttonWidth, 0)))
             {
                 ImGui::CloseCurrentPopup();
             }
@@ -607,7 +607,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         }
         ImGui::PopStyleVar();
 
-        // ÀÌ ¾Æ·¡¿¡ ´Ù½Ã 1px È¸»ö ¶óÀÎÀ» Ãß°¡ÇÏ¿© Åø¹Ù¿Í µµÅ· ¿µ¿ªÀ» ±¸ºĞÇÏ¸é ´õ ±ò²ûÇÕ´Ï´Ù.
+        // ì´ ì•„ë˜ì— ë‹¤ì‹œ 1px íšŒìƒ‰ ë¼ì¸ì„ ì¶”ê°€í•˜ì—¬ íˆ´ë°”ì™€ ë„í‚¹ ì˜ì—­ì„ êµ¬ë¶„í•˜ë©´ ë” ê¹”ë”í•©ë‹ˆë‹¤.
         {
             ImDrawList* dl = ImGui::GetWindowDrawList();
             ImVec2 p = ImGui::GetCursorScreenPos();
@@ -615,17 +615,56 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
             ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + 1.0f));
         }
 
-        // 3) ÀÌÁ¦ ÀÌ À§Ä¡(¼± ¾Æ·¡)ºÎÅÍ µµÅ· ½ÃÀÛ
+        // 3) ì´ì œ ì´ ìœ„ì¹˜(ì„  ì•„ë˜)ë¶€í„° ë„í‚¹ ì‹œì‘
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
         {
             ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+
+            if (ImGui::DockBuilderGetNode(dockspace_id) == NULL)
+            {
+                ImGui::DockBuilderRemoveNode(dockspace_id);
+                ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+                ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+
+                ImGuiID dock_main_id = dockspace_id;
+
+                ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(
+                    dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id
+                );
+
+
+                ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(
+                    dock_main_id, ImGuiDir_Down, 0.3f, nullptr, &dock_main_id
+                );
+
+                ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(
+                    dock_main_id, ImGuiDir_Left, 0.25f, nullptr, &dock_main_id
+                );
+
+
+                ImGuiID dock_id_bottom_left, dock_id_bottom_right;
+                ImGui::DockBuilderSplitNode(
+                    dock_id_bottom, ImGuiDir_Left, 0.4f, &dock_id_bottom_left, &dock_id_bottom_right
+                );
+
+                // ìœˆë„ìš° ë°°ì¹˜
+                ImGui::DockBuilderDockWindow(u8"\uf0ca í•˜ì´ì–´ë¼í‚¤", dock_id_left);
+                ImGui::DockBuilderDockWindow(u8"\uf002 ì¸ìŠ¤í™í„°", dock_id_right);
+                ImGui::DockBuilderDockWindow(u8"\uf009 ì”¬", dock_main_id);
+                ImGui::DockBuilderDockWindow(u8"\uf11b ê²Œì„", dock_main_id);
+                ImGui::DockBuilderDockWindow(u8"\uf07c íŒŒì¼ ë·°ì–´", dock_id_bottom_left);
+                ImGui::DockBuilderDockWindow(u8"\uf120 ì½˜ì†”", dock_id_bottom_right);
+
+                ImGui::DockBuilderFinish(dockspace_id);
+            }
+
             ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_NoCloseButton);
         }
-        // 4) Àû¿ëÇß´ø °£°İ °ü·Ã StyleVar º¹±¸
+        // 4) ì ìš©í–ˆë˜ ê°„ê²© ê´€ë ¨ StyleVar ë³µêµ¬
         ImGui::PopStyleVar(3);
 
     }
-    ImGui::End(); // MyMainDockSpaceWindow Á¾·á
+    ImGui::End(); // MyMainDockSpaceWindow ì¢…ë£Œ
 
     auto& style = ImGui::GetStyle();
 

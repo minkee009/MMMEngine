@@ -1,4 +1,4 @@
-#include "HierarchyWindow.h"
+ï»¿#include "HierarchyWindow.h"
 #include "SceneManager.h"
 #include "Transform.h"
 #include "DragAndDrop.h"
@@ -19,7 +19,7 @@ struct ReparentCmd
 
 static std::vector<ReparentCmd> g_reparentQueue;
 
-// ÇÏÀÌ¾î¶óÅ° À©µµ¿ì ³»ºÎ¿¡¼­¸¸ »ç¿ëÇÒ ÀÓ½Ã ¼±ÅÃ ¿ÀºêÁ§Æ®
+// í•˜ì´ì–´ë¼í‚¤ ìœˆë„ìš° ë‚´ë¶€ì—ì„œë§Œ ì‚¬ìš©í•  ì„ì‹œ ì„ íƒ ì˜¤ë¸Œì íŠ¸
 static ObjPtr<GameObject> g_hierarchyPendingSelection = nullptr;
 
 void DrawDropLine(const char* id, float height = 4.0f)
@@ -41,7 +41,7 @@ void DrawDropLine(const char* id, float height = 4.0f)
 		);
 	}
 
-	// ¿©±â¼­ µå·Ó Ã³¸®
+	// ì—¬ê¸°ì„œ ë“œë¡­ ì²˜ë¦¬
 	MUID dragged = GetMuid("gameobject_muid");
 	if (dragged.IsValid() && ImGui::IsItemHovered())
 	{
@@ -66,7 +66,7 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj, bool allowDrag)
 	if (!activeSelf)
 	{
 		ImVec4 c = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-		c.w *= 0.35f; // ¾ËÆÄ¸¸ ³·Ãç¼­ Èå¸´ÇÏ°Ô
+		c.w *= 0.35f; // ì•ŒíŒŒë§Œ ë‚®ì¶°ì„œ íë¦¿í•˜ê²Œ
 		ImGui::PushStyleColor(ImGuiCol_Text, c);
 	}
 
@@ -75,7 +75,7 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj, bool allowDrag)
 	if (!activeSelf)
 		ImGui::PopStyleColor();
 
-	// Å¬¸¯ ½Ã ÀÓ½Ã ¼±ÅÃ ¿ÀºêÁ§Æ®¿¡¸¸ ÀúÀå (Àü¿ª ·¹Áö½ºÆ®¸®´Â º¯°æÇÏÁö ¾ÊÀ½)
+	// í´ë¦­ ì‹œ ì„ì‹œ ì„ íƒ ì˜¤ë¸Œì íŠ¸ì—ë§Œ ì €ì¥ (ì „ì—­ ë ˆì§€ìŠ¤íŠ¸ë¦¬ëŠ” ë³€ê²½í•˜ì§€ ì•ŠìŒ)
 	if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
 	{
 		g_hierarchyPendingSelection = obj;
@@ -115,10 +115,10 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 		return;
 
 	ImGuiWindowClass wc;
-	// ÇÙ½É: ¸ŞÀÎ ºäÆ÷Æ®¿¡ ÀÌ À©µµ¿ì¸¦ Á¾¼Ó½ÃÅµ´Ï´Ù.
-	// ÀÌ·¸°Ô ÇÏ¸é ¸ŞÀÎ Ã¢À» Å¬¸¯ÇØµµ ÀÌ Ã¢ÀÌ '¸ŞÀÎ Ã¢ÀÇ ÀÏºÎ'·Î¼­ Ãë±ŞµÇ¾î ¿ì¼±¼øÀ§¸¦ °¡Áı´Ï´Ù.
+	// í•µì‹¬: ë©”ì¸ ë·°í¬íŠ¸ì— ì´ ìœˆë„ìš°ë¥¼ ì¢…ì†ì‹œí‚µë‹ˆë‹¤.
+	// ì´ë ‡ê²Œ í•˜ë©´ ë©”ì¸ ì°½ì„ í´ë¦­í•´ë„ ì´ ì°½ì´ 'ë©”ì¸ ì°½ì˜ ì¼ë¶€'ë¡œì„œ ì·¨ê¸‰ë˜ì–´ ìš°ì„ ìˆœìœ„ë¥¼ ê°€ì§‘ë‹ˆë‹¤.
 	wc.ParentViewportId = ImGui::GetMainViewport()->ID;
-	wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // ÇÊ¿ä ½Ã ¼³Á¤
+	wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // í•„ìš” ì‹œ ì„¤ì •
 
 	ImGui::SetNextWindowClass(&wc);
 
@@ -129,21 +129,17 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
-	static const char* ICON_HIERARCHY = "\xef\x83\x8a";
-
-	std::string title = std::string(ICON_HIERARCHY) + u8" ÇÏÀÌ¾î¶óÅ°";
-
-	ImGui::Begin(title.c_str(), &g_editor_window_hierarchy);
+	ImGui::Begin(u8"\uf0ca í•˜ì´ì–´ë¼í‚¤", &g_editor_window_hierarchy);
 
 	auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
 
-	if (ImGui::Button(u8"»ı¼º", hbuttonsize))
+	if (ImGui::Button(u8"ìƒì„±", hbuttonsize))
 	{
 		Object::NewObject<GameObject>();
 	}
 	ImGui::SameLine();
 	ImGui::BeginDisabled(g_selectedGameObject == nullptr);
-	if (ImGui::Button(u8"ÆÄ±«", hbuttonsize)) { Object::Destroy(g_selectedGameObject); g_selectedGameObject = nullptr; }
+	if (ImGui::Button(u8"íŒŒê´´", hbuttonsize)) { Object::Destroy(g_selectedGameObject); g_selectedGameObject = nullptr; }
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
@@ -193,10 +189,10 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 		}
 	}
 
-	// ¸¶¿ì½º ¹öÆ°À» ¶ÃÀ» ¶§ Ã³¸® (ImGui::End() Àü¿¡ Ã¼Å©ÇØ¾ß ÇÔ)
+	// ë§ˆìš°ìŠ¤ ë²„íŠ¼ì„ ë—ì„ ë•Œ ì²˜ë¦¬ (ImGui::End() ì „ì— ì²´í¬í•´ì•¼ í•¨)
 	if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 	{
-		// ÇöÀç ¸¶¿ì½º À§Ä¡°¡ ÇÏÀÌ¾î¶óÅ° À©µµ¿ì ³»ºÎÀÎÁö Á÷Á¢ Ã¼Å©
+		// í˜„ì¬ ë§ˆìš°ìŠ¤ ìœ„ì¹˜ê°€ í•˜ì´ì–´ë¼í‚¤ ìœˆë„ìš° ë‚´ë¶€ì¸ì§€ ì§ì ‘ ì²´í¬
 		ImVec2 mousePos = ImGui::GetMousePos();
 		ImVec2 winMin = ImGui::GetWindowPos();
 		ImVec2 winMax = ImVec2(winMin.x + ImGui::GetWindowSize().x, winMin.y + ImGui::GetWindowSize().y);
@@ -204,13 +200,13 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 		bool isMouseInWindow = (mousePos.x >= winMin.x && mousePos.x <= winMax.x &&
 			mousePos.y >= winMin.y && mousePos.y <= winMax.y);
 
-		// ¸¶¿ì½º¸¦ ¶¾ À§Ä¡°¡ ÇÏÀÌ¾î¶óÅ° À©µµ¿ì ³»ºÎÀÎ °æ¿ì¿¡¸¸ ¼±ÅÃ Àû¿ë
+		// ë§ˆìš°ìŠ¤ë¥¼ ë—€ ìœ„ì¹˜ê°€ í•˜ì´ì–´ë¼í‚¤ ìœˆë„ìš° ë‚´ë¶€ì¸ ê²½ìš°ì—ë§Œ ì„ íƒ ì ìš©
 		if (isMouseInWindow && g_hierarchyPendingSelection.IsValid())
 		{
 			g_selectedGameObject = g_hierarchyPendingSelection;
 		}
 
-		// ÀÓ½Ã ¼±ÅÃ ¿ÀºêÁ§Æ® ÃÊ±âÈ­
+		// ì„ì‹œ ì„ íƒ ì˜¤ë¸Œì íŠ¸ ì´ˆê¸°í™”
 		g_hierarchyPendingSelection = nullptr;
 	}
 

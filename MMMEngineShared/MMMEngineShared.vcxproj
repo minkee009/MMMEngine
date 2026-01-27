@@ -130,6 +130,9 @@
       <UseFullPaths>false</UseFullPaths>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DisableSpecificWarnings>4819;4100</DisableSpecificWarnings>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -153,6 +156,9 @@
       <RemoveUnreferencedCodeData />
       <DisableSpecificWarnings>4819;4100;4506</DisableSpecificWarnings>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -192,6 +198,7 @@
     <ClInclude Include="InputKeyCode.h" />
     <ClInclude Include="MMMInput.h" />
     <ClInclude Include="InputManager.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="PhysicsEventCallback.h" />
     <ClInclude Include="PhysicsFilter.h" />
     <ClInclude Include="PhysScene.h" />
@@ -203,6 +210,7 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RendererTools.h" />
     <ClInclude Include="RenderManager.h" />
+    <ClInclude Include="RenderShared.h" />
     <ClInclude Include="RenderStateGuard.h" />
     <ClInclude Include="Resolution.h" />
     <ClInclude Include="Resource.h" />
@@ -228,7 +236,6 @@
     <ClInclude Include="Singleton.hpp" />
     <ClInclude Include="StringHelper.h" />
     <ClInclude Include="Texture2D.h" />
-    <ClInclude Include="TextResource.h" />
     <ClInclude Include="TimeManager.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="ResourceManager.h">
@@ -258,6 +265,10 @@
     <ClCompile Include="MUID.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="ObjectManager.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="PhysicsEventCallback.cpp" />
     <ClCompile Include="PhysicsFilter.cpp" />
     <ClCompile Include="PhysScene.cpp" />
@@ -270,7 +281,6 @@
     <ClCompile Include="RendererTools.cpp" />
     <ClCompile Include="RenderManager.cpp" />
     <ClCompile Include="RenderShared.cpp" />
-    <ClCompile Include="RenderShared.h" />
     <ClCompile Include="RenderStateGuard.cpp" />
     <ClCompile Include="Resource.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
@@ -297,9 +307,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Object.inl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="MMMEngineShared.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -12,7 +12,7 @@
 #include "ExportSingleton.hpp"
 
 #include "Resource.h"
-// todo »èÁ¦
+// todo ì‚­ì œ
 #include <iostream>
 
 namespace MMMEngine
@@ -68,7 +68,7 @@ namespace MMMEngine
 		template<class T>
 		ResPtr<T> Load(std::wstring filePath)
 		{
-			static_assert(std::is_base_of_v<Resource, T>, "T´Â ¹Ýµå½Ã Resource¸¦ »ó¼Ó¹Þ¾Æ¾ß ÇÕ´Ï´Ù.");
+			static_assert(std::is_base_of_v<Resource, T>, "T must inherit from Resource");
 
 			std::wstring root = m_rootPath.generic_wstring();
 			if (!root.empty() && root.back() != L'/' && root.back() != L'\\')
@@ -86,7 +86,7 @@ namespace MMMEngine
 			res->SetFilePath(filePath);
 			if (!res->LoadFromFilePath(truePath))
 			{
-				std::cout << u8"ÆÄÀÏ ÆÐ½º°¡ Àß¸øµÇ¾ú¾î¿ë" << std::endl;
+				std::cout << u8"ìœ íš¨í•˜ì§€ ì•Šì€ íŒŒì¼íŒ¨ìŠ¤" << std::endl;
 				return nullptr;
 			}
 
@@ -94,7 +94,6 @@ namespace MMMEngine
 			return res;
 		}
 
-		// RTTR¿ë Load ÇÔ¼ö (SceneSerializer¿¡¼­ »ç¿ë)
 		rttr::variant Load(rttr::type resourceType, const std::wstring& filePath)
 		{
 			if (!resourceType.is_valid())
@@ -109,28 +108,23 @@ namespace MMMEngine
 			std::string typeName = resourceType.get_name().to_string();
 			ResKey key{ typeName, truePath };
 
-			// Ä³½Ã È®ÀÎ
 			auto it = m_cache.find(key);
 			if (it != m_cache.end())
 			{
 				if (auto sp = it->second.lock())
 					return rttr::variant(sp);
 
-				// ¸¸·áµÈ weak_ptr Á¦°Å
 				m_cache.erase(it);
 			}
 
-			// »õ·Î »ý¼º
 			rttr::variant resource = resourceType.create();
 			if (!resource.is_valid())
 				return rttr::variant();
 
-			// shared_ptr·Î Á÷Á¢ ¾ò±â
 			std::shared_ptr<Resource> resPtr = resource.get_value<std::shared_ptr<Resource>>();
 			if (!resPtr)
-				return rttr::variant();  // shared_ptrÀÌ ¾Æ´Ï¸é ½ÇÆÐ
+				return rttr::variant();
 
-			// ÆÄÀÏ ·Îµå
 			resPtr->SetFilePath(filePath);
 			if (!resPtr->LoadFromFilePath(truePath))
 				return rttr::variant();

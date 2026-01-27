@@ -1,0 +1,17 @@
+<Project>
+  <Target Name="CopyThirdPartyToOutput" AfterTargets="Build">
+    <PropertyGroup>
+      <ThirdPartyDir>$(SolutionDir)Common\Bin\$(Configuration)\</ThirdPartyDir>
+    </PropertyGroup>
+
+    <ItemGroup Condition="Exists('$(ThirdPartyDir)')">
+      <ThirdPartyDlls Include="$(ThirdPartyDir)*.dll" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(ThirdPartyDlls)"
+      DestinationFolder="$(OutDir)"
+      SkipUnchangedFiles="true"
+      Condition="@(ThirdPartyDlls) != ''" />
+  </Target>
+</Project>
