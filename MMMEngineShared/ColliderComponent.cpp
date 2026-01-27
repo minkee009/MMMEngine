@@ -1,4 +1,4 @@
-#include "PhysxManager.h"
+﻿#include "PhysxManager.h"
 #include "ColliderComponent.h"
 #include "RigidBodyComponent.h"
 #include "Transform.h"
@@ -13,7 +13,6 @@ RTTR_REGISTRATION
 
     registration::class_<ColliderComponent>("ColliderComponent")
         (rttr::metadata("INSPECTOR", "DONT_ADD_COMP"));
-    type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<ColliderComponent>>();
 }
 
 

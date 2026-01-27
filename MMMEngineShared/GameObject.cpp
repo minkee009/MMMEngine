@@ -1,4 +1,4 @@
-#include "GameObject.h"
+ï»¿#include "GameObject.h"
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
 #include "Component.h"
@@ -15,7 +15,7 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<GameObject>("GameObject")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<GameObject>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<GameObject>"))
 		.property("Active", &GameObject::IsActiveInHierarchy, &GameObject::SetActive)
 		.property("Scene", &GameObject::GetScene, &GameObject::SetScene, registration::private_access)
 		.property("Layer", &GameObject::GetLayer, &GameObject::SetLayer)
@@ -39,8 +39,6 @@ RTTR_REGISTRATION
 			[](SceneRef scene, const std::string& name) {
 				return Object::NewObject<GameObject>(scene, name);
 			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<GameObject>>();
 }
 
 void MMMEngine::GameObject::RegisterComponent(const ObjPtr<Component>& comp)
@@ -52,19 +50,19 @@ void MMMEngine::GameObject::UnRegisterComponent(const ObjPtr<Component>& comp)
 {
     auto it = std::find(m_components.begin(), m_components.end(), comp);
     if (it != m_components.end()) {
-        *it = std::move(m_components.back()); // ¸¶Áö¸· ¿ø¼Ò¸¦ µ¤¾î¾¸
+        *it = std::move(m_components.back()); // ë§ˆì§€ë§‰ ì›ì†Œë¥¼ ë®ì–´ì”€
         m_components.pop_back();
     }
 }
 
 void MMMEngine::GameObject::Initialize()
 {
-	//transformÀº Á÷Á¢ »ı¼º ÈÄ m_components¿¡ µî·Ï
+	//transformì€ ì§ì ‘ ìƒì„± í›„ m_componentsì— ë“±ë¡
 	m_transform = NewObject<Transform>();
 	m_transform->SetGameObject(SelfPtr(this));
-	m_transform->SetParent(nullptr); // ºÎ¸ğ°¡ ¾øÀ¸¹Ç·Î nullptr·Î ¼³Á¤
+	m_transform->SetParent(nullptr); // ë¶€ëª¨ê°€ ì—†ìœ¼ë¯€ë¡œ nullptrë¡œ ì„¤ì •
 
-	RegisterComponent(m_transform); // TransformÀ» ÄÄÆ÷³ÍÆ®·Î µî·Ï
+	RegisterComponent(m_transform); // Transformì„ ì»´í¬ë„ŒíŠ¸ë¡œ ë“±ë¡
 
 	UpdateActiveInHierarchy();
 }
@@ -77,10 +75,10 @@ void MMMEngine::GameObject::UpdateActiveInHierarchy()
 	}
 	else
 	{
-		m_activeInHierarchy = m_active; // ºÎ¸ğ°¡ ¾øÀ¸¸é ÀÚ±â ÀÚ½Å¸¸ È°¼ºÈ­ ¿©ºÎ¸¦ µûÁü
+		m_activeInHierarchy = m_active; // ë¶€ëª¨ê°€ ì—†ìœ¼ë©´ ìê¸° ìì‹ ë§Œ í™œì„±í™” ì—¬ë¶€ë¥¼ ë”°ì§
 	}
 
-	// ÀÚ½ÄµéÀÇ È°¼ºÈ­ »óÅÂ °»½Å
+	// ìì‹ë“¤ì˜ í™œì„±í™” ìƒíƒœ ê°±ì‹ 
 	for (auto& child : m_transform->m_childs)
 	{
 		if(child.IsValid())
@@ -176,31 +174,41 @@ void MMMEngine::GameObject::SetActive(bool active)
 MMMEngine::ObjPtr<MMMEngine::Component> MMMEngine::GameObject::AddComponent(rttr::type compType)
 {
 	if (!compType.is_valid())
-		assert(false && "AddComponent : RTTR Å¸ÀÔÀÌ ¿Ã¹Ù¸£Áö ¾Ê½À´Ï´Ù!");
+		assert(false && "AddComponent : RTTR íƒ€ì…ì´ ì˜¬ë°”ë¥´ì§€ ì•ŠìŠµë‹ˆë‹¤!");
 
 	rttr::type base = rttr::type::get<Component>();
 
-	// compTypeÀÌ È¤½Ã Æ÷ÀÎÅÍ/·¡ÆÛ·Î µé¾î¿À´õ¶óµµ raw·Î Á¤±ÔÈ­ÇØ¼­ °Ë»ç
+	// compTypeì´ í˜¹ì‹œ í¬ì¸í„°/ë˜í¼ë¡œ ë“¤ì–´ì˜¤ë”ë¼ë„ rawë¡œ ì •ê·œí™”í•´ì„œ ê²€ì‚¬
 	rttr::type raw = compType.get_raw_type();
 
 	if (!raw.is_derived_from(base))
-		assert(false && "AddComponent : ÄÄÆ÷³ÍÆ®°¡ ¾Æ´Õ´Ï´Ù!");
+		assert(false && "AddComponent : ì»´í¬ë„ŒíŠ¸ê°€ ì•„ë‹™ë‹ˆë‹¤!");
 
-	// raw Å¸ÀÔ¿¡¼­ wrapper_type(ObjPtr<Derived>) ¾ò±â
-	rttr::variant md = raw.get_metadata("wrapper_type");
+	// raw íƒ€ì…ì—ì„œ wrapper_type(ObjPtr<Derived>) ì–»ê¸°
+	rttr::variant md = raw.get_metadata("wrapper_type_name");
 	if (!md.is_valid())
-		assert(false && "AddComponent : wrapper_type metadata°¡ ¾ø½À´Ï´Ù!");
+		assert(false && "AddComponent : wrapper_type metadataê°€ ì—†ìŠµë‹ˆë‹¤!");
 
-	rttr::type wrapperType = md.get_value<rttr::type>();
+	std::string wrapperTypeName = md.to_string();
+	rttr::type wrapperType = rttr::type::get_by_name(wrapperTypeName);
+	if (!wrapperType.is_valid())
+		assert(false && "AddComponent : wrapper_typeì´ ìœ íš¨í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤!");
 
 	rttr::variant compVariant = wrapperType.create();
 	if (!compVariant.is_valid())
-		assert(false && "AddComponent : ÄÄÆ÷³ÍÆ®°¡ »ı¼ºµÇÁö ¾Ê¾Ò½À´Ï´Ù!");
+		assert(false && "AddComponent : ì»´í¬ë„ŒíŠ¸ê°€ ìƒì„±ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤!");
 
-	// ¿©±â¼­ºÎÅÍ´Â Ç×»ó ObjPtr<Derived> -> ObjPtr<Component> º¯È¯ÀÌ µÊ
-	ObjPtr<Component> comp = compVariant.convert<ObjPtr<Component>>();
+	MMMEngine::Object* objRaw = nullptr;
+	if (!compVariant.convert(objRaw) || !objRaw)
+		return {};
+
+	MMMEngine::Component* compRaw = dynamic_cast<MMMEngine::Component*>(objRaw);
+	if (!compRaw)
+		return {}; 
+
+	ObjPtr<Component> comp = compRaw->SelfPtr(compRaw); // <- ë„ˆí¬ ì—”ì§„ì— ë§ê²Œ í•œ ì¤„ë§Œ ë§ì¶°
 	if (!comp.IsValid())
-		assert(false && "AddComponent : º¯È¯ ½ÇÆĞ!");
+		return {};
 
 	comp->m_gameObject = SelfPtr(this);
 	RegisterComponent(comp);

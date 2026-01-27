@@ -90,8 +90,11 @@ namespace MMMEngine::Editor
         {
             m_worker.join(); // 한 번만 호출
 
-            fs::path cwd = fs::current_path();
-            DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
+            fs::path hotDir;
+            if (const char* lad = std::getenv("LOCALAPPDATA"))
+                hotDir = fs::path(lad) / "MMMEngine" / "HotReload";
+            else
+                hotDir = fs::temp_directory_path() / "MMMEngine" / "HotReload";
 
             fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
             fs::path binDir = projectPath / "Binaries" / "Win64";
@@ -104,11 +107,11 @@ namespace MMMEngine::Editor
                 DLLHotLoadHelper::RestoreOriginalDll(binDir);
 
                 // 복구된 DLL을 핫로드용 폴더로 복사
-                fs::path restoredPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, cwd);
+                fs::path restoredPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, hotDir);
                 if (!restoredPath.empty())
                 {
                     // 이전 상태로 복구 리로드 (StartUp은 생략하거나 필요시 호출)
-                    BehaviourManager::Get().ReloadUserScripts(restoredPath.stem().u8string());
+                    BehaviourManager::Get().ReloadUserScripts(restoredPath.u8string());
 
                     // 빌드 전 ShutDown을 했으므로, 엔진을 다시 가동시켜야 함
                     auto currentProject = ProjectManager::Get().GetActiveProject();
@@ -124,10 +127,10 @@ namespace MMMEngine::Editor
             fs::remove(binDir / "UserScripts.pdb.bak", ec);
 
             // 새로운 DLL 복사 및 리로드
-            fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, cwd);
+            fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, hotDir);
             if (!dllPath.empty())
             {
-                bool unloadSuccess = BehaviourManager::Get().ReloadUserScripts(dllPath.stem().u8string());
+                bool unloadSuccess = BehaviourManager::Get().ReloadUserScripts(dllPath.u8string());
 
                 if (unloadSuccess)
                 {
