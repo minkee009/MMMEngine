@@ -1,4 +1,4 @@
-#include "RenderManager.h"
+﻿#include "RenderManager.h"
 
 #include "RendererTools.h"
 #include "RenderShared.h"
@@ -512,6 +512,13 @@ namespace MMMEngine {
 		m_sceneViewport.MaxDepth = 1.0f;
 		m_sceneViewport.TopLeftX = offsetX;
 		m_sceneViewport.TopLeftY = offsetY;
+
+		// todo : 렌더러 작업자에게 꼭 고지하기
+		// 카메라 Aspect Ratio 변경
+		if (m_pMainCamera.IsValid())
+		{
+			m_pMainCamera->SetAspect(drawW / drawH);
+		}
 	}
 
 	void RenderManager::AddCommand(RenderType _type, RenderCommand&& _command)

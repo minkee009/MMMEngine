@@ -1,4 +1,4 @@
-#include "ScriptBuildWindow.h"
+Ôªø#include "ScriptBuildWindow.h"
 #include "BuildManager.h"
 #include "ProjectManager.h"
 #include "DLLHotLoadHelper.h"
@@ -9,6 +9,7 @@
 #include "SceneSerializer.h"
 #include "StringHelper.h"
 #include "EditorRegistry.h"
+#include "InspectorWindow.h"
 
 #include <filesystem>
 
@@ -26,15 +27,20 @@ namespace MMMEngine::Editor
         m_exitCode.store(0);
         m_showToast = true;
 
+        fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
+        fs::path binDir = projectPath / "Binaries" / "Win64";
+        DLLHotLoadHelper::BackupOriginalDll(binDir);
+        DLLHotLoadHelper::PrepareForBuild(binDir);
         {
             auto sceneRef = SceneManager::Get().GetCurrentScene();
             auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
 
             SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" +
-                StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
+            StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
             SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
 
             EditorRegistry::g_selectedGameObject = nullptr;
+            InspectorWindow::Get().ClearCache();
 
             RenderManager::Get().ClearAllCommands();
 
@@ -44,7 +50,7 @@ namespace MMMEngine::Editor
             BehaviourManager::Get().UnloadUserScripts();
         }
 
-        // ¿Ã¿¸ Ω∫∑πµÂ ¡§∏Æ
+        // Ïù¥Ï†Ñ Ïä§Î†àÎìú Ï†ïÎ¶¨
         if (m_worker.joinable())
             m_worker.join();
 
@@ -71,7 +77,7 @@ namespace MMMEngine::Editor
                 m_exitCode.store(out.exitCode);
                 m_building.store(false);
 
-                // øœ∑· »ƒ 1.5√  «•Ω√
+                // ÏôÑÎ£å ÌõÑ 1.5Ï¥à ÌëúÏãú
                 m_hideTime = ImGui::GetTime() + 1.5;
             });
     }
@@ -79,27 +85,62 @@ namespace MMMEngine::Editor
 
     void ScriptBuildWindow::Render()
     {
-        // ≥°≥≠ Ω∫∑πµÂ ºˆ∞≈ (terminate πÊ¡ˆ)
+        // ÎÅùÎÇú Ïä§Î†àÎìú ÏàòÍ±∞ (terminate Î∞©ÏßÄ)
         if (!m_building.load() && m_worker.joinable())
         {
-            m_worker.join();
+            m_worker.join(); // Ìïú Î≤àÎßå Ìò∏Ï∂ú
 
             fs::path cwd = fs::current_path();
             DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
 
             fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
+            fs::path binDir = projectPath / "Binaries" / "Win64";
+            fs::path originDllPath = binDir / "UserScripts.dll";
 
-            fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
-           
+            // [Î∞©Ïñ¥ Í∏∞Ï†ú] ÎπåÎìú Í≤∞Í≥ºÏóê Îî∞Î•∏ Î∂ÑÍ∏∞
+            if (m_exitCode.load() != 0)
+            {
+                // ÎπåÎìú Ïã§Ìå®: ÏõêÎ≥∏ Î≥µÍµ¨
+                DLLHotLoadHelper::RestoreOriginalDll(binDir);
+
+                // Î≥µÍµ¨Îêú DLLÏùÑ Ìï´Î°úÎìúÏö© Ìè¥ÎçîÎ°ú Î≥µÏÇ¨
+                fs::path restoredPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, cwd);
+                if (!restoredPath.empty())
+                {
+                    // Ïù¥Ï†Ñ ÏÉÅÌÉúÎ°ú Î≥µÍµ¨ Î¶¨Î°úÎìú (StartUpÏùÄ ÏÉùÎûµÌïòÍ±∞ÎÇò ÌïÑÏöîÏãú Ìò∏Ï∂ú)
+                    BehaviourManager::Get().ReloadUserScripts(restoredPath.stem().u8string());
+
+                    // ÎπåÎìú Ï†Ñ ShutDownÏùÑ ÌñàÏúºÎØÄÎ°ú, ÏóîÏßÑÏùÑ Îã§Ïãú Í∞ÄÎèôÏãúÏºúÏïº Ìï®
+                    auto currentProject = ProjectManager::Get().GetActiveProject();
+                    SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
+                    ObjectManager::Get().StartUp();
+                }
+                return;
+            }
+
+            // ÎπåÎìú ÏÑ±Í≥µ: Î∞±ÏóÖ Ï†úÍ±∞
+            std::error_code ec;
+            fs::remove(binDir / "UserScripts.dll.bak", ec);
+            fs::remove(binDir / "UserScripts.pdb.bak", ec);
+
+            // ÏÉàÎ°úÏö¥ DLL Î≥µÏÇ¨ Î∞è Î¶¨Î°úÎìú
+            fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, cwd);
             if (!dllPath.empty())
             {
-                BehaviourManager::Get().ReloadUserScripts(dllPath.stem().u8string());
-               
-                // ø¿∫Í¡ß∆Æ ∏≈¥œ¿˙ ∏Æ∫Œ∆√
-                // æ¿ ∏≈¥œ¿˙ ∏Æ∫Œ∆√
-                auto currentProject = ProjectManager::Get().GetActiveProject();
-                SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
-                ObjectManager::Get().StartUp();
+                bool unloadSuccess = BehaviourManager::Get().ReloadUserScripts(dllPath.stem().u8string());
+
+                if (unloadSuccess)
+                {
+                    auto currentProject = ProjectManager::Get().GetActiveProject();
+                    SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
+                    ObjectManager::Get().StartUp();
+                    SceneManager::Get().CheckSceneIsChanged();
+                }
+                else
+                {
+                    // RTTR Ïñ∏Î°úÎìú Ïã§Ìå® Ïãú ÎåÄÏùë (Î°úÍ∑∏ Ï∂úÎ†• Î∞è ÏÇ¨Ïö©Ïûê ÏïåÎ¶º)
+                    // Ïù¥ ÏÉÅÌÉúÏóêÏÑú StartUpÏùÑ Í∞ïÏ†úÌïòÎ©¥ Ï∂©Îèå ÏúÑÌóòÏù¥ ÌÅº
+                }
             }
         }
   
@@ -107,7 +148,7 @@ namespace MMMEngine::Editor
         if (!m_showToast)
             return;
 
-        // øœ∑· »ƒ ¿⁄µø º˚±Ë
+        // ÏôÑÎ£å ÌõÑ ÏûêÎèô Ïà®ÍπÄ
         if (!m_building.load() && ImGui::GetTime() > m_hideTime)
         {
             m_showToast = false;
@@ -121,7 +162,7 @@ namespace MMMEngine::Editor
             ImGuiWindowFlags_NoFocusOnAppearing |
             ImGuiWindowFlags_NoNav;
 
-        // »≠∏È ¡ﬂæ” ∞ËªÍ
+        // ÌôîÎ©¥ Ï§ëÏïô Í≥ÑÏÇ∞
         ImGuiViewport* vp = ImGui::GetMainViewport();
         ImVec2 center(
             vp->WorkPos.x + vp->WorkSize.x * 0.5f,
@@ -135,7 +176,7 @@ namespace MMMEngine::Editor
         {
             if (m_building.load())
             {
-                ImGui::TextUnformatted(u8"Ω∫≈©∏≥∆Æ ∫ÙµÂ ¡ﬂ...");
+                ImGui::TextUnformatted(u8"Ïä§ÌÅ¨Î¶ΩÌä∏ ÎπåÎìú Ï§ë...");
                 ImGui::ProgressBar(
                     m_progress.load() / 100.f,
                     ImVec2(260, 0)
@@ -145,8 +186,8 @@ namespace MMMEngine::Editor
             {
                 ImGui::TextUnformatted(
                     m_exitCode.load() == 0
-                    ? u8"∫ÙµÂ º∫∞¯!"
-                    : u8"∫ÙµÂ Ω«∆–!"
+                    ? u8"ÎπåÎìú ÏÑ±Í≥µ!"
+                    : u8"ÎπåÎìú Ïã§Ìå®!"
                 );
             }
         }

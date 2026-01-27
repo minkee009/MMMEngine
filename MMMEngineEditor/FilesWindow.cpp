@@ -598,11 +598,11 @@ void MMMEngine::Editor::FilesWindow::CreateNewScript(const std::string& parentDi
         headerFile <<
             R"(#include "rttr/type"
 #include "ScriptBehaviour.h"
-#include "Export.h"
+#include "UserScriptsCommon.h"
 
 namespace MMMEngine
 {
-    class MMMENGINE_API )" << scriptName << R"( : public ScriptBehaviour
+    class USERSCRIPTS )" << scriptName << R"( : public ScriptBehaviour
     {
     private:
         RTTR_ENABLE(ScriptBehaviour)
@@ -615,6 +615,7 @@ namespace MMMEngine
         }
 
         void Start();
+
         void Update();
     };
 }
@@ -634,21 +635,21 @@ namespace MMMEngine
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
 
-RTTR_REGISTRATION
+RTTR_PLUGIN_REGISTRATION
 {
-    using namespace rttr;
-    using namespace MMMEngine;
+	using namespace rttr;
+	using namespace MMMEngine;
 
-    registration::class_<)" << scriptName << R"(>(")" << scriptName << R"(")
+	registration::class_<)" << scriptName << R"(>(")" << scriptName << R"(")
         (rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<)" << scriptName << R"(>>()));
 
-    registration::class_<ObjPtr<)" << scriptName << R"(>>("ObjPtr<)" << scriptName << R"(>")
-        .constructor(
-            []() {
-                return Object::NewObject<)" << scriptName << R"(>();
-            });
+	registration::class_<ObjPtr<)" << scriptName << R"(>>("ObjPtr<)" << scriptName << R"(>")
+		.constructor(
+			[]() {
+				return Object::NewObject<)" << scriptName << R"(>();
+			});
 
-    type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<)" << scriptName << R"(>>();
+	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<)" << scriptName << R"(>>();
 }
 
 void MMMEngine::)" << scriptName << R"(::Start()

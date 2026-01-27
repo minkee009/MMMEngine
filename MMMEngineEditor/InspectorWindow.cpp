@@ -18,11 +18,7 @@ using namespace MMMEngine;
 using namespace MMMEngine::Editor;
 using namespace MMMEngine::Utility;
 
-static Vector3 g_eulerCache;
-static ObjPtr<GameObject> g_lastSelected = nullptr;
-static std::vector<ObjPtr<Component>> g_pendingRemoveComponents;
-static std::vector<rttr::type> g_componentTypes;
-static std::unordered_map<std::string, std::string> g_stringEditCache;
+
 
 static std::string MakeStringKey(const rttr::instance& inst, const rttr::property& prop)
 {
@@ -32,30 +28,35 @@ static std::string MakeStringKey(const rttr::instance& inst, const rttr::propert
     return tname + "::" + pname;
 }
 
-void RefreshComponentTypes()
+void AddComponentFromDropFilePath(std::string filePath)
 {
-    g_componentTypes.clear();
-
-    rttr::type componentType = rttr::type::get<Component>();
-
-    for (const rttr::type& t : rttr::type::get_types())
+    if (!filePath.empty())
     {
-        // 포인터/기본형/컨테이너 등은 제외하고, "클래스/구조체(record)"만
-        if (!t.is_class())
-            continue;
+        std::string ext = Utility::StringHelper::ExtractFileFormat(filePath);
+        if (ext != "cpp" && ext != "h")
+            return;
 
-        rttr::variant md = t.get_metadata("INSPECTOR");
-        if (md.is_valid() && md.is_type<std::string>() && "DONT_ADD_COMP" == md.get_value<std::string>())
-            continue;
+        std::string typeName = Utility::StringHelper::ExtractFileName(filePath);
+        rttr::type t = rttr::type::get_by_name(typeName);
 
-        if (t != componentType && t.is_derived_from(componentType))
+        if (t.is_valid())
         {
-            g_componentTypes.push_back(t);
+            g_selectedGameObject->AddComponent(t);
         }
     }
 }
 
-void RenderProperties(rttr::instance inst)
+void MMMEngine::Editor::InspectorWindow::ClearCache()
+{
+    m_lastSelected = nullptr;
+    m_componentTypes.clear(); // 중요: 유저 스크립트 타입 참조 해제
+    m_pendingRemoveComponents.clear();
+    m_stringEditCache.clear();
+    // 필요하다면 rttr::type::get_invalid() 등을 활용해 더 확실히 비움
+}
+
+void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
+
 {
     static ObjPtr<GameObject> s_lastCachedObject = nullptr;
     static std::unordered_map<std::string, std::string> cache;
@@ -429,20 +430,25 @@ void RenderProperties(rttr::instance inst)
     ImGui::PopID();
 }
 
-void AddComponentFromDropFilePath(std::string filePath)
+void MMMEngine::Editor::InspectorWindow::RefreshComponentTypes()
 {
-    if (!filePath.empty())
+    m_componentTypes.clear();
+
+    rttr::type componentType = rttr::type::get<Component>();
+
+    for (const rttr::type& t : rttr::type::get_types())
     {
-        std::string ext = Utility::StringHelper::ExtractFileFormat(filePath);
-        if (ext != "cpp" && ext != "h")
-            return;
+        // 포인터/기본형/컨테이너 등은 제외하고, "클래스/구조체(record)"만
+        if (!t.is_class())
+            continue;
 
-        std::string typeName = Utility::StringHelper::ExtractFileName(filePath);
-        rttr::type t = rttr::type::get_by_name(typeName);
+        rttr::variant md = t.get_metadata("INSPECTOR");
+        if (md.is_valid() && md.is_type<std::string>() && "DONT_ADD_COMP" == md.get_value<std::string>())
+            continue;
 
-        if (t.is_valid())
+        if (t != componentType && t.is_derived_from(componentType))
         {
-            g_selectedGameObject->AddComponent(t);
+            m_componentTypes.push_back(t);
         }
     }
 }
@@ -527,7 +533,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
 
         ImGui::Separator();
 
-        g_pendingRemoveComponents.clear();
+        m_pendingRemoveComponents.clear();
 
         // 3. 모든 컴포넌트 순회 및 렌더링
         auto& components = g_selectedGameObject->GetAllComponents();
@@ -553,11 +559,11 @@ void MMMEngine::Editor::InspectorWindow::Render()
             if (!visible)
             {
                 visible = true;
-                g_pendingRemoveComponents.push_back(comp);
+                m_pendingRemoveComponents.push_back(comp);
             }
         }
 
-        for (auto& comp : g_pendingRemoveComponents)
+        for (auto& comp : m_pendingRemoveComponents)
         {
             Object::Destroy(comp);
         }
@@ -601,9 +607,9 @@ void MMMEngine::Editor::InspectorWindow::Render()
             std::string searchStr = searchBuffer;
             std::transform(searchStr.begin(), searchStr.end(), searchStr.begin(), ::tolower);
 
-            for (int i = 0; i < g_componentTypes.size(); ++i)
+            for (int i = 0; i < m_componentTypes.size(); ++i)
             {
-                auto type = g_componentTypes[i];
+                auto type = m_componentTypes[i];
                 std::string typeName = type.get_name().to_string();
 
                 // 검색 필터링
@@ -619,7 +625,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
                 if (ImGui::Selectable(typeName.c_str()))
                 {
                     selectedIndex = i;
-                    auto selected = g_componentTypes[selectedIndex];
+                    auto selected = m_componentTypes[selectedIndex];
                     g_selectedGameObject->AddComponent(type);
                     ImGui::CloseCurrentPopup();
                 }

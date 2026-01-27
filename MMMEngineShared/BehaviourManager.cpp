@@ -1,4 +1,4 @@
-#include "BehaviourManager.h"
+ï»¿#include "BehaviourManager.h"
 
 DEFINE_SINGLETON(MMMEngine::BehaviourManager)
 
@@ -28,7 +28,7 @@ void MMMEngine::BehaviourManager::RegisterBehaviour(ObjPtr<Behaviour> behaviour)
 {
 	m_inactiveBehaviours.push_back(behaviour);
 	m_firstCallBehaviours.insert(behaviour);
-	m_needSort = true; // Behaviour Á¤·ÄÀÌ ÇÊ¿äÇÔÀ» Ç¥½Ã
+	m_needSort = true; // Behaviour ì •ë ¬ì´ í•„ìš”í•¨ì„ í‘œì‹œ
 }
 
 void MMMEngine::BehaviourManager::UnRegisterBehaviour(ObjPtr<Behaviour> behaviour)
@@ -46,7 +46,7 @@ void MMMEngine::BehaviourManager::UnRegisterBehaviour(ObjPtr<Behaviour> behaviou
 			m_inactiveBehaviours.erase(it);
 		}
 	}
-	m_needSort = true; // Behaviour Á¤·ÄÀÌ ÇÊ¿äÇÔÀ» Ç¥½Ã
+	m_needSort = true; // Behaviour ì •ë ¬ì´ í•„ìš”í•¨ì„ í‘œì‹œ
 }
 
 void MMMEngine::BehaviourManager::SortBehaviours()
@@ -72,14 +72,14 @@ void MMMEngine::BehaviourManager::AllSortBehaviours()
 
 void MMMEngine::BehaviourManager::InitializeBehaviours()
 {
-	// È°¼ºÈ­µÈ Behaviour¸¦ ¸ğÀ¸´Â ÄÁÅ×ÀÌ³Ê.
-// count() ¸Ş¼­µå·Î O(1)¿¡ Á¸Àç ¿©ºÎ È®ÀÎ °¡´É.
+	// í™œì„±í™”ëœ Behaviourë¥¼ ëª¨ìœ¼ëŠ” ì»¨í…Œì´ë„ˆ.
+// count() ë©”ì„œë“œë¡œ O(1)ì— ì¡´ì¬ ì—¬ë¶€ í™•ì¸ ê°€ëŠ¥.
 	std::unordered_set<ObjPtr<Behaviour>> changedBehavioursSet;
 
-	// ÀÌÀü¿¡ »ı¼ºµÇ¾î È°¼ºÈ­µÈ Àû ¾ø´Â Behaviour¸¦ È¿À²ÀûÀ¸·Î Ã£±â À§ÇÑ set
+	// ì´ì „ì— ìƒì„±ë˜ì–´ í™œì„±í™”ëœ ì  ì—†ëŠ” Behaviourë¥¼ íš¨ìœ¨ì ìœ¼ë¡œ ì°¾ê¸° ìœ„í•œ set
 	std::unordered_set<ObjPtr<Behaviour>> newBehavioursSet;
 
-	// m_inactiveBehaviours¸¦ ¼øÈ¸ÇÏ¸ç È°¼ºÈ­ °´Ã¼ Ã³¸®
+	// m_inactiveBehavioursë¥¼ ìˆœíšŒí•˜ë©° í™œì„±í™” ê°ì²´ ì²˜ë¦¬
 	auto it = m_inactiveBehaviours.begin();
 	while (it != m_inactiveBehaviours.end())
 	{
@@ -87,16 +87,16 @@ void MMMEngine::BehaviourManager::InitializeBehaviours()
 		if (currentBehaviour->IsActiveAndEnabled())
 		{
 			m_activeBehaviours.push_back(currentBehaviour);
-			changedBehavioursSet.insert(currentBehaviour); // OnEnable È£ÃâÀ» À§ÇØ Ãß°¡
+			changedBehavioursSet.insert(currentBehaviour); // OnEnable í˜¸ì¶œì„ ìœ„í•´ ì¶”ê°€
 
-			// m_firstCallBehaviours¿¡¼­ Ã£°í, newBehavioursSet¿¡ Ãß°¡ ¹× m_firstCallBehaviours¿¡¼­ Á¦°Å
-			if (m_firstCallBehaviours.erase(currentBehaviour) > 0) // ¿ä¼Ò°¡ ¼º°øÀûÀ¸·Î Á¦°ÅµÇ¸é
+			// m_firstCallBehavioursì—ì„œ ì°¾ê³ , newBehavioursSetì— ì¶”ê°€ ë° m_firstCallBehavioursì—ì„œ ì œê±°
+			if (m_firstCallBehaviours.erase(currentBehaviour) > 0) // ìš”ì†Œê°€ ì„±ê³µì ìœ¼ë¡œ ì œê±°ë˜ë©´
 			{
-				newBehavioursSet.insert(currentBehaviour); // »õ·Î¿î Behaviour·Î °£ÁÖ
+				newBehavioursSet.insert(currentBehaviour); // ìƒˆë¡œìš´ Behaviourë¡œ ê°„ì£¼
 			}
 			m_needSort = true;
 
-			// m_inactiveBehaviours¿¡¼­ ÇöÀç ¿ä¼Ò¸¦ Á¦°Å
+			// m_inactiveBehavioursì—ì„œ í˜„ì¬ ìš”ì†Œë¥¼ ì œê±°
 			it = m_inactiveBehaviours.erase(it);
 		}
 		else
@@ -105,10 +105,10 @@ void MMMEngine::BehaviourManager::InitializeBehaviours()
 		}
 	}
 
-	// È°¼ºÈ­ behaviour Á¤·Ä (ÇÊ¿ä½Ã¿¡)
+	// í™œì„±í™” behaviour ì •ë ¬ (í•„ìš”ì‹œì—)
 	CheckAndSortBehaviours();
 
-	// 1. Awake È£Ãâ (»õ·Î¿î °´Ã¼¸¸)
+	// 1. Awake í˜¸ì¶œ (ìƒˆë¡œìš´ ê°ì²´ë§Œ)
 	for (auto& behaviour : m_activeBehaviours)
 	{
 		if (newBehavioursSet.count(behaviour) > 0)
@@ -117,7 +117,7 @@ void MMMEngine::BehaviourManager::InitializeBehaviours()
 		}
 	}
 
-	// 2. OnEnable È£Ãâ (»õ·Ó°Ô È°¼ºÈ­µÈ ¸ğµç °´Ã¼)
+	// 2. OnEnable í˜¸ì¶œ (ìƒˆë¡­ê²Œ í™œì„±í™”ëœ ëª¨ë“  ê°ì²´)
 	for (auto& behaviour : m_activeBehaviours)
 	{
 		if (changedBehavioursSet.count(behaviour) > 0)
@@ -126,7 +126,7 @@ void MMMEngine::BehaviourManager::InitializeBehaviours()
 		}
 	}
 
-	// 3. Start È£Ãâ (»õ·Î¿î °´Ã¼¸¸)
+	// 3. Start í˜¸ì¶œ (ìƒˆë¡œìš´ ê°ì²´ë§Œ)
 	for (auto& behaviour : m_activeBehaviours)
 	{
 		if (newBehavioursSet.count(behaviour) > 0)
@@ -147,8 +147,8 @@ void MMMEngine::BehaviourManager::DisableBehaviours()
 			(*it)->CallMessage("OnDisable");
 			m_needSort = true;
 
-			m_inactiveBehaviours.push_back(currentBehaviour); // ¹Ù·Î m_inactiveBehaviours·Î ÀÌµ¿
-			it = m_activeBehaviours.erase(it); // m_activeBehaviours¿¡¼­ Á¦°Å
+			m_inactiveBehaviours.push_back(currentBehaviour); // ë°”ë¡œ m_inactiveBehavioursë¡œ ì´ë™
+			it = m_activeBehaviours.erase(it); // m_activeBehavioursì—ì„œ ì œê±°
 		}
 		else
 		{
@@ -173,14 +173,25 @@ void MMMEngine::BehaviourManager::BroadCastBehaviourMessage(const std::string& m
 	}
 }
 
-void MMMEngine::BehaviourManager::ReloadUserScripts(const std::string& name)
+bool MMMEngine::BehaviourManager::ReloadUserScripts(const std::string& name)
 {
-	m_pScriptLoader->LoadScriptDLL(name);
+	return m_pScriptLoader->LoadScriptDLL(name);
 }
 
 void MMMEngine::BehaviourManager::UnloadUserScripts()
 {
-	m_pScriptLoader->UnloadScript();
+	switch (m_pScriptLoader->UnloadScript())
+	{
+	case UnloadState::ScriptNotLoaded:
+		std::cout << "Script Not Loaded" << std::endl;
+		break;
+	case UnloadState::UnloadFail:
+		std::cout << "Script Unload Fail" << std::endl;
+		break;
+	case UnloadState::UnloadSuccess:
+		std::cout << "Script Unload Success!!" << std::endl;
+		break;
+	}
 }
 
 
