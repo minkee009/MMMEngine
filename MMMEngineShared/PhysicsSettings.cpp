@@ -13,7 +13,7 @@ using json = nlohmann::json;
 bool MMMEngine::PhysicsSettings::SaveSettings()
 {
     // 확장자를 .settings로 강제하거나 확인 (선택 사항)
-    fs::path savePath = m_configFilePath / SETTINGS_FILENAME;
+    fs::path savePath = m_configFilePath;
     if (savePath.extension() != ".settings") {
         savePath.replace_extension(".settings");
     }
@@ -47,10 +47,10 @@ bool MMMEngine::PhysicsSettings::SaveSettings()
 
 bool MMMEngine::PhysicsSettings::LoadSettings()
 {
-    if (!fs::exists(m_configFilePath / SETTINGS_FILENAME)) return false;
+    if (!fs::exists(m_configFilePath)) return false;
 
     try {
-        std::ifstream file(m_configFilePath / SETTINGS_FILENAME, std::ios::binary);
+        std::ifstream file(m_configFilePath, std::ios::binary);
         if (!file.is_open()) return false;
 
         // 파일 내용을 벡터로 읽기

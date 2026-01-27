@@ -1,4 +1,4 @@
-#include "CapsuleColliderComponent.h"
+﻿#include "CapsuleColliderComponent.h"
 #include "rttr/registration"
 #include "PhysxManager.h"
 
@@ -8,19 +8,17 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<CapsuleColliderComponent>("CapsuleCollider")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<CapsuleColliderComponent>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<CapsuleColliderComponent>"))
 		.property("Radius", &CapsuleColliderComponent::GetRadius, &CapsuleColliderComponent::SetRadius)
 		.property("Height", &CapsuleColliderComponent::GetHalfHeight, &CapsuleColliderComponent::SetHalfHeight)
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
 		;
 
-	registration::class_<ObjPtr<CapsuleColliderComponent>>("ObjPtr<CapsuleCollider>")
+	registration::class_<ObjPtr<CapsuleColliderComponent>>("ObjPtr<CapsuleColliderComponent>")
 		.constructor(
 			[]() {
 				return Object::NewObject<CapsuleColliderComponent>();
 			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<CapsuleColliderComponent>>();
 }
 
 void MMMEngine::CapsuleColliderComponent::SetRadius(float radius)

@@ -13,7 +13,7 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<RigidBodyComponent>("RigidBodyComponent")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<RigidBodyComponent>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<RigidBodyComponent>"))
 		.property("Type", &RigidBodyComponent::GetType , &RigidBodyComponent::SetType)
 		.property("Mass", &RigidBodyComponent::GetMass , &RigidBodyComponent::SetMass)
 		.property("LinearDamping", &RigidBodyComponent::GetLineDamping , &RigidBodyComponent::SetLineDamping)
@@ -39,9 +39,6 @@ RTTR_REGISTRATION
 		.property("AngularDamping", &RigidBodyComponent::Desc::angularDamping)
 		.property("UseGravity", &RigidBodyComponent::Desc::useGravity)
 		.property("IsKinematic", &RigidBodyComponent::Desc::isKinematic);
-
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<RigidBodyComponent>>();
 }
 
 void MMMEngine::RigidBodyComponent::CreateActor(physx::PxPhysics* physics, Vector3 worldPos, Quaternion Quater)

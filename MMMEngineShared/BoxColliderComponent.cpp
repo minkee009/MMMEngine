@@ -1,4 +1,4 @@
-#include "BoxColliderComponent.h"
+﻿#include "BoxColliderComponent.h"
 #include "rttr/registration"
 #include "PhysxManager.h"
 
@@ -8,18 +8,16 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<BoxColliderComponent>("BoxCollider")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<BoxColliderComponent>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<BoxColliderComponent>"))
 		.property("Extents", &BoxColliderComponent::GetHalfExtents, &BoxColliderComponent::SetHalfExtents)
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
 		;
 
-	registration::class_<ObjPtr<BoxColliderComponent>>("ObjPtr<BoxCollider>")
+	registration::class_<ObjPtr<BoxColliderComponent>>("ObjPtr<BoxColliderComponent>")
 		.constructor(
 			[]() {
 				return Object::NewObject<BoxColliderComponent>();
 			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<BoxColliderComponent>>();
 }
 
 void MMMEngine::BoxColliderComponent::SetHalfExtents(Vector3 he)

@@ -1,4 +1,4 @@
-#include "SphereColliderComponent.h"
+﻿#include "SphereColliderComponent.h"
 #include "rttr/registration"
 #include "PhysxManager.h"
 
@@ -7,18 +7,16 @@ RTTR_REGISTRATION
 	using namespace rttr;
 	using namespace MMMEngine;
 	registration::class_<SphereColliderComponent>("SphereCollider")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<SphereColliderComponent>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<SphereColliderComponent>"))
 		.property("Radius", &SphereColliderComponent::GetRadius, &SphereColliderComponent::SetRadius)
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
 		;
 
-	registration::class_<ObjPtr<SphereColliderComponent>>("ObjPtr<SphereCollider>")
+	registration::class_<ObjPtr<SphereColliderComponent>>("ObjPtr<SphereColliderComponent>")
 		.constructor(
 			[]() {
 				return Object::NewObject<SphereColliderComponent>();
 			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<SphereColliderComponent>>();
 }
 
 void MMMEngine::SphereColliderComponent::SetRadius(float radius)
