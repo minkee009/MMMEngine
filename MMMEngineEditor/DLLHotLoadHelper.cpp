@@ -1,4 +1,4 @@
-#include "DLLHotLoadHelper.h"
+ï»¿#include "DLLHotLoadHelper.h"
 #include <string>
 
 std::wstring MMMEngine::Editor::DLLHotLoadHelper::MakeHotDllName(const fs::path& originalDllPath)
@@ -16,34 +16,34 @@ std::wstring MMMEngine::Editor::DLLHotLoadHelper::MakeHotDllName(const fs::path&
 
 fs::path MMMEngine::Editor::DLLHotLoadHelper::CopyDllForHotReload(const fs::path& dllPath, const fs::path& hotDir)
 {
+    namespace fs = std::filesystem;
+
     if (!fs::exists(dllPath))
-    {
-        return fs::path{}; // ºó °æ·Î ¹İÈ¯À¸·Î "½ÇÆĞ" ¾Ë¸²
-    }
+        return {};
 
-    fs::create_directories(hotDir);
-    fs::path copied = hotDir / MakeHotDllName(dllPath);
+    std::error_code ec;
+    fs::create_directories(hotDir, ec);
+    if (ec) return {};
 
-    try
-    {
-        fs::copy_file(dllPath, copied, fs::copy_options::overwrite_existing);
+    const fs::path copied = hotDir / MakeHotDllName(dllPath);
 
-        // PDB Ã³¸® (»ı·« °¡´É ·ÎÁ÷)
-        fs::path pdb = dllPath;
-        pdb.replace_extension(L".pdb");
-        if (fs::exists(pdb))
-        {
-            fs::path copiedPdb = copied;
-            copiedPdb.replace_extension(L".pdb");
-            fs::copy_file(pdb, copiedPdb, fs::copy_options::overwrite_existing);
+    // DLLë§Œ ë³µì‚¬ (PDBëŠ” ë³µì‚¬í•˜ì§€ ì•ŠìŒ)
+    fs::copy_file(dllPath, copied, fs::copy_options::overwrite_existing, ec);
+    if (ec) return {};
+
+    return copied;
+}
+
+void MMMEngine::Editor::DLLHotLoadHelper::PrepareForBuild(const fs::path& binDir)
+{
+    fs::path pdbPath = binDir / "UserScripts.pdb";
+    if (fs::exists(pdbPath)) {
+        std::error_code ec;
+        // ì‚­ì œ ì‹œë„, ì ê²¨ìˆë‹¤ë©´ ì´ë¦„ ë³€ê²½ ì‹œë„ (ì´ë¦„ ë³€ê²½ì€ ì ê²¨ìˆì–´ë„ ê°€ëŠ¥í•  ë•Œê°€ ë§ìŒ)
+        fs::remove(pdbPath, ec);
+        if (ec) {
+            fs::rename(pdbPath, pdbPath.wstring() + L".old", ec);
         }
-
-        return copied;
-    }
-    catch (const fs::filesystem_error& e)
-    {
-        // º¹»ç °úÁ¤ Áß ¹ß»ıÇÑ ¿¡·¯ Ã³¸® (±ÇÇÑ ¹®Á¦ µî)
-        return fs::path{};
     }
 }
 
@@ -60,10 +60,10 @@ void MMMEngine::Editor::DLLHotLoadHelper::CleanupHotReloadCopies(const fs::path&
         const auto p = e.path();
         const auto name = p.filename().wstring();
 
-        // ±ÔÄ¢: *_copy_*.dll »èÁ¦
+        // ê·œì¹™: *_copy_*.dll ì‚­ì œ
         if (p.extension() == L".dll" && name.find(L"_copy_") != std::wstring::npos)
         {
-            // Àá±İ ÇØÁ¦ Áö¿¬ ´ëºñ: ¸î ¹ø ¸®Æ®¶óÀÌ
+            // ì ê¸ˆ í•´ì œ ì§€ì—° ëŒ€ë¹„: ëª‡ ë²ˆ ë¦¬íŠ¸ë¼ì´
             for (int i = 0; i < 10; ++i)
             {
                 std::error_code ec;
@@ -71,13 +71,25 @@ void MMMEngine::Editor::DLLHotLoadHelper::CleanupHotReloadCopies(const fs::path&
                 if (!ec) break;
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
-
-            // pdbµµ °°ÀÌ »èÁ¦(ÀÖÀ¸¸é)
-            fs::path pdb = p; pdb.replace_extension(L".pdb");
-            std::error_code ec2;
-            fs::remove(pdb, ec2);
         }
     }
 }
 
+void MMMEngine::Editor::DLLHotLoadHelper::BackupOriginalDll(const fs::path& binDir)
+{
+    std::error_code ec;
+    if (fs::exists(binDir / "UserScripts.dll"))
+        fs::copy_file(binDir / "UserScripts.dll", binDir / "UserScripts.dll.bak", fs::copy_options::overwrite_existing, ec);
+    if (fs::exists(binDir / "UserScripts.pdb"))
+        fs::copy_file(binDir / "UserScripts.pdb", binDir / "UserScripts.pdb.bak", fs::copy_options::overwrite_existing, ec);
+}
+
+void MMMEngine::Editor::DLLHotLoadHelper::RestoreOriginalDll(const fs::path& binDir)
+{
+    std::error_code ec;
+    if (fs::exists(binDir / "UserScripts.dll.bak"))
+        fs::rename(binDir / "UserScripts.dll.bak", binDir / "UserScripts.dll", ec);
+    if (fs::exists(binDir / "UserScripts.pdb.bak"))
+        fs::rename(binDir / "UserScripts.pdb.bak", binDir / "UserScripts.pdb", ec);
+}
 

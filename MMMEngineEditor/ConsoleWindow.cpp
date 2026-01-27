@@ -1,4 +1,4 @@
-#include "ConsoleWindow.h"
+ï»¿#include "ConsoleWindow.h"
 #include <cstdarg>
 #include <cstdio>
 #include <iostream>
@@ -12,17 +12,17 @@ namespace MMMEngine::Editor
     {
         m_Buffer.reserve(64 * 1024);
 
-        // cout/cerr °¡·ÎÃ¤±â ¼³Ä¡
+        // cout/cerr ê°€ë¡œì±„ê¸° ì„¤ì¹˜
         m_HookBuf = std::make_unique<ConsoleStreamBuf>(
             [this](const std::string& line)
             {
-                this->AddLog(line); // ÀÌ¹Ì mutex Àâ´Â AddLog »ç¿ë
+                this->AddLog(line); // ì´ë¯¸ mutex ì¡ëŠ” AddLog ì‚¬ìš©
             });
 
         m_OldCout = std::cout.rdbuf(m_HookBuf.get());
         m_OldCerr = std::cerr.rdbuf(m_HookBuf.get());
 
-        // ¹öÆÛ¸µ ¶§¹®¿¡ ¹Ù·Î ¾È º¸ÀÌ¸é ÀÌ°Åµµ ÃßÃµ
+        // ë²„í¼ë§ ë•Œë¬¸ì— ë°”ë¡œ ì•ˆ ë³´ì´ë©´ ì´ê±°ë„ ì¶”ì²œ
         std::cout.setf(std::ios::unitbuf);
         std::cerr.setf(std::ios::unitbuf);
     }
@@ -41,7 +41,7 @@ namespace MMMEngine::Editor
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         m_Buffer.clear();
-        m_ScrollToBottom = true; // ºñ¿î µÚ ¾Æ·¡·Î ¸ÂÃß°í ½ÍÀ¸¸é
+        m_ScrollToBottom = true; // ë¹„ìš´ ë’¤ ì•„ë˜ë¡œ ë§ì¶”ê³  ì‹¶ìœ¼ë©´
     }
 
     void ConsoleWindow::AddLog(const std::string& msg)
@@ -88,24 +88,20 @@ namespace MMMEngine::Editor
 
         ImGuiWindowClass wc;
         wc.ParentViewportId = ImGui::GetMainViewport()->ID;
-        wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // ÇÊ¿ä ½Ã ¼³Á¤
+        wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // í•„ìš” ì‹œ ì„¤ì •
 
         ImGui::SetNextWindowClass(&wc);
 
-        static const char* ICON_FOLDER = "\xef\x84\xa0";
+        ImGui::Begin(u8"\uf120 ì½˜ì†”", &g_editor_window_console);
 
-        std::string title = std::string(ICON_FOLDER) + u8" ÄÜ¼Ö";
-
-        ImGui::Begin(title.c_str(), &g_editor_window_console);
-
-        ImGui::Checkbox(u8"ÀÚµ¿ ½ºÅ©·Ñ", &m_AutoScroll);
+        ImGui::Checkbox(u8"ìë™ ìŠ¤í¬ë¡¤", &m_AutoScroll);
         ImGui::SameLine();
-        if (ImGui::Button(u8"ºñ¿ì±â"))
+        if (ImGui::Button(u8"ë¹„ìš°ê¸°"))
             Clear();
         ImGui::SameLine();
-        if (ImGui::Button(u8"ÀüÃ¼ º¹»ç"))
+        if (ImGui::Button(u8"ì „ì²´ ë³µì‚¬"))
         {
-            // ÄÜ¼Ö ÀüÃ¼¸¦ Å¬¸³º¸µå·Î
+            // ì½˜ì†” ì „ì²´ë¥¼ í´ë¦½ë³´ë“œë¡œ
             ImGui::LogToClipboard();
             ImGui::LogText("%s", m_Buffer.c_str());
             ImGui::LogFinish();
@@ -121,7 +117,7 @@ namespace MMMEngine::Editor
         {
             std::lock_guard<std::mutex> lock(m_Mutex);
 
-            // ÅØ½ºÆ® Ãâ·Â (ÀÌ°Ç ½ºÅ©·ÑÀ» ¸¸µéÁö ¾ÊÀ½. ½ºÅ©·ÑÀº Child°¡ ´ã´ç)
+            // í…ìŠ¤íŠ¸ ì¶œë ¥ (ì´ê±´ ìŠ¤í¬ë¡¤ì„ ë§Œë“¤ì§€ ì•ŠìŒ. ìŠ¤í¬ë¡¤ì€ Childê°€ ë‹´ë‹¹)
             ImGui::TextUnformatted(m_Buffer.c_str());
 
             shouldScroll = m_ScrollToBottom;

@@ -1,2 +1,12 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# C/C++ sources: always checkout as CRLF on Windows
+*.h     text eol=crlf
+*.hpp   text eol=crlf
+*.inl   text eol=crlf
+*.c     text eol=crlf
+*.cpp   text eol=crlf
+*.cc    text eol=crlf
+*.cxx   text eol=crlf
+
+# Scripts 
+*.bat   text eol=crlf
+*.cmd   text eol=crlf

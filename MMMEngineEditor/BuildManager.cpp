@@ -1,4 +1,4 @@
-#include "BuildManager.h"
+ï»¿#include "BuildManager.h"
 #include <Windows.h>
 #include <array>
 #include <thread>
@@ -20,7 +20,7 @@ namespace MMMEngine::Editor
 
     fs::path BuildManager::FindMSBuild() const
     {
-        // VS2022 ±âº» °æ·Îµé
+        // VS2022 ê¸°ë³¸ ê²½ë¡œë“¤
         std::array<const char*, 4> candidates = {
             R"(C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe)",
             R"(C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe)",
@@ -34,15 +34,15 @@ namespace MMMEngine::Editor
                 return fs::path(path);
         }
 
-        // vswhere.exe·Î Ã£±â (´õ Á¤È®ÇÔ)
+        // vswhere.exeë¡œ ì°¾ê¸° (ë” ì •í™•í•¨)
         const char* vswhere = R"(C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe)";
         if (fs::exists(vswhere))
         {
-            // vswhere¸¦ ÀÌ¿ëÇØ MSBuild °æ·Î Ã£±â
+            // vswhereë¥¼ ì´ìš©í•´ MSBuild ê²½ë¡œ ì°¾ê¸°
             std::string cmd = std::string(vswhere) +
                 R"( -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe)";
 
-            // °£´ÜÇÑ ±¸Çö: popenÀ¸·Î ½ÇÇà
+            // ê°„ë‹¨í•œ êµ¬í˜„: popenìœ¼ë¡œ ì‹¤í–‰
             FILE* pipe = _popen(cmd.c_str(), "r");
             if (pipe)
             {
@@ -50,7 +50,7 @@ namespace MMMEngine::Editor
                 if (fgets(buffer, sizeof(buffer), pipe))
                 {
                     std::string result = buffer;
-                    // °³Çà Á¦°Å
+                    // ê°œí–‰ ì œê±°
                     if (!result.empty() && result.back() == '\n')
                         result.pop_back();
                     if (!result.empty() && result.back() == '\r')
@@ -78,25 +78,26 @@ namespace MMMEngine::Editor
 
         const char* configStr = (config == BuildConfiguration::Debug) ? "Debug" : "Release";
 
-        // MSBuild ¸í·É ±¸¼º
+        // MSBuild ëª…ë ¹ êµ¬ì„±
         std::ostringstream cmdStream;
         cmdStream << "\"" << msbuildPath.string() << "\" "
             << "\"" << vcxprojPath.string() << "\" "
             << "/p:Configuration=" << configStr << " "
             << "/p:Platform=x64 "
-            << "/m:" << std::thread::hardware_concurrency() << " "  // º´·Ä ºôµå (CPU ÄÚ¾î ¼ö¸¸Å­)
-            << "/p:CL_MPCount=" << std::thread::hardware_concurrency() << " "  // ÄÄÆÄÀÏ·¯ º´·ÄÈ­
-            << "/p:UseMultiToolTask=true "
-            << "/p:EnforceProcessCountAcrossBuilds=true "
-            << "/v:minimal "  // ÃÖ¼Ò Ãâ·Â
-            << "/nologo";     // ·Î°í ¼û±è
+            << "/p:DebugType=none "
+            //<< "/m:" << std::thread::hardware_concurrency() << " "  // ë³‘ë ¬ ë¹Œë“œ (CPU ì½”ì–´ ìˆ˜ë§Œí¼)
+            //<< "/p:CL_MPCount=" << std::thread::hardware_concurrency() << " "  // ì»´íŒŒì¼ëŸ¬ ë³‘ë ¬í™”
+            //<< "/p:UseMultiToolTask=true "
+            //<< "/p:EnforceProcessCountAcrossBuilds=true "
+            << "/v:minimal "  // ìµœì†Œ ì¶œë ¥
+            << "/nologo";     // ë¡œê³  ìˆ¨ê¹€
 
         std::string cmd = cmdStream.str();
 
         if (m_progressCallbackString)
-            m_progressCallbackString(u8"ºôµå ½ÃÀÛ: " + std::string(configStr));
+            m_progressCallbackString(u8"ë¹Œë“œ ì‹œì‘: " + std::string(configStr));
 
-        // CreateProcess·Î ½ÇÇàÇÏ°í Ãâ·Â Ä¸Ã³
+        // CreateProcessë¡œ ì‹¤í–‰í•˜ê³  ì¶œë ¥ ìº¡ì²˜
         SECURITY_ATTRIBUTES sa;
         sa.nLength = sizeof(SECURITY_ATTRIBUTES);
         sa.bInheritHandle = TRUE;
@@ -140,7 +141,7 @@ namespace MMMEngine::Editor
             return output;
         }
 
-        // Ãâ·Â ÀĞ±â
+        // ì¶œë ¥ ì½ê¸°
         std::ostringstream outputStream;
         char buffer[4096];
         DWORD bytesRead;
@@ -155,7 +156,7 @@ namespace MMMEngine::Editor
         {
             for (const auto& entry : fs::recursive_directory_iterator(scriptsPath))
             {
-                // µğ·ºÅä¸®°¡ ¾Æ´Ñ ½ÇÁ¦ ÆÄÀÏÀÌ¸ç, È®ÀåÀÚ°¡ .cppÀÎ °Í¸¸ Ä«¿îÆ®
+                // ë””ë ‰í† ë¦¬ê°€ ì•„ë‹Œ ì‹¤ì œ íŒŒì¼ì´ë©°, í™•ì¥ìê°€ .cppì¸ ê²ƒë§Œ ì¹´ìš´íŠ¸
                 if (fs::is_regular_file(entry) && entry.path().extension() == ".cpp")
                 {
                     totalFiles++;
@@ -167,7 +168,6 @@ namespace MMMEngine::Editor
 
         while (ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
         {
-            currentFileCount++;
             float percent = (static_cast<float>(currentFileCount) / totalFiles) * 100.0f;
 
             buffer[bytesRead] = '\0';
@@ -178,7 +178,7 @@ namespace MMMEngine::Editor
             {
                 currentFileCount++;
                 float percent = (static_cast<float>(currentFileCount) / totalFiles) * 100.0f;
-                if (percent > 100.0f) percent = 100.0f; // 100% Ä¸ÇÎ
+                if (percent > 100.0f) percent = 100.0f; // 100% ìº¡í•‘
 
                 if (m_progressCallbackPercent)
                     m_progressCallbackPercent(percent);
@@ -207,9 +207,9 @@ namespace MMMEngine::Editor
         if (m_progressCallbackString)
         {
             if (output.result == BuildResult::Success)
-                m_progressCallbackString(u8"ºôµå ¼º°ø!");
+                m_progressCallbackString(u8"ë¹Œë“œ ì„±ê³µ!");
             else
-                m_progressCallbackString(u8"ºôµå ½ÇÆĞ (Exit Code: " + std::to_string(exitCode) + ")");
+                m_progressCallbackString(u8"ë¹Œë“œ ì‹¤íŒ¨ (Exit Code: " + std::to_string(exitCode) + ")");
         }
 
         return output;
@@ -240,7 +240,7 @@ namespace MMMEngine::Editor
     {
         BuildOutput output;
 
-        // 1. vcxproj ÆÄÀÏ °æ·Î
+        // 1. vcxproj íŒŒì¼ ê²½ë¡œ
         fs::path vcxprojPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.vcxproj";
         if (!fs::exists(vcxprojPath))
         {
@@ -249,7 +249,7 @@ namespace MMMEngine::Editor
             return output;
         }
 
-        // 2. MSBuild Ã£±â
+        // 2. MSBuild ì°¾ê¸°
         fs::path msbuildPath = FindMSBuild();
         if (msbuildPath.empty())
         {
@@ -259,9 +259,9 @@ namespace MMMEngine::Editor
         }
 
         if (m_progressCallbackString)
-            m_progressCallbackString(u8"MSBuild °æ·Î: " + msbuildPath.string());
+            m_progressCallbackString(u8"MSBuild ê²½ë¡œ: " + msbuildPath.string());
 
-        // 3. ºôµå ½ÇÇà
+        // 3. ë¹Œë“œ ì‹¤í–‰
         return ExecuteBuild(msbuildPath, vcxprojPath, config);
     }
 
@@ -269,8 +269,8 @@ namespace MMMEngine::Editor
     //{
     //    BuildOutput output;
 
-    //    // TODO: ¿£Áø ÀüÃ¼ ºôµå ±¸Çö
-    //    // ¿¹: MMMENGINE_DIR È¯°æº¯¼ö¿¡¼­ ¿£Áø ¼Ö·ç¼Ç Ã£±â
+    //    // TODO: ì—”ì§„ ì „ì²´ ë¹Œë“œ êµ¬í˜„
+    //    // ì˜ˆ: MMMENGINE_DIR í™˜ê²½ë³€ìˆ˜ì—ì„œ ì—”ì§„ ì†”ë£¨ì…˜ ì°¾ê¸°
     //    const char* engineDir = std::getenv("MMMENGINE_DIR");
     //    if (!engineDir)
     //    {
@@ -295,8 +295,8 @@ namespace MMMEngine::Editor
     //        return output;
     //    }
 
-    //    // .sln ÆÄÀÏµµ ExecuteBuild¿Í À¯»çÇÏ°Ô ºôµå °¡´É
-    //    // ÇÊ¿ä½Ã º°µµ ÇÔ¼ö·Î ºĞ¸®
+    //    // .sln íŒŒì¼ë„ ExecuteBuildì™€ ìœ ì‚¬í•˜ê²Œ ë¹Œë“œ ê°€ëŠ¥
+    //    // í•„ìš”ì‹œ ë³„ë„ í•¨ìˆ˜ë¡œ ë¶„ë¦¬
     //    output.result = BuildResult::Failed;
     //    output.errorLog = "Engine build not yet implemented";
     //    return output;
@@ -309,8 +309,8 @@ namespace MMMEngine::Editor
     //{
     //    BuildOutput output;
 
-    //    // TODO: °ÔÀÓ ½ÇÇàÆÄÀÏ ºôµå ±¸Çö
-    //    // UserScripts + ¿£Áø °áÇÕÇÏ¿© ÃÖÁ¾ .exe »ı¼º
+    //    // TODO: ê²Œì„ ì‹¤í–‰íŒŒì¼ ë¹Œë“œ êµ¬í˜„
+    //    // UserScripts + ì—”ì§„ ê²°í•©í•˜ì—¬ ìµœì¢… .exe ìƒì„±
     //    output.result = BuildResult::Failed;
     //    output.errorLog = "Game build not yet implemented";
     //    return output;

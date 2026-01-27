@@ -1,4 +1,4 @@
-#include "SceneManager.h"
+ï»¿#include "SceneManager.h"
 #include "SceneSerializer.h"
 #include "StringHelper.h"
 
@@ -13,7 +13,7 @@ DEFINE_SINGLETON(MMMEngine::SceneManager)
 
 void MMMEngine::SceneManager::LoadScenes(bool allowEmptyScene)
 {
-	//rootPath¿¡¼­ binÀ» ÀĞ¾î¼­ m_sceneNameToID; // <Name , ID>¸¦ ÃÊ±âÈ­
+	//rootPathì—ì„œ binì„ ì½ì–´ì„œ m_sceneNameToID; // <Name , ID>ë¥¼ ì´ˆê¸°í™”
 	auto sceneListfilePath = m_sceneListPath + L"/sceneList.bin";
 	std::ifstream file(sceneListfilePath, std::ios::binary);
 	if (!file.is_open())
@@ -30,7 +30,7 @@ void MMMEngine::SceneManager::LoadScenes(bool allowEmptyScene)
 	m_sceneNameToID.clear();
 	m_scenes.clear();
 
-	// index ±âÁØÀ¸·Î Á¤·Ä
+	// index ê¸°ì¤€ìœ¼ë¡œ ì •ë ¬
 	std::vector<std::pair<size_t, std::string>> sortedScenes;
 	for (const auto& sceneEntry : sceneList)
 	{
@@ -40,16 +40,16 @@ void MMMEngine::SceneManager::LoadScenes(bool allowEmptyScene)
 	}
 	std::sort(sortedScenes.begin(), sortedScenes.end());
 
-	// Á¤·ÄµÈ ¼ø¼­´ë·Î m_scenes Å©±â ¹Ì¸® ÇÒ´ç
+	// ì •ë ¬ëœ ìˆœì„œëŒ€ë¡œ m_scenes í¬ê¸° ë¯¸ë¦¬ í• ë‹¹
 	m_scenes.resize(sortedScenes.size());
 
 	for (const auto& [index, filepath] : sortedScenes)
 	{
-		// .scene È®ÀåÀÚ Á¦°ÅÇÏ¿© ¼ø¼ö ÀÌ¸§¸¸ ÃßÃâ
+		// .scene í™•ì¥ì ì œê±°í•˜ì—¬ ìˆœìˆ˜ ì´ë¦„ë§Œ ì¶”ì¶œ
 		std::string sceneName = filepath.substr(0, filepath.find(".scene"));
 		m_sceneNameToID[sceneName] = index;
 
-		// Scene ÆÄÀÏ ·Îµå
+		// Scene íŒŒì¼ ë¡œë“œ
 		auto sceneRootPath = m_sceneListPath + L"/" + Utility::StringHelper::StringToWString(filepath);
 		std::ifstream sceneFile(sceneRootPath, std::ios::binary);
 		if (!sceneFile.is_open())
@@ -61,11 +61,11 @@ void MMMEngine::SceneManager::LoadScenes(bool allowEmptyScene)
 				m_scenes.pop_back();
 				m_scenes[index] = std::move(emptyScene);
 				m_sceneNameToID[sceneName] = index;
-				std::cout << u8"¾À ¸®½ºÆ®¿¡ µî·ÏµÈ ¾ÀÆÄÀÏÀ» Ã£Áö ¸øÇß½À´Ï´Ù. -> Scene File : " << sceneName << u8".scene \nÀÓ½Ã ¾ÀÀ» »ı¼ºÇÕ´Ï´Ù." << std::endl;
+				std::cout << u8"ì”¬ ë¦¬ìŠ¤íŠ¸ì— ë“±ë¡ëœ ì”¬íŒŒì¼ì„ ì°¾ì§€ ëª»í–ˆìŠµë‹ˆë‹¤. -> Scene File : " << sceneName << u8".scene \nì„ì‹œ ì”¬ì„ ìƒì„±í•©ë‹ˆë‹¤." << std::endl;
 			}
 			else
 			{
-				assert(false && ("¾À ÆÄÀÏ ¾øÀ½: " + sceneName).c_str());
+				assert(false && ("ì”¬ íŒŒì¼ ì—†ìŒ: " + sceneName).c_str());
 			}
 			continue;
 		}
@@ -76,7 +76,7 @@ void MMMEngine::SceneManager::LoadScenes(bool allowEmptyScene)
 
 		nlohmann::json snapshot = nlohmann::json::from_msgpack(sceneBuffer);
 
-		// index À§Ä¡¿¡ Scene ¹èÄ¡
+		// index ìœ„ì¹˜ì— Scene ë°°ì¹˜
 		m_scenes[index] = std::make_unique<Scene>();
 		m_scenes[index]->m_snapshot = snapshot;
 		m_scenes[index]->SetName(sceneName);
@@ -88,7 +88,7 @@ void MMMEngine::SceneManager::CreateEmptyScene(std::string name)
 	m_scenes.push_back(std::make_unique<Scene>());
 	m_scenes.back()->SetName(name);
 	SnapShot snapShot; 
-	SceneSerializer::Get().SerializeToMemory(*m_scenes.back(), snapShot, true); //Ä«¸Ş¶ó ±îÁö °°ÀÌ »ı¼ºÇÏµµ·Ï ÁÖÀÔ
+	SceneSerializer::Get().SerializeToMemory(*m_scenes.back(), snapShot, true); //ì¹´ë©”ë¼ ê¹Œì§€ ê°™ì´ ìƒì„±í•˜ë„ë¡ ì£¼ì…
 	m_scenes.back()->SetSnapShot(std::move(snapShot));
 }
 
@@ -121,7 +121,7 @@ void MMMEngine::SceneManager::RegisterGameObjectToDDOL(ObjPtr<GameObject> go)
 	}
 #ifdef _DEBUG
 	else
-		assert(true && "Dont Destroy On Load ¾ÀÀÌ Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.");
+		assert(true && "Dont Destroy On Load ì”¬ì´ ì¡´ì¬í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.");
 #endif;
 }
 
@@ -166,7 +166,7 @@ void MMMEngine::SceneManager::ReloadSnapShotCurrentScene()
 
 void MMMEngine::SceneManager::RebulidAndApplySceneList(std::vector<std::string> sceneList)
 {
-	// ÇöÀç ¾À ¹è¿­¿¡ Á¸ÀçÇÏ´ÂÁö Ã¼Å©, »õ·Î¿î °Íµµ Ã¼Å©
+	// í˜„ì¬ ì”¬ ë°°ì—´ì— ì¡´ì¬í•˜ëŠ”ì§€ ì²´í¬, ìƒˆë¡œìš´ ê²ƒë„ ì²´í¬
 	std::string currentSceneName = m_scenes[m_currentSceneID]->GetName();
 
 	std::unordered_map<std::string, size_t> changedNameToID;
@@ -182,16 +182,16 @@ void MMMEngine::SceneManager::RebulidAndApplySceneList(std::vector<std::string> 
 			idx = m_sceneNameToID[sceneName];
 		}
 		
-		// ¾À ¸®½ºÆ®¿¡ ÀÖ´Â ¾À
+		// ì”¬ ë¦¬ìŠ¤íŠ¸ì— ìˆëŠ” ì”¬
 		if (idx != -1)
 		{
 			changedScenes.push_back(std::move(m_scenes[idx]));
 		}
-		// ±âÁ¸ ¾À ¸®½ºÆ®¿¡ ¾ø´Â ½Å±Ô ¾À
+		// ê¸°ì¡´ ì”¬ ë¦¬ìŠ¤íŠ¸ì— ì—†ëŠ” ì‹ ê·œ ì”¬
 		else
 		{
-			// ÆÄÀÏ °æ·Î Å½»ö
-			// Scene ÆÄÀÏ ·Îµå
+			// íŒŒì¼ ê²½ë¡œ íƒìƒ‰
+			// Scene íŒŒì¼ ë¡œë“œ
 			auto sceneRootPath = m_sceneListPath + L"/" + Utility::StringHelper::StringToWString(sceneName) + L".scene";
 			std::ifstream sceneFile(sceneRootPath, std::ios::binary);
 		
@@ -207,16 +207,16 @@ void MMMEngine::SceneManager::RebulidAndApplySceneList(std::vector<std::string> 
 			}
 			else
 			{
-				// ¾À ¹è¿­¿¡ ºó ¾À Ãß°¡
+				// ì”¬ ë°°ì—´ì— ë¹ˆ ì”¬ ì¶”ê°€
 				CreateEmptyScene(sceneName);
-				// ³¬¾Æ Ã¤±â
+				// ë‚šì•„ ì±„ê¸°
 				changedScenes.push_back(std::move(m_scenes.back()));
 				m_scenes.pop_back();
 			}
 		}
 	}
 
-	// ÇØ½¬ º¯°æ
+	// í•´ì‰¬ ë³€ê²½
 	UpdateScenesHash(std::move(changedNameToID));
 	m_scenes = std::move(changedScenes);
 
@@ -225,7 +225,7 @@ void MMMEngine::SceneManager::RebulidAndApplySceneList(std::vector<std::string> 
 	{
 		m_currentSceneID = m_sceneNameToID[currentSceneName];
 
-		// GameObjectÀÇ Scene ÂüÁ¶ ¾÷µ¥ÀÌÆ®
+		// GameObjectì˜ Scene ì°¸ì¡° ì—…ë°ì´íŠ¸
 		auto gos = m_scenes[m_currentSceneID]->GetGameObjects();
 		for (auto& go : gos)
 		{
@@ -235,8 +235,8 @@ void MMMEngine::SceneManager::RebulidAndApplySceneList(std::vector<std::string> 
 	}
 	else
 	{
-		std::cout << u8"°æ°í! : ¿­·ÁÀÖ´ø ¾ÀÀÇ Á¤º¸°¡ ¾À ¸®½ºÆ®¿¡¼­ »ç¶óÁ³½À´Ï´Ù. "
-			<< u8"0¹øÂ° ¾ÀÀ» ·ÎµåÇÕ´Ï´Ù." << std::endl;
+		std::cout << u8"ê²½ê³ ! : ì—´ë ¤ìˆë˜ ì”¬ì˜ ì •ë³´ê°€ ì”¬ ë¦¬ìŠ¤íŠ¸ì—ì„œ ì‚¬ë¼ì¡ŒìŠµë‹ˆë‹¤. "
+			<< u8"0ë²ˆì§¸ ì”¬ì„ ë¡œë“œí•©ë‹ˆë‹¤." << std::endl;
 		m_currentSceneID = 0;
 		m_nextSceneID = 0;
 	}
@@ -272,13 +272,13 @@ void MMMEngine::SceneManager::StartUp(std::wstring sceneListPath, size_t startSc
 	m_sceneListPath = sceneListPath;
 	m_dontDestroyOnLoadScene = std::make_unique<Scene>();
 
-	// ÁÖ¾îÁø °æ·Î·Î ¾À¸®½ºÆ® ¹ÙÀÌ³Ê¸®¸¦ ÀĞ°í ¾ÀÆÄÀÏ°æ·Î¸¦ ºÒ·¯¿Í ID¸ÊÀ» ÃÊ±âÈ­ÇÏ°í ÃÊ±â¾ÀÀ» »ı¼ºÇÔ
+	// ì£¼ì–´ì§„ ê²½ë¡œë¡œ ì”¬ë¦¬ìŠ¤íŠ¸ ë°”ì´ë„ˆë¦¬ë¥¼ ì½ê³  ì”¬íŒŒì¼ê²½ë¡œë¥¼ ë¶ˆëŸ¬ì™€ IDë§µì„ ì´ˆê¸°í™”í•˜ê³  ì´ˆê¸°ì”¬ì„ ìƒì„±í•¨
 	LoadScenes(allowEmptyScene);
 
 	if (m_scenes.empty())
 	{
 		if(!allowEmptyScene)
-			assert(false && "¾À¸®½ºÆ®°¡ ºñ¾îÀÖ½À´Ï´Ù!, ÃÊ±â¾À ·Îµå¿¡ ½ÇÆĞÇß½À´Ï´Ù!");
+			assert(false && "ì”¬ë¦¬ìŠ¤íŠ¸ê°€ ë¹„ì–´ìˆìŠµë‹ˆë‹¤!, ì´ˆê¸°ì”¬ ë¡œë“œì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤!");
 		else
 		{
 			CreateEmptyScene();
@@ -296,6 +296,7 @@ void MMMEngine::SceneManager::ShutDown()
 {
 	m_dontDestroyOnLoadScene.reset();
 	m_scenes.clear();
+	m_currentSceneID = static_cast<size_t>(-1);
 }
 
 bool MMMEngine::SceneManager::CheckSceneIsChanged()
@@ -392,7 +393,10 @@ std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::
 
 std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::GetAllGameObjectInDDOL()
 {
-	return m_dontDestroyOnLoadScene->GetGameObjects();
+	if (m_dontDestroyOnLoadScene)
+		return m_dontDestroyOnLoadScene->GetGameObjects();
+	else
+		std::vector<ObjPtr<GameObject>>();
 }
 
 std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::FindGameObjectsWithTagFromAllScenes(const std::string& tag)
