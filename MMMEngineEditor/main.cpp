@@ -22,7 +22,6 @@
 #include "DLLHotLoadHelper.h"
 #include "PhysX.h"
 #include "ShaderInfo.h"
-#include "AssimpLoader.h"
 
 namespace fs = std::filesystem;
 using namespace MMMEngine;
@@ -91,8 +90,6 @@ void Initialize()
 		PhysxManager::Get().UnbindScene();
 		PhysxManager::Get().BindScene(SceneManager::Get().GetCurrentSceneRaw());
 		});
-
-	AssimpLoader::Get().RegisterModel(L"Assets/Castle.fbx", ModelType::Static);
 }
 
 void Update_ProjectNotLoaded()

@@ -70,7 +70,6 @@ namespace MMMEngine {
 						}
 					}, val);
 			}
-		// TODO::상수버퍼 등록
 	}
 
 	void RenderManager::ExcuteCommands()
@@ -118,6 +117,8 @@ namespace MMMEngine {
 					// 스킨드 메시라면 본 인덱스를 셰이더에 전달
 					// UpdateBoneIndexConstantBuffer(cmd.boneMatIndex);
 				}
+
+				// TODO::ShaderInfo 사용하여 상수버퍼 등록
 
 				// 월드매트릭스 버퍼집어넣기
 				Render_TransformBuffer transformBuffer;

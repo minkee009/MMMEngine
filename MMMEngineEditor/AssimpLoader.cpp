@@ -426,7 +426,7 @@ std::string MMMEngine::AssimpLoader::ResolveTexturePath(const std::string& model
 	return (base / p).lexically_normal().string();
 }
 
-bool MMMEngine::AssimpLoader::ExtractMaterials(const aiScene* scene, const std::string& modelDir, std::vector<MaterialAsset>& outMaterials)
+bool MMMEngine::AssimpLoader::ExtractMaterials(const aiScene* scene, const std::string& textureDir, std::vector<MaterialAsset>& outMaterials)
 {
 	outMaterials.clear();
 	if (!scene || !scene->mMaterials) return false;
@@ -442,7 +442,7 @@ bool MMMEngine::AssimpLoader::ExtractMaterials(const aiScene* scene, const std::
 			{
 				if (rawPath.empty()) return;
 				TextureRef ref;
-				ref.path = ResolveTexturePath(modelDir, rawPath);
+				ref.path = ResolveTexturePath(textureDir, rawPath);
 				ref.srgb = srgb;
 				dst.textures[sem] = std::move(ref);
 			};
@@ -676,8 +676,9 @@ bool MMMEngine::AssimpLoader::ImportModel(const std::wstring& path, ModelType ty
 	out = ModelAsset{};
 	out.type = type;
 
+	fs::path localPath(path);
 	fs::path realPath = ResourceManager::Get().GetCurrentRootPath();
-	realPath = realPath / path;
+	realPath = realPath / localPath;
 
 	const aiScene* scene = ImportScene(realPath.wstring(), type);
 	if (!scene) return false;
@@ -686,15 +687,18 @@ bool MMMEngine::AssimpLoader::ImportModel(const std::wstring& path, ModelType ty
 	if (!ExtractMeshNodeLinks(scene, out.nodeTree, meshToNode)) return false;
 	if (!ExtractSubMeshes(scene, meshToNode, out.subMeshes)) return false;
 	std::string modelDir;
+	std::string texDir;
 	try
 	{
 		modelDir = realPath.has_parent_path() ? realPath.parent_path().string() : std::string{};
+		texDir = localPath.has_parent_path() ? localPath.parent_path().string() : std::string{};
 	}
 	catch (...)
 	{
 		modelDir.clear();
+		texDir.clear();
 	}
-	if (!ExtractMaterials(scene, modelDir, out.materials)) return false;
+	if (!ExtractMaterials(scene, texDir, out.materials)) return false;
 	if (type == ModelType::Animated)
 	{
 		if (!ExtractSkinning(scene, out.nodeTree, out.subMeshes, out.skin)) return false;
