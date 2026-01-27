@@ -1,11 +1,12 @@
 <Project>
-  <Target Name="CopyThirdPartyToOutput" AfterTargets="Build">
+  <Target Name="CopyThirdPartyToOutput" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ThirdPartyDir>$(SolutionDir)Common\Bin\$(Configuration)\</ThirdPartyDir>
     </PropertyGroup>
 
     <ItemGroup Condition="Exists('$(ThirdPartyDir)')">
       <ThirdPartyDlls Include="$(ThirdPartyDir)*.dll" />
+      <ThirdPartyDlls Include="$(ThirdPartyDir)*.pdb" />
     </ItemGroup>
 
     <Copy

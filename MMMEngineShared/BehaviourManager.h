@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <unordered_set>
 #include <string>
 #include <queue>
@@ -15,31 +15,31 @@ namespace MMMEngine
 	private:
 		friend class Behaviour;
 
-		bool m_needSort = false; // Behaviour Á¤·ÄÀÌ ÇÊ¿äÇÑÁö ¿©ºÎ
-		std::vector<ObjPtr<Behaviour>> m_activeBehaviours; // È°¼ºÈ­µÈ Behaviour¸¦ ÀúÀåÇÏ´Â º¤ÅÍ
-		std::vector<ObjPtr<Behaviour>> m_inactiveBehaviours; // ºñÈ°¼ºÈ­µÈ Behaviour¸¦ ÀúÀåÇÏ´Â º¤ÅÍ
+		bool m_needSort = false; // Behaviour ì •ë ¬ì´ í•„ìš”í•œì§€ ì—¬ë¶€
+		std::vector<ObjPtr<Behaviour>> m_activeBehaviours; // í™œì„±í™”ëœ Behaviourë¥¼ ì €ì¥í•˜ëŠ” ë²¡í„°
+		std::vector<ObjPtr<Behaviour>> m_inactiveBehaviours; // ë¹„í™œì„±í™”ëœ Behaviourë¥¼ ì €ì¥í•˜ëŠ” ë²¡í„°
 		std::unordered_set<ObjPtr<Behaviour>> m_firstCallBehaviours;
 		std::unique_ptr<ScriptLoader> m_pScriptLoader;
 
-		// Behaviour¸¦ µî·ÏÇÏ´Â ÇÔ¼ö
+		// Behaviourë¥¼ ë“±ë¡í•˜ëŠ” í•¨ìˆ˜
 		void RegisterBehaviour(ObjPtr<Behaviour> behaviour);
 
-		// Behaviour¸¦ Á¦°ÅÇÏ´Â ÇÔ¼ö
+		// Behaviourë¥¼ ì œê±°í•˜ëŠ” í•¨ìˆ˜
 		void UnRegisterBehaviour(ObjPtr<Behaviour> behaviour);
 
 	public:
-		// ExcutionOrder¿¡ µû¶ó Behaviour¸¦ Á¤·ÄÇÏ´Â ÇÔ¼ö
+		// ExcutionOrderì— ë”°ë¼ Behaviourë¥¼ ì •ë ¬í•˜ëŠ” í•¨ìˆ˜
 		void SortBehaviours();
 		void AllSortBehaviours();
 
 		void InitializeBehaviours();
 
-		// ºñÈ°¼ºÈ­µÈ Behaviour¸¦ °¨ÁöÇÏ´Â ÇÔ¼ö
+		// ë¹„í™œì„±í™”ëœ Behaviourë¥¼ ê°ì§€í•˜ëŠ” í•¨ìˆ˜
 		void DisableBehaviours();
 
 		void BroadCastBehaviourMessage(const std::string& messageName);
 
-		// ¸Å°³º¯¼ö ÀÖ´Â ºê·ÎµåÄ³½ºÆ®
+		// ë§¤ê°œë³€ìˆ˜ ìˆëŠ” ë¸Œë¡œë“œìºìŠ¤íŠ¸
 		template<typename... Args>
 		void BroadCastBehaviourMessage(const std::string& messageName, Args&&... args)
 		{
@@ -49,7 +49,7 @@ namespace MMMEngine
 			}
 		}
 
-		// ¸Å°³º¯¼ö ÀÖ´Â ºê·ÎµåÄ³½ºÆ®
+		// ë§¤ê°œë³€ìˆ˜ ìˆëŠ” ë¸Œë¡œë“œìºìŠ¤íŠ¸
 		template<typename... Args>
 		void SpecificBroadCastBehaviourMessage(ObjPtr<GameObject>& obj, const std::string& messageName, Args&&... args)
 		{
@@ -61,7 +61,7 @@ namespace MMMEngine
 		}
 
 
-		void ReloadUserScripts(const std::string& name);
+		bool ReloadUserScripts(const std::string& name);
 		void UnloadUserScripts();
 
 		template<typename... Args>

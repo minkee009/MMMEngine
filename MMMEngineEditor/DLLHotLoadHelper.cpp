@@ -1,4 +1,4 @@
-#include "DLLHotLoadHelper.h"
+ï»¿#include "DLLHotLoadHelper.h"
 #include <string>
 
 std::wstring MMMEngine::Editor::DLLHotLoadHelper::MakeHotDllName(const fs::path& originalDllPath)
@@ -27,11 +27,24 @@ fs::path MMMEngine::Editor::DLLHotLoadHelper::CopyDllForHotReload(const fs::path
 
     const fs::path copied = hotDir / MakeHotDllName(dllPath);
 
-    // DLL¸¸ º¹»ç (PDB´Â º¹»çÇÏÁö ¾ÊÀ½)
+    // DLLë§Œ ë³µì‚¬ (PDBëŠ” ë³µì‚¬í•˜ì§€ ì•ŠìŒ)
     fs::copy_file(dllPath, copied, fs::copy_options::overwrite_existing, ec);
     if (ec) return {};
 
     return copied;
+}
+
+void MMMEngine::Editor::DLLHotLoadHelper::PrepareForBuild(const fs::path& binDir)
+{
+    fs::path pdbPath = binDir / "UserScripts.pdb";
+    if (fs::exists(pdbPath)) {
+        std::error_code ec;
+        // ì‚­ì œ ì‹œë„, ì ê²¨ìˆë‹¤ë©´ ì´ë¦„ ë³€ê²½ ì‹œë„ (ì´ë¦„ ë³€ê²½ì€ ì ê²¨ìˆì–´ë„ ê°€ëŠ¥í•  ë•Œê°€ ë§ìŒ)
+        fs::remove(pdbPath, ec);
+        if (ec) {
+            fs::rename(pdbPath, pdbPath.wstring() + L".old", ec);
+        }
+    }
 }
 
 void MMMEngine::Editor::DLLHotLoadHelper::CleanupHotReloadCopies(const fs::path& hotDir)
@@ -47,10 +60,10 @@ void MMMEngine::Editor::DLLHotLoadHelper::CleanupHotReloadCopies(const fs::path&
         const auto p = e.path();
         const auto name = p.filename().wstring();
 
-        // ±ÔÄ¢: *_copy_*.dll »èÁ¦
+        // ê·œì¹™: *_copy_*.dll ì‚­ì œ
         if (p.extension() == L".dll" && name.find(L"_copy_") != std::wstring::npos)
         {
-            // Àá±İ ÇØÁ¦ Áö¿¬ ´ëºñ: ¸î ¹ø ¸®Æ®¶óÀÌ
+            // ì ê¸ˆ í•´ì œ ì§€ì—° ëŒ€ë¹„: ëª‡ ë²ˆ ë¦¬íŠ¸ë¼ì´
             for (int i = 0; i < 10; ++i)
             {
                 std::error_code ec;
@@ -62,4 +75,21 @@ void MMMEngine::Editor::DLLHotLoadHelper::CleanupHotReloadCopies(const fs::path&
     }
 }
 
+void MMMEngine::Editor::DLLHotLoadHelper::BackupOriginalDll(const fs::path& binDir)
+{
+    std::error_code ec;
+    if (fs::exists(binDir / "UserScripts.dll"))
+        fs::copy_file(binDir / "UserScripts.dll", binDir / "UserScripts.dll.bak", fs::copy_options::overwrite_existing, ec);
+    if (fs::exists(binDir / "UserScripts.pdb"))
+        fs::copy_file(binDir / "UserScripts.pdb", binDir / "UserScripts.pdb.bak", fs::copy_options::overwrite_existing, ec);
+}
+
+void MMMEngine::Editor::DLLHotLoadHelper::RestoreOriginalDll(const fs::path& binDir)
+{
+    std::error_code ec;
+    if (fs::exists(binDir / "UserScripts.dll.bak"))
+        fs::rename(binDir / "UserScripts.dll.bak", binDir / "UserScripts.dll", ec);
+    if (fs::exists(binDir / "UserScripts.pdb.bak"))
+        fs::rename(binDir / "UserScripts.pdb.bak", binDir / "UserScripts.pdb", ec);
+}
 

@@ -1,4 +1,4 @@
-// ProjectManager.cpp
+ï»¿// ProjectManager.cpp
 #include "ProjectManager.h"
 
 #include <fstream>
@@ -7,7 +7,7 @@
 #include <cassert>
 #include <json/json.hpp>
 
-// MUID·Î vcxproj ProjectGuid ¸¸µé±â
+// MUIDë¡œ vcxproj ProjectGuid ë§Œë“¤ê¸°
 #include "MUID.h"
 
 using json = nlohmann::json;
@@ -34,11 +34,11 @@ namespace MMMEngine::Editor
         if (!fs::exists(src, ec) || !fs::is_directory(src, ec))
             return false;
 
-        // ¸ñÀûÁö Shader Æú´õ »ı¼º
+        // ëª©ì ì§€ Shader í´ë” ìƒì„±
         fs::create_directories(dst, ec);
         if (ec) return false;
 
-        // Shader ³»ºÎ ÀüÃ¼ º¹»ç
+        // Shader ë‚´ë¶€ ì „ì²´ ë³µì‚¬
         fs::copy(
             src,
             dst,
@@ -76,15 +76,15 @@ namespace MMMEngine::Editor
     // ------------------------------------------------------------
     static std::string MakeDeterministicProjectGuid(const fs::path& projectRootDir)
     {
-        // vcxproj <ProjectGuid>´Â ÇÁ·ÎÁ§Æ® ·çÆ® ±âÁØÀ¸·Î "°áÁ¤Àû"ÀÌ¾î¾ß ÁÁÀ½
+        // vcxproj <ProjectGuid>ëŠ” í”„ë¡œì íŠ¸ ë£¨íŠ¸ ê¸°ì¤€ìœ¼ë¡œ "ê²°ì •ì "ì´ì–´ì•¼ ì¢‹ìŒ
         const std::string key = projectRootDir.generic_u8string();
 
-        // MUID°¡ ÀÌ¸§ ±â¹İ °áÁ¤Àû UUID¸¦ Áö¿øÇÑ´Ù°í °¡Á¤ (ÀÌÀü ´ëÈ­ ±âÁØ)
+        // MUIDê°€ ì´ë¦„ ê¸°ë°˜ ê²°ì •ì  UUIDë¥¼ ì§€ì›í•œë‹¤ê³  ê°€ì • (ì´ì „ ëŒ€í™” ê¸°ì¤€)
         MMMEngine::Utility::MUID id = MMMEngine::Utility::MUID::FromName(key);
 
-        // MSBuild´Â {GUID} ÇüÅÂ ¼±È£
-        // MUID¿¡ ÀÌ·± ÇÔ¼ö¸íÀÌ ¾øÀ¸¸é ToString()/ToUpperString()¿¡ ¸ÂÃç ¼öÁ¤ÇÏ¸é µÊ
-        // (³Ê°¡ "muid´Â ÀÌ°Å¾²¸éµÊ"ÀÌ¶ó ÇßÀ¸´Ï ¿©±â¸¸ ³× MUID API¿¡ ¸Â°Ô 1ÁÙ ¼öÁ¤ÇÏ¸é ³¡)
+        // MSBuildëŠ” {GUID} í˜•íƒœ ì„ í˜¸
+        // MUIDì— ì´ëŸ° í•¨ìˆ˜ëª…ì´ ì—†ìœ¼ë©´ ToString()/ToUpperString()ì— ë§ì¶° ìˆ˜ì •í•˜ë©´ ë¨
+        // (ë„ˆê°€ "muidëŠ” ì´ê±°ì“°ë©´ë¨"ì´ë¼ í–ˆìœ¼ë‹ˆ ì—¬ê¸°ë§Œ ë„¤ MUID APIì— ë§ê²Œ 1ì¤„ ìˆ˜ì •í•˜ë©´ ë)
         return "{" + id.ToUpperString() + "}";
     }
 
@@ -149,14 +149,14 @@ namespace MMMEngine::Editor
             catch (...) { return false; }
         }
 
-        // projectFile ±âÁØ root (±ÇÀå)
+        // projectFile ê¸°ì¤€ root (ê¶Œì¥)
         fs::path root = projectFile.parent_path().parent_path();
 
-        // json °ËÁõ
+        // json ê²€ì¦
         if (!j.contains("lastSceneIndex") || !j["lastSceneIndex"].is_number_unsigned())
             return false;
 
-        // json rootPath°¡ ÀÖÀ¸¸é Âü°í(ºÒÀÏÄ¡ ½Ã file ±âÁØ ¿ì¼±)
+        // json rootPathê°€ ìˆìœ¼ë©´ ì°¸ê³ (ë¶ˆì¼ì¹˜ ì‹œ file ê¸°ì¤€ ìš°ì„ )
         if (j.contains("rootPath") && j["rootPath"].is_string())
         {
             fs::path jsonRoot = fs::path(j["rootPath"].get<std::string>());
@@ -165,12 +165,12 @@ namespace MMMEngine::Editor
                 std::error_code ec;
                 bool eq = fs::equivalent(root, jsonRoot, ec);
                 (void)eq;
-                // Á¤Ã¥: file ±âÁØ root¸¦ À¯Áö
+                // ì •ì±…: file ê¸°ì¤€ rootë¥¼ ìœ ì§€
             }
         }
 
         Project p;
-        p.rootPath = root.generic_u8string(); // ¿£Áø ³»ºÎ´Â '/' À¯Áö
+        p.rootPath = root.generic_u8string(); // ì—”ì§„ ë‚´ë¶€ëŠ” '/' ìœ ì§€
         p.lastSceneIndex = j["lastSceneIndex"].get<uint32_t>();
 
         EnsureProjectFolders(root);
@@ -213,11 +213,12 @@ namespace MMMEngine::Editor
         std::ofstream out(file, std::ios::binary);
         if (!out) return;
 
-        // NOTE: ScriptBehaviour.h include´Â vcxprojÀÇ AdditionalIncludeDirectories¿¡ ÀÇÇØ ÇØ°áµÈ´Ù°í °¡Á¤
+        // NOTE: ScriptBehaviour.h includeëŠ” vcxprojì˜ AdditionalIncludeDirectoriesì— ì˜í•´ í•´ê²°ëœë‹¤ê³  ê°€ì •
         out <<
             R"(#include "rttr/type"
 #include "ScriptBehaviour.h"
 #include "UserScriptsCommon.h"
+#include <string>
 
 namespace MMMEngine
 {
@@ -233,8 +234,14 @@ namespace MMMEngine
             REGISTER_BEHAVIOUR_MESSAGE(Update)
         }
 
-        void Start();
+        bool isCustomBool = true;
+        float customFloat = 14.0f;
+        int customInt = 2.0f;
+        std::string customString = "Hello, World!";
 
+        bool isDontShowBool = false;
+
+        void Start();
         void Update();
     };
 }
@@ -244,7 +251,7 @@ namespace MMMEngine
         std::ofstream out2(file2, std::ios::binary);
         if (!out2) return;
 
-        // NOTE: ScriptBehaviour.h include´Â vcxprojÀÇ AdditionalIncludeDirectories¿¡ ÀÇÇØ ÇØ°áµÈ´Ù°í °¡Á¤
+        // NOTE: ScriptBehaviour.h includeëŠ” vcxprojì˜ AdditionalIncludeDirectoriesì— ì˜í•´ í•´ê²°ëœë‹¤ê³  ê°€ì •
         out2 <<
             R"(#include "Export.h"
 #include "ScriptBehaviour.h"
@@ -258,7 +265,11 @@ RTTR_PLUGIN_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<ExampleBehaviour>("ExampleBehaviour")
-        (rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<ExampleBehaviour>>()));
+        (rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<ExampleBehaviour>>()))
+        .property("IsCustomBool",&ExampleBehaviour::isCustomBool)
+        .property("CustomFloat",&ExampleBehaviour::customFloat)
+        .property("CustomInt",&ExampleBehaviour::customInt)
+        .property("CustomString",&ExampleBehaviour::customString);
 
 	registration::class_<ObjPtr<ExampleBehaviour>>("ObjPtr<ExampleBehaviour>")
 		.constructor(
@@ -290,7 +301,7 @@ void MMMEngine::ExampleBehaviour::Update()
         fs::path root = fs::path(project.rootPath);              // e.g. C:\Users\...\murasaki
         fs::path in = fs::path(pathStr);
 
-        // "absolutePath"¶ó°í µé¾î¿ÀÁö¸¸ ½ÇÁ¦·Î´Â »ó´ë°æ·ÎÀÏ ¼ö ÀÖÀ½
+        // "absolutePath"ë¼ê³  ë“¤ì–´ì˜¤ì§€ë§Œ ì‹¤ì œë¡œëŠ” ìƒëŒ€ê²½ë¡œì¼ ìˆ˜ ìˆìŒ
         fs::path absCandidate = in.is_absolute() ? in : (root / in);
 
         std::error_code ec;
@@ -300,16 +311,16 @@ void MMMEngine::ExampleBehaviour::Update()
         fs::path absCan = fs::weakly_canonical(absCandidate, ec);
         if (ec) return pathStr;
 
-        // ÇÁ·ÎÁ§Æ® ³»ºÎÀÎÁö È®ÀÎ
+        // í”„ë¡œì íŠ¸ ë‚´ë¶€ì¸ì§€ í™•ì¸
         auto [rootEnd, absEnd] = std::mismatch(rootCan.begin(), rootCan.end(), absCan.begin());
         if (rootEnd == rootCan.end())
         {
             fs::path rel = absCan.lexically_relative(rootCan);
-            std::string result = rel.generic_string(); // '/'·Î ÅëÀÏ
+            std::string result = rel.generic_string(); // '/'ë¡œ í†µì¼
             return result;
         }
 
-        return absCan.string(); // ¿ÜºÎ¸é Á¤±ÔÈ­µÈ Àı´ë°æ·Î ¹İÈ¯ (¿øÇÏ¸é ¿øº» À¯Áö)
+        return absCan.string(); // ì™¸ë¶€ë©´ ì •ê·œí™”ëœ ì ˆëŒ€ê²½ë¡œ ë°˜í™˜ (ì›í•˜ë©´ ì›ë³¸ ìœ ì§€)
     }
 
     bool ProjectManager::GenerateUserScriptsVcxproj(const fs::path& projectRootDir) const
@@ -319,8 +330,8 @@ void MMMEngine::ExampleBehaviour::Update()
 
         const std::string guid = MakeDeterministicProjectGuid(projectRootDir);
 
-        // EngineShared °æ·Î: MMMENGINE_DIR È¯°æº¯¼ö ¿ì¼±
-        // MMMENGINE_DIR = ¿£Áø ·çÆ® (¿¹: D:\MMMEngine)
+        // EngineShared ê²½ë¡œ: MMMENGINE_DIR í™˜ê²½ë³€ìˆ˜ ìš°ì„ 
+        // MMMENGINE_DIR = ì—”ì§„ ë£¨íŠ¸ (ì˜ˆ: D:\MMMEngine)
         const char* engineDirEnv = std::getenv("MMMENGINE_DIR");
         std::string engineDir = engineDirEnv ? std::string(engineDirEnv) : "";
 
@@ -355,11 +366,11 @@ void MMMEngine::ExampleBehaviour::Update()
         std::ofstream out(vcxprojPath, std::ios::binary);
         if (!out) return false;
 
-        // UTF-8 BOM Ãß°¡
+        // UTF-8 BOM ì¶”ê°€
         const char bom[] = "\xEF\xBB\xBF";
         out.write(bom, 3);
 
-        // VS2022(v143) ±âÁØ. ÇÊ¿äÇÏ¸é v142·Î º¯°æ.
+        // VS2022(v143) ê¸°ì¤€. í•„ìš”í•˜ë©´ v142ë¡œ ë³€ê²½.
         out <<
             R"xml(<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -417,7 +428,7 @@ void MMMEngine::ExampleBehaviour::Update()
 
   <PropertyGroup Label="UserMacros" />
 
-  <!--Ãâ·Â °íÁ¤: ProjectRoot/Binaries/Win64/UserScripts.dll-->
+  <!--ì¶œë ¥ ê³ ì •: ProjectRoot/Binaries/Win64/UserScripts.dll-->
   <PropertyGroup>
     <OutDir>$(ProjectDir)..\..\Binaries\Win64\</OutDir>
     <TargetName>UserScripts</TargetName>
@@ -459,7 +470,7 @@ void MMMEngine::ExampleBehaviour::Update()
     </Link>
   </ItemDefinitionGroup>
 
-  <!--À¯Àú ½ºÅ©¸³Æ® ÀÚµ¿ Æ÷ÇÔ(Àç»ı¼º ¾øÀÌ »õ ÆÄÀÏ ÀÎ½Ä)-->
+  <!--ìœ ì € ìŠ¤í¬ë¦½íŠ¸ ìë™ í¬í•¨(ì¬ìƒì„± ì—†ì´ ìƒˆ íŒŒì¼ ì¸ì‹)-->
   <ItemGroup>
     <ClCompile Include="Scripts\**\*.cpp" />
     <ClInclude Include="Scripts\**\*.h" />
@@ -481,7 +492,7 @@ void MMMEngine::ExampleBehaviour::Update()
         std::ofstream out(filtersPath, std::ios::binary);
         if (!out) return false;
 
-        // VS¿¡¼­ Scripts Æú´õ·Î ±ò²ûÇÏ°Ô º¸ÀÌ±â ¿ëµµ(ºôµå¿£ ¾ø¾îµµ µÊ)
+        // VSì—ì„œ Scripts í´ë”ë¡œ ê¹”ë”í•˜ê²Œ ë³´ì´ê¸° ìš©ë„(ë¹Œë“œì—” ì—†ì–´ë„ ë¨)
         out <<
             R"(<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -510,7 +521,7 @@ void MMMEngine::ExampleBehaviour::Update()
         if (!GenerateUserScriptsVcxproj(projectRootDir))
             return false;
 
-        // filters´Â ½ÇÆĞÇØµµ Ä¡¸íÀûÀÌÁö ¾ÊÀ½
+        // filtersëŠ” ì‹¤íŒ¨í•´ë„ ì¹˜ëª…ì ì´ì§€ ì•ŠìŒ
         GenerateUserScriptsFilters(projectRootDir);
 
         GenerateDefaultScriptIfEmpty(projectRootDir);
@@ -527,7 +538,7 @@ void MMMEngine::ExampleBehaviour::Update()
         EnsureProjectFolders(projectRootDir);
 
         if (!CopyEngineShaderToProjectRoot(projectRootDir))
-            return false; // ¶Ç´Â ·Î±×¸¸ ³²±â°í °è¼Ó
+            return false; // ë˜ëŠ” ë¡œê·¸ë§Œ ë‚¨ê¸°ê³  ê³„ì†
 
         Project p;
         p.rootPath = projectRootDir.generic_u8string();
@@ -537,7 +548,7 @@ void MMMEngine::ExampleBehaviour::Update()
         auto saved = SaveActiveProject();
         if (!saved) return false;
 
-        // ÅÛÇÃ¸´ º¹»ç Á¦°Å -> vcxproj Á÷Á¢ »ı¼º
+        // í…œí”Œë¦¿ ë³µì‚¬ ì œê±° -> vcxproj ì§ì ‘ ìƒì„±
         if (!GenerateUserScriptsProject(projectRootDir)) return false;
 
         SaveLastProjectFile(*saved);
@@ -546,7 +557,7 @@ void MMMEngine::ExampleBehaviour::Update()
 
     bool ProjectManager::Boot()
     {
-        // ÃÖ±Ù ÇÁ·ÎÁ§Æ® ÀÚµ¿ ¿ÀÇÂ¸¸ ½Ãµµ
+        // ìµœê·¼ í”„ë¡œì íŠ¸ ìë™ ì˜¤í”ˆë§Œ ì‹œë„
         fs::path cfg = GetEditorConfigPath();
         if (!fs::exists(cfg))
             return false;
