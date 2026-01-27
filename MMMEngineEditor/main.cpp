@@ -1,4 +1,4 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include <iostream>
 #include <filesystem>
 
@@ -22,6 +22,7 @@
 #include "DLLHotLoadHelper.h"
 #include "PhysX.h"
 #include "ShaderInfo.h"
+#include "PhysicsSettings.h"
 
 namespace fs = std::filesystem;
 using namespace MMMEngine;
@@ -35,6 +36,9 @@ void AfterProjectLoaded()
 	SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", 0, true);
 	GlobalRegistry::g_pApp->SetWindowTitle(L"MMMEditor [ " + Utility::StringHelper::StringToWString(currentProject.rootPath) + L" ]");
 	ObjectManager::Get().StartUp();
+
+
+	PhysicsSettings::Get().StartUp(currentProject.ProjectRootFS() / "ProjectSettings");
 
 	// 유저 스크립트 불러오기
 	fs::path cwd = fs::current_path();

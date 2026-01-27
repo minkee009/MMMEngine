@@ -67,9 +67,6 @@
     <Filter Include="헤더 파일\EditorWindow\ImGuiHelper">
       <UniqueIdentifier>{02682008-0f7d-4ca2-b282-177aa6605dac}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\EditorWIndow\ImGuiHelper">
-      <UniqueIdentifier>{13ca9905-ce86-4a02-bae1-02910f48d488}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Tools">
       <UniqueIdentifier>{f5d1ba11-67c9-4d44-98a3-b2af76678253}</UniqueIdentifier>
     </Filter>
@@ -189,6 +186,9 @@
     <ClInclude Include="ImGuizmo\ImGuizmo.h">
       <Filter>헤더 파일\ImGuizmo</Filter>
     </ClInclude>
+    <ClInclude Include="PhysicsSettingsWindow.h">
+      <Filter>헤더 파일\EditorWindow\Popup</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -268,6 +268,9 @@
     </ClCompile>
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp">
       <Filter>소스 파일\ImGuizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsSettingsWindow.cpp">
+      <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

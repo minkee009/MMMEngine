@@ -10,7 +10,7 @@ using namespace MMMEngine::EditorRegistry;
 
 // 또는 unordered_set으로 (검색 성능 향상)
 static inline std::unordered_set<std::string> fileExclusionsSet = {
-    ".obj", ".csproj", ".vcxproj", ".filters", ".user", ".dll", ".exp", ".lib"
+    ".obj", ".csproj", ".vcxproj", ".filters", ".user", ".dll", ".exp", ".lib", ".settings"
 };
 
 void MMMEngine::Editor::FilesWindow::Render()

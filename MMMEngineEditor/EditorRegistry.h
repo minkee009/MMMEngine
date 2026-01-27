@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "GameObject.h"
 
 namespace MMMEngine::EditorRegistry
@@ -8,13 +8,14 @@ namespace MMMEngine::EditorRegistry
 	inline bool g_editor_window_inspector = true;
 	inline bool g_editor_window_files = true;
 	inline bool g_editor_window_scenelist = false;
+	inline bool g_editor_window_physicsSettings = false;
 	inline bool g_editor_window_sceneView = true;
 	inline bool g_editor_window_gameView = true;
 	inline ObjPtr<GameObject> g_selectedGameObject = nullptr;
 
 	inline bool g_editor_project_loaded = false;
 
-	inline bool g_editor_scene_playing = false;     // °ÔÀÓ ÁøÇàÁß
-	inline bool g_editor_scene_pause = true;		// ½Ã°£Á¤Áö ÀÎ°¡ ¾Æ´Ñ°¡
+	inline bool g_editor_scene_playing = false;     // ê²Œì„ ì§„í–‰ì¤‘
+	inline bool g_editor_scene_pause = true;		// ì‹œê°„ì •ì§€ ì¸ê°€ ì•„ë‹Œê°€
 }
 

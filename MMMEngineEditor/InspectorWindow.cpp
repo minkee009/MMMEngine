@@ -56,7 +56,6 @@ void MMMEngine::Editor::InspectorWindow::ClearCache()
 }
 
 void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
-
 {
     static ObjPtr<GameObject> s_lastCachedObject = nullptr;
     static std::unordered_map<std::string, std::string> cache;
