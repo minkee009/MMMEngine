@@ -42,6 +42,17 @@ namespace MMMEngine
     template<typename T>
     inline bool ObjPtr<T>::Inject(const ObjPtrBase& ptr)
     {
+		// null handle 주입 
+        if (ptr.GetRaw() == nullptr
+            && ptr.GetPtrID() == UINT32_MAX)
+        {
+            m_raw = nullptr;
+            m_ptrID = UINT32_MAX;
+            m_ptrGeneration = 0;
+            return true;
+        }
+
+		// 타입 검사
         auto* base = static_cast<MMMEngine::Object*>(ptr.GetRaw());
         T* raw = dynamic_cast<T*>(base);
 

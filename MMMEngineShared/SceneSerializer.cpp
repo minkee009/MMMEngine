@@ -426,28 +426,54 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
     // ObjPtr<T> 타입 처리
     if (target_type.get_name().to_string().find("ObjPtr") != std::string::npos)
     {
-        // 저장 포맷이 string(MUID)라고 가정
+        auto inject = target_type.get_method("Inject");
+        if (!inject.is_valid())
+        {
+            // Inject가 등록 안 된 ObjPtr면 복원 불가
+            target = rttr::variant();
+            return;
+        }
+
+        // 1) null이면: "null handle" 규약으로 Inject
+        if (j.is_null())
+        {
+            ObjPtr<Object> nullObj;               // default: raw=null, ptrID=UINT32_MAX 규약이라면 OK
+            const ObjPtrBase& nullRef = nullObj;
+
+            rttr::variant okv = inject.invoke(target, nullRef);
+            return;
+        }
+
+        // 2) MUID로 테이블 lookup
         std::string muidStr = j.get<std::string>();
-
         auto it = g_objectTable.find(muidStr);
-        if (it != g_objectTable.end())
+        if (it == g_objectTable.end() || IsMissingScriptTargetVariant(it->second))
         {
-            // 상대가 MissingScriptBehaviour이면 참조 복원하지 않음(안정성)
-            if (IsMissingScriptTargetVariant(it->second))
-            {
-                target = rttr::variant(); // null로 끊음
-                return;
-            }
+            ObjPtr<Object> nullObj;
+            const ObjPtrBase& nullRef = nullObj;
+            inject.invoke(target, nullRef);
+            return;
+        }
 
-            target = it->second;
-        }
-        else
+        // 3) table에는 ObjPtr<Object>만 저장해놨으니 그대로 꺼내서 Inject
+        rttr::variant src = it->second;
+
+        // 안전하게: ObjPtr<Object>로 꺼내고(복사), 그 복사의 baseRef를 Inject에 넘김
+        if (src.is_type<ObjPtr<Object>>())
         {
-            target = rttr::variant(); // 못 찾으면 null
+            ObjPtr<Object> base = src.get_value<ObjPtr<Object>>();
+            const ObjPtrBase& baseRef = base;
+
+            rttr::variant okv = inject.invoke(target, baseRef);
+            return;
         }
+
+        // fallback: 타입이 예상과 다르면 null 처리
+        ObjPtr<Object> nullObj;
+        const ObjPtrBase& nullRef = nullObj;
+        inject.invoke(target, nullRef);
         return;
     }
-
     // 사용자 정의 객체
     if (!target.is_valid() || target.get_type() != target_type)
     {
@@ -476,7 +502,7 @@ void DeserializeComponent(const json& compJson, ObjPtr<GameObject> obj)
         if (props.contains("MUID"))
         {
             std::string muid = props["MUID"].get<std::string>();
-            g_objectTable[muid] = compVar;
+            g_objectTable[muid] = ObjPtr<Object>(compVar);
         }
 
         ObjPtr<MissingScriptBehaviour> missing = compVar.Cast<MissingScriptBehaviour>();
@@ -497,7 +523,7 @@ void DeserializeComponent(const json& compJson, ObjPtr<GameObject> obj)
     if (props.contains("MUID"))
     {
         std::string muid = props["MUID"].get<std::string>();
-        g_objectTable[muid] = comp;
+        g_objectTable[muid] = ObjPtr<Object>(comp);
     }
 
     // 속성 복원 (ObjPtr도 바로 처리됨)
@@ -577,7 +603,7 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         if (auto parsedGo = Utility::MUID::Parse(goMUID); parsedGo.has_value())
             go->SetMUID(parsedGo.value());
 
-        g_objectTable[goMUID] = go;
+        g_objectTable[goMUID] = ObjPtr<Object>(go);
 
         // todo : 여기서 RectTransform도 같이 찾기 -> 분기 생성
         // Transform json 찾기
@@ -596,7 +622,7 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         if (auto parsedTr = Utility::MUID::Parse(trMUID); parsedTr.has_value())
             tr->SetMUID(parsedTr.value());
 
-        g_objectTable[trMUID] = tr;
+        g_objectTable[trMUID] = ObjPtr<Object>(tr);
 
         // Transform 값 복원 (Parent/MUID는 스킵)
         DeserializeTransform(*tr, trProps);
