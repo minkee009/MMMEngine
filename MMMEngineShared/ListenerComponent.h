@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "AudioManager.h"
 #include "Export.h"
 #include "Behaviour.h"
@@ -13,12 +13,14 @@ namespace MMMEngine {
 		RTTR_REGISTRATION_FRIEND
 		friend class ObjectManager;
 		friend class GameObject;
-		friend class BehaviourManager;
+
 		DirectX::SimpleMath::Vector3 pos;
 		DirectX::SimpleMath::Vector3 fwd;
 		DirectX::SimpleMath::Vector3 up;
 	protected:
-		ListenerComponent() {};
+		ListenerComponent() {
+			REGISTER_BEHAVIOUR_MESSAGE(Update)
+		};
 		virtual void Initialize() override {};
 		virtual void UnInitialize() override {};
 		void Update();

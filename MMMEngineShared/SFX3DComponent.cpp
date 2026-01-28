@@ -1,5 +1,21 @@
-#include "SFX3DComponent.h"
+﻿#include "SFX3DComponent.h"
 #include "Transform.h"
+#include "rttr/registration.h"
+
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<SFX3DComponent>("SFX3DComponent")
+		(rttr::metadata("wrapper_type_name", "ObjPtr<SFX3DComponent>"));
+	registration::class_<ObjPtr<SFX3DComponent>>("ObjPtr<SFX3DComponent>")
+		.constructor<>(
+			[]() {
+				return Object::NewObject<SFX3DComponent>();
+			});
+}
+
 
 void MMMEngine::SFX3DComponent::Initialize()
 {

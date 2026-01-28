@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "AudioManager.h"
 #include "Export.h"
 #include "Behaviour.h"
@@ -13,13 +13,16 @@ namespace MMMEngine {
 		RTTR_REGISTRATION_FRIEND
 		friend class ObjectManager;
 		friend class GameObject;
-		friend class BehaviourManager;
+
 		FMOD::Channel* sfxChannel[5] = {};
 		FMOD::Channel* loopsfxChannel[3] = {};
 		int mNextSlot = 0;
 		float x = 0.0f, y = 0.0f, z = 0.f;
 	protected:
-		SFX3DComponent() {};
+		SFX3DComponent() 
+		{
+			REGISTER_BEHAVIOUR_MESSAGE(Update)
+		};
 		virtual void Initialize() override;
 		virtual void UnInitialize() override;
 		void Update();

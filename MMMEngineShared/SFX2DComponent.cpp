@@ -1,4 +1,20 @@
-#include "SFX2DComponent.h"
+﻿#include "SFX2DComponent.h"
+#include "rttr/registration.h"
+
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<SFX2DComponent>("SFX2DComponent")
+		(rttr::metadata("wrapper_type_name", "ObjPtr<SFX2DComponent>"));
+	registration::class_<ObjPtr<SFX2DComponent>>("ObjPtr<SFX2DComponent>")
+		.constructor<>(
+			[]() {
+				return Object::NewObject<SFX2DComponent>();
+			});
+}
+
 
 void MMMEngine::SFX2DComponent::UnInitialize()
 {

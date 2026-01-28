@@ -1,6 +1,20 @@
-#include "ListenerComponent.h"
+﻿#include "ListenerComponent.h"
 #include "Transform.h"
+#include "rttr/registration.h"
 
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<ListenerComponent>("ListenerComponent")
+		(rttr::metadata("wrapper_type_name", "ObjPtr<ListenerComponent>"));
+	registration::class_<ObjPtr<ListenerComponent>>("ObjPtr<ListenerComponent>")
+		.constructor<>(
+			[]() {
+				return Object::NewObject<ListenerComponent>();
+			});
+}
 void MMMEngine::ListenerComponent::Update()
 {
 	auto transform = GetTransform();

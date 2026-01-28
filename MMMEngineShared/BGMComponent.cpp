@@ -1,4 +1,19 @@
-#include "BGMComponent.h"
+﻿#include "BGMComponent.h"
+#include "rttr/registration.h"
+
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	using namespace MMMEngine;
+
+	registration::class_<BGMComponent>("BGMComponent")
+		(rttr::metadata("wrapper_type_name", "ObjPtr<BGMComponent>"));
+	registration::class_<ObjPtr<BGMComponent>>("ObjPtr<BGMComponent>")
+		.constructor<>(
+			[]() {
+				return Object::NewObject<BGMComponent>();
+			});
+}
 
 void MMMEngine::BGMComponent::PlayBGM(const std::string& id)
 {
