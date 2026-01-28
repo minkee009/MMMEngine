@@ -149,28 +149,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Building.h" />
-    <ClInclude Include="Castle.h" />
-    <ClInclude Include="Enemy.h" />
-    <ClInclude Include="EnemySpawner.h" />
-    <ClInclude Include="GameManager.h" />
-    <ClInclude Include="NormalEnemy.h" />
-    <ClInclude Include="Player.h" />
     <ClInclude Include="PlayerRegistry.h" />
-    <ClInclude Include="Snowball.h" />
-    <ClInclude Include="SnowballManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Building.cpp" />
-    <ClCompile Include="Castle.cpp" />
-    <ClCompile Include="Enemy.cpp" />
-    <ClCompile Include="EnemySpawner.cpp" />
-    <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="NormalEnemy.cpp" />
-    <ClCompile Include="Player.cpp" />
-    <ClCompile Include="Snowball.cpp" />
-    <ClCompile Include="SnowballManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MMMEngineShared\MMMEngineShared.vcxproj">

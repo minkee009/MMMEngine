@@ -1,4 +1,0 @@
-kind,id,filename,loop,min,max
-bgm,Ingame,Ingame_remake.mp3,yes,,
-sfx2d,Button,Button_sound.wav,no,,
-sfx3d,Bomb,Bomb_sound.wav,no,1,20
