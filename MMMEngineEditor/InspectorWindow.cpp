@@ -382,8 +382,6 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
                 }
             }
 
-
-
             // 프로퍼티 이름
             std::string ptrPropType = propType.get_name().to_string() + " " + prop.get_name().to_string();
             ptrPropType = std::regex_replace(ptrPropType, std::regex("ObjPtr"), "");
@@ -394,7 +392,27 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
             ImGui::Button(refName.c_str(), ImVec2(-1, 0));
             ImGui::PopStyleColor();
+
+
+            if (ImGui::BeginPopupContextItem("ObjPtrContext"))
+            {
+                if (!readOnly && ImGui::MenuItem(u8"참조 해제"))
+                {
+                    const ObjPtrBase& baseRef = ObjPtr<Object>{};
+                    auto func = propType.get_method("Inject");
+                    if (func.is_valid())
+                    {
+                        auto fvar = func.invoke(var, baseRef);
+                        if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
+                        {
+                            prop.set_value(inst, var);
+                        }
+                    }
+                }
+                ImGui::EndPopup();
+            }
             ImGui::PopID();
+
             //MUID dragged_muid = GetMuid("gameobject_muid");
             Utility::MUID result = Utility::MUID::Empty();
 
@@ -427,7 +445,6 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
                         auto fvar = func.invoke(var, baseRef);
                         if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
                         {
-                            std::cout << "success" << std::endl;
                             prop.set_value(inst, var);
                             break;
                         }
@@ -444,7 +461,6 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
                             auto fvar = func.invoke(var, baseRef);
                             if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
                             {
-                                std::cout << "success" << std::endl;
                                 prop.set_value(inst, var);
                                 break;
                             }
@@ -491,6 +507,20 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
                     ImGui::Button(displayPath.c_str(), ImVec2(-1, 0));
                     ImGui::PopStyleColor();
 
+                    if (ImGui::BeginPopupContextItem("ResPtrContext"))
+                    {
+                        if (!readOnly && ImGui::MenuItem(u8"참조 해제"))
+                        {
+                            std::shared_ptr<Resource> emptyPtr = nullptr;
+                            rttr::variant nullVar(emptyPtr);
+
+                            if (nullVar.convert(prop.get_type()))
+                            {
+                                bool ok = prop.set_value(inst, nullVar);
+                            }
+                        }
+                        ImGui::EndPopup();
+                    }
                     // Drag & Drop
                     if (ImGui::BeginDragDropTarget())
                     {
@@ -557,18 +587,6 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
                         }
                         ImGui::EndDragDropTarget();
                     }
-
-                    // Clear 버튼
-                    if (res != nullptr && !readOnly)
-                    {
-                        ImGui::SameLine();
-                        if (ImGui::SmallButton(("X##" + name).c_str()))
-                        {
-                            std::shared_ptr<Resource> nullPtr = nullptr;
-                            prop.set_value(inst, nullPtr);
-                        }
-                    }
-
                     ImGui::PopID();
                 }
             }

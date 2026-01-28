@@ -189,6 +189,9 @@
     <ClInclude Include="PhysicsSettingsWindow.h">
       <Filter>헤더 파일\EditorWindow\Popup</Filter>
     </ClInclude>
+    <ClInclude Include="PlayerBuildWindow.h">
+      <Filter>헤더 파일\EditorWindow\Popup</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -270,6 +273,9 @@
       <Filter>소스 파일\ImGuizmo</Filter>
     </ClCompile>
     <ClCompile Include="PhysicsSettingsWindow.cpp">
+      <Filter>소스 파일\EditorWIndow\Popup</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerBuildWindow.cpp">
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
   </ItemGroup>

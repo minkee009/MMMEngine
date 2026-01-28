@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Singleton.hpp"
 #include <filesystem>
 #include <string>
@@ -16,57 +16,64 @@ namespace MMMEngine::Editor
     {
         Success,
         Failed,
-        NotFound,      // ÇÁ·ÎÁ§Æ® ÆÄÀÏ ¾øÀ½
-        MSBuildNotFound // MSBuild.exe¸¦ Ã£À» ¼ö ¾øÀ½
+        NotFound,      // í”„ë¡œì íŠ¸ íŒŒì¼ ì—†ìŒ
+        MSBuildNotFound // MSBuild.exeë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŒ
     };
 
     struct BuildOutput
     {
         BuildResult result = BuildResult::Failed;
-        std::string output;     // ºôµå Ãâ·Â ·Î±×
-        std::string errorLog;   // ¿¡·¯ ·Î±×
+        std::string output;     // ë¹Œë“œ ì¶œë ¥ ë¡œê·¸
+        std::string errorLog;   // ì—ëŸ¬ ë¡œê·¸
         int exitCode = -1;
     };
 
     class BuildManager : public Utility::Singleton<BuildManager>
     {
     public:
-        // ÆÄÀÏ º¯°æ °¨Áö
+        // íŒŒì¼ ë³€ê²½ ê°ì§€
         std::unordered_map<std::string, std::filesystem::file_time_type> m_fileTimestamps;
 
         bool HasFilesChanged(const std::filesystem::path& scriptsPath);
 
-        // UserScripts ÇÁ·ÎÁ§Æ® ºôµå
+        // UserScripts í”„ë¡œì íŠ¸ ë¹Œë“œ
         BuildOutput BuildUserScripts(
             const std::filesystem::path& projectRootDir,
             BuildConfiguration config = BuildConfiguration::Debug
         );
 
-        //// ¿£Áø ÀüÃ¼ ºôµå (TODO)
-        //BuildOutput BuildEngine(
-        //    BuildConfiguration config = BuildConfiguration::Debug
-        //);
+        // í”Œë ˆì´ì–´ ë¹Œë“œ (í´ë¦° ë¹Œë“œ)
+        // projectRootDir: í”„ë¡œì íŠ¸ ë£¨íŠ¸ ì ˆëŒ€ ê²½ë¡œ
+        // outputDir: ì¶œë ¥ ìœ„ì¹˜ ì ˆëŒ€ ê²½ë¡œ
+        // config: ë¹Œë“œ êµ¬ì„± (Debug/Release)
+        BuildOutput BuildPlayer(
+            const std::filesystem::path& projectRootDir,
+            const std::filesystem::path& outputDir,
+            BuildConfiguration config = BuildConfiguration::Release,
+            const std::string & executableName = "MMMEnginePlayer"
+        );
 
-        //// °ÔÀÓ ½ÇÇà ÆÄÀÏ ºôµå (TODO)
-        //BuildOutput BuildGame(
-        //    const std::filesystem::path& projectRootDir,
-        //    BuildConfiguration config = BuildConfiguration::Debug
-        //);
-
-        // ºôµå ÁøÇà Äİ¹é ¼³Á¤ (UI ¾÷µ¥ÀÌÆ®¿ë)
+        // ë¹Œë“œ ì§„í–‰ ì½œë°± ì„¤ì • (UI ì—…ë°ì´íŠ¸ìš©)
         using ProgressCallbackString = std::function<void(const std::string& message)>;
         using ProgressCallbackPercent = std::function<void(const float& message)>;
         void SetProgressCallbackString(ProgressCallbackString callback);
         void SetProgressCallbackPercent(ProgressCallbackPercent callback);
 
     private:
-        // MSBuild.exe °æ·Î Ã£±â
+        // MSBuild.exe ê²½ë¡œ ì°¾ê¸°
         std::filesystem::path FindMSBuild() const;
 
-        // ºôµå ¸í·É ½ÇÇà (°øÅë)
+        // ë¹Œë“œ ëª…ë ¹ ì‹¤í–‰ (ê³µí†µ)
         BuildOutput ExecuteBuild(
             const std::filesystem::path& msbuildPath,
             const std::filesystem::path& vcxprojPath,
+            BuildConfiguration config
+        ) const;
+
+        BuildOutput ExecuteBuildSolution(
+            const std::filesystem::path& msbuildPath,
+            const std::filesystem::path& slnPath,
+            const std::string& projectName,
             BuildConfiguration config
         ) const;
 

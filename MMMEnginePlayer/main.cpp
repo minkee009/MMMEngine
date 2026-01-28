@@ -6,23 +6,66 @@
 #include "App.h"
 
 #include "InputManager.h"
-#include "TimeManager.h"
 #include "ResourceManager.h"
-#include "BehaviourManager.h"	
-#include "ObjectManager.h"
+#include "TimeManager.h"
+#include "RenderManager.h"
+#include "BehaviourManager.h"
 #include "SceneManager.h"
+#include "ObjectManager.h"
+#include "PhysxManager.h"
 
+#include "PhysicsSettings.h"
+#include "ShaderInfo.h"
+
+namespace fs = std::filesystem;
 using namespace MMMEngine;
 using namespace MMMEngine::Utility;
-
+using namespace Microsoft::WRL;
 
 void Initialize()
 {
-	InputManager::Get().StartUp(GlobalRegistry::g_pApp->GetWindowHandle());
-	GlobalRegistry::g_pApp->OnWindowSizeChanged.AddListener<InputManager, &InputManager::HandleWindowResize>(&InputManager::Get());
+	fs::path cwd = fs::current_path();
 
-	SceneManager::Get().StartUp(L"Data", 0, false);
-	BehaviourManager::Get().StartUp("UserScripts");
+	fs::path dataPath = cwd / "Data";
+
+	SetConsoleOutputCP(CP_UTF8);
+	auto app = GlobalRegistry::g_pApp;
+	auto hwnd = app->GetWindowHandle();
+	auto windowInfo = app->GetWindowInfo();
+
+	RenderManager::Get().StartUp(hwnd, windowInfo.width, windowInfo.height);
+	InputManager::Get().StartUp(hwnd);
+	app->OnWindowSizeChanged.AddListener<InputManager, &InputManager::HandleWindowResize>(&InputManager::Get());
+	app->OnMouseWheelUpdate.AddListener<InputManager, &InputManager::HandleMouseWheelEvent>(&InputManager::Get());
+
+	TimeManager::Get().StartUp();
+
+	SceneManager::Get().StartUp(dataPath.generic_wstring() + L"/Assets/Scenes", 0);
+	ObjectManager::Get().StartUp();
+
+	PhysicsSettings::Get().StartUp(dataPath / "Settings");
+
+	// 유저 스크립트 불러오기
+	auto dllPath = cwd / "UserScripts.dll";
+	BehaviourManager::Get().StartUp(dllPath.generic_u8string());
+
+	// 리소스 매니저 부팅
+	ResourceManager::Get().StartUp(dataPath.generic_wstring() + L"/");
+
+	// 쉐이더 인포 시작하기
+	ShaderInfo::Get().StartUp();
+
+	app->OnWindowSizeChanged.AddListener<RenderManager, &RenderManager::ResizeSwapChainSize>(&RenderManager::Get());
+	app->OnWindowSizeChanged.AddListenerLambda([](int width, int height) { RenderManager::Get().ResizeSceneSize(width, height, width, height); });
+
+	ComPtr<ID3D11Device> device = RenderManager::Get().GetDevice();
+	ComPtr<ID3D11DeviceContext> context = RenderManager::Get().GetContext();
+
+	PhysicX::Get().Initialize();
+	SceneManager::Get().onSceneInitBefore.AddListenerLambda([]() {
+		PhysxManager::Get().UnbindScene();
+		PhysxManager::Get().BindScene(SceneManager::Get().GetCurrentSceneRaw());
+		});
 }
 
 void Update()
@@ -31,8 +74,6 @@ void Update()
 	InputManager::Get().Update();
 
 	float dt = TimeManager::Get().GetDeltaTime();
-
-	//씬 변경 시
 	if (SceneManager::Get().CheckSceneIsChanged())
 	{
 		ObjectManager::Get().UpdateInternalTimer(dt);
@@ -42,19 +83,51 @@ void Update()
 		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
 	}
 
-	BehaviourManager::Get().InitializeBehaviours();    // Awake, OnEnable, Start
+	BehaviourManager::Get().InitializeBehaviours();
 
 	TimeManager::Get().ConsumeFixedSteps([&](float fixedDt)
-	{
-		//PhysicsManager::Get()->PreSyncPhysicsWorld();
-		//PhysicsManager::Get()->PreApplyTransform();
-		BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
-		//PhysicsManager::Get()->Simulate(fixedDt);
-		//PhysicsManager::Get()->ApplyTransform();
-	});
+		{
+			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
+			PhysxManager::Get().StepFixed(fixedDt);
+
+			std::vector<std::tuple<ObjPtr<GameObject>, ObjPtr<GameObject>, P_EvenType>> vec;
+
+			std::swap(vec, PhysxManager::Get().GetCallbackQue());
+
+			for (auto& [A, B, Event] : vec)
+			{
+				switch (Event)
+				{
+				case P_EvenType::C_enter:
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(A, "OnCollisionEnter", B);
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(B, "OnCollisionEnter", A);
+					break;
+				case P_EvenType::C_stay:
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(A, "OnCollisionStay", B);
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(B, "OnCollisionStay", A);
+					break;
+				case P_EvenType::C_out:
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(A, "OnCollisionExit", B);
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(B, "OnCollisionExit", A);
+					break;
+				case P_EvenType::T_enter:
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(A, "OnTriggerEnter", B);
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(B, "OnTriggerEnter", A);
+					break;
+				case P_EvenType::T_out:
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(A, "OnTriggerEnter", B);
+					BehaviourManager::Get().SpecificBroadCastBehaviourMessage(B, "OnTriggerEnter", A);
+					break;
+				}
+			}
+		});
 
 	BehaviourManager::Get().BroadCastBehaviourMessage("Update");
 	BehaviourManager::Get().BroadCastBehaviourMessage("LateUpdate");
+
+	RenderManager::Get().BeginFrame();
+	RenderManager::Get().Render();
+	RenderManager::Get().EndFrame();
 
 	ObjectManager::Get().UpdateInternalTimer(dt);
 	BehaviourManager::Get().DisableBehaviours();
@@ -63,10 +136,17 @@ void Update()
 
 void Release()
 {
+	PhysxManager::Get().UnbindScene();
+	GlobalRegistry::g_pApp = nullptr;
+	RenderManager::Get().ShutDown();
+	TimeManager::Get().ShutDown();
+	InputManager::Get().ShutDown();
+
 	SceneManager::Get().ShutDown();
 	ObjectManager::Get().ShutDown();
 	BehaviourManager::Get().ShutDown();
-	GlobalRegistry::g_pApp = nullptr;
+
+	fs::path cwd = fs::current_path();
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,

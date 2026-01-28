@@ -25,6 +25,7 @@ using namespace MMMEngine::Utility;
 #include "SceneViewWindow.h"
 #include "GameViewWindow.h"
 #include "PhysicsSettingsWindow.h"
+#include "PlayerBuildWindow.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -362,7 +363,11 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
                 {
                     ScriptBuildWindow::Get().StartBuild();
                 }
-                ImGui::MenuItem(u8"프로젝트 빌드");
+                if (ImGui::MenuItem(u8"프로젝트 빌드"))
+                {
+                    g_editor_window_playerBuild = true;
+					p_open = false;
+                }
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu(u8"도구##fadeOut1"))
@@ -475,12 +480,13 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
                 if (g_editor_scene_playing)
                 {
+					g_editor_scene_before_play_sceneID = SceneManager::Get().GetCurrentScene().id;
                     SceneManager::Get().ReloadSnapShotCurrentScene();
                 }
                 else
                 {
                     auto currenSceneRef = SceneManager::Get().GetCurrentScene();
-                    SceneManager::Get().ChangeScene(currenSceneRef.id);
+                    SceneManager::Get().ChangeScene(g_editor_scene_before_play_sceneID);
                     SceneManager::Get().ClearDDOLScene();
                 }
             }
@@ -693,6 +699,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     GameViewWindow::Get().Render();
     SceneViewWindow::Get().Render();
     PhysicsSettingsWindow::Get().Render();
+    PlayerBuildWindow::Get().Render();
 }
 
 void MMMEngine::Editor::ImGuiEditorContext::EndFrame()

@@ -1,4 +1,4 @@
-#include "StaticMesh.h"
+ï»¿#include "StaticMesh.h"
 #include <rttr/registration.h>
 #include "ResourceSerializer.h"
 #include <RendererTools.h>
@@ -24,6 +24,10 @@ RTTR_REGISTRATION
 	type::register_converter_func(
 		[](std::shared_ptr<Resource> from, bool& ok) -> std::shared_ptr<StaticMesh>
 		{
+			if (!from) {  // nullptr í—ˆìš©
+				ok = true;
+				return nullptr;
+			}
 			auto result = std::dynamic_pointer_cast<StaticMesh>(from);
 			ok = (result != nullptr);
 			return result;
@@ -33,14 +37,14 @@ RTTR_REGISTRATION
 
 Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<MMMEngine::Mesh_Vertex>& _vertices)
 {
-	// ¿¹¿Ü È®ÀÎ
+	// ì˜ˆì™¸ í™•ì¸
 	if (_vertices.empty())
 		return nullptr;
 
-	// Ãâ·ÂÇÒ ¹öÆÛ »ı¼º
+	// ì¶œë ¥í•  ë²„í¼ ìƒì„±
 	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 
-	// ¹öÅØ½º ¹öÆÛ »ı¼º
+	// ë²„í…ìŠ¤ ë²„í¼ ìƒì„±
 	D3D11_BUFFER_DESC bd = {};
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -61,13 +65,13 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<MMMEng
 
 Microsoft::WRL::ComPtr<ID3D11Buffer> CreateIndexBuffer(const std::vector<UINT>& _indices)
 {
-	// Ãâ·ÂÇÒ ¹öÆÛ »ı¼º
+	// ì¶œë ¥í•  ë²„í¼ ìƒì„±
 	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 
 	if (_indices.empty())
-		return nullptr; // ¾ÈÀü Ã³¸®
+		return nullptr; // ì•ˆì „ ì²˜ë¦¬
 
-	// ÀÎµ¦½º ¹öÆÛ »ı¼º
+	// ì¸ë±ìŠ¤ ë²„í¼ ìƒì„±
 	D3D11_BUFFER_DESC bd = {};
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -90,10 +94,10 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> CreateIndexBuffer(const std::vector<UINT>& 
 
 bool MMMEngine::StaticMesh::LoadFromFilePath(const std::wstring& filePath)
 {
-	// ¿ªÁ÷·ÄÈ­
+	// ì—­ì§ë ¬í™”
 	ResourceSerializer::Get().DeSerialize_StaticMesh(this, filePath);
 
-	// ¹öÆÛ ¸¸µé±â
+	// ë²„í¼ ë§Œë“¤ê¸°
 	for (auto& submesh : meshData.vertices) {
 		Microsoft::WRL::ComPtr<ID3D11Buffer> subMeshBuffer = CreateVertexBuffer(submesh);
 		gpuBuffer.vertexBuffers.push_back(subMeshBuffer);
@@ -104,8 +108,8 @@ bool MMMEngine::StaticMesh::LoadFromFilePath(const std::wstring& filePath)
 		indexSizes.push_back(indices.size());
 	}
 
-	// CPU µ¥ÀÌÅÍ Á¤¸®
-	// WARNING::ÇÊ¿äÇÏ¸é Áö¿ì°Å³ª ÁÖ¼®Ã³¸®ÇÒ°Í (·±Å¸ÀÓ ¸Ş¸ğ¸® ÃÖÀûÈ­¿ë)
+	// CPU ë°ì´í„° ì •ë¦¬
+	// WARNING::í•„ìš”í•˜ë©´ ì§€ìš°ê±°ë‚˜ ì£¼ì„ì²˜ë¦¬í• ê²ƒ (ëŸ°íƒ€ì„ ë©”ëª¨ë¦¬ ìµœì í™”ìš©)
 	meshData.vertices.clear();
 	meshData.indices.clear();
 
