@@ -10,7 +10,7 @@ using namespace MMMEngine::EditorRegistry;
 
 // 또는 unordered_set으로 (검색 성능 향상)
 static inline std::unordered_set<std::string> fileExclusionsSet = {
-    ".obj", ".csproj", ".vcxproj", ".filters", ".user", ".dll", ".exp", ".lib"
+    ".obj", ".csproj", ".vcxproj", ".filters", ".user", ".dll", ".exp", ".lib", ".settings"
 };
 
 void MMMEngine::Editor::FilesWindow::Render()
@@ -641,15 +641,14 @@ RTTR_PLUGIN_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<)" << scriptName << R"(>(")" << scriptName << R"(")
-        (rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<)" << scriptName << R"(>>()));
+        (rttr::metadata("wrapper_type_name", "ObjPtr<)" << scriptName << R"("));
 
 	registration::class_<ObjPtr<)" << scriptName << R"(>>("ObjPtr<)" << scriptName << R"(>")
 		.constructor(
 			[]() {
 				return Object::NewObject<)" << scriptName << R"(>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<)" << scriptName << R"(>>();
+			})
+        .method("Inject", &ObjPtr<ExampleBehaviour>::Inject);
 }
 
 void MMMEngine::)" << scriptName << R"(::Start()

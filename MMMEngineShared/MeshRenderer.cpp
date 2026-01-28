@@ -1,4 +1,4 @@
-#include "MeshRenderer.h"
+ï»¿#include "MeshRenderer.h"
 #include "RenderManager.h"
 #include "RenderCommand.h"
 #include "GameObject.h"
@@ -15,16 +15,15 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<MeshRenderer>("MeshRenderer")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<MeshRenderer>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<MeshRenderer>"))
 		.property("Mesh", &MeshRenderer::GetMesh, &MeshRenderer::SetMesh);
 
 	registration::class_<ObjPtr<MeshRenderer>>("ObjPtr<MeshRenderer>")
 		.constructor<>(
 			[]() {
 				return Object::NewObject<MeshRenderer>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<MeshRenderer>>();
+			})
+		.method("Inject", &ObjPtr<MeshRenderer>::Inject);
 }
 
 void MMMEngine::MeshRenderer::SetMesh(ResPtr<StaticMesh>& _mesh)
@@ -49,7 +48,7 @@ void MMMEngine::MeshRenderer::Init()
 
 void MMMEngine::MeshRenderer::Render()
 {
-	// À¯È¿¼º È®ÀÎ
+	// ìœ íš¨ì„± í™•ì¸
 	if (!mesh || !GetTransform())
 		return;
 
@@ -67,7 +66,7 @@ void MMMEngine::MeshRenderer::Render()
 			command.worldMatIndex = RenderManager::Get().AddMatrix(GetTransform()->GetWorldMatrix());
 			command.indiciesSize = mesh->indexSizes[idx];
 
-			// TODO::CamDistance º¸³»Áà¾ßÇÔ!!
+			// TODO::CamDistance ë³´ë‚´ì¤˜ì•¼í•¨!!
 			command.camDistance = 0.0f;
 
 			std::wstring shaderPath = material->GetPShader()->GetFilePath();

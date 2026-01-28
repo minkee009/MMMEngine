@@ -175,6 +175,7 @@
     <ClInclude Include="ImGuiEditorContext.h" />
     <ClInclude Include="ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="InspectorWindow.h" />
+    <ClInclude Include="PhysicsSettingsWindow.h" />
     <ClInclude Include="Project.h" />
     <ClInclude Include="ProjectManager.h" />
     <ClInclude Include="SceneListWindow.h" />
@@ -206,6 +207,7 @@
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp" />
     <ClCompile Include="InspectorWindow.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PhysicsSettingsWindow.cpp" />
     <ClCompile Include="ProjectManager.cpp" />
     <ClCompile Include="SceneListWindow.cpp" />
     <ClCompile Include="SceneViewWindow.cpp" />

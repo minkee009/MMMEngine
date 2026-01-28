@@ -265,7 +265,7 @@ RTTR_PLUGIN_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<ExampleBehaviour>("ExampleBehaviour")
-        (rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<ExampleBehaviour>>()))
+        (rttr::metadata("wrapper_type_name", "ObjPtr<ExampleBehaviour>"))
         .property("IsCustomBool",&ExampleBehaviour::isCustomBool)
         .property("CustomFloat",&ExampleBehaviour::customFloat)
         .property("CustomInt",&ExampleBehaviour::customInt)
@@ -275,9 +275,8 @@ RTTR_PLUGIN_REGISTRATION
 		.constructor(
 			[]() {
 				return Object::NewObject<ExampleBehaviour>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<ExampleBehaviour>>();
+			})
+        .method("Inject", &ObjPtr<ExampleBehaviour>::Inject);
 }
 
 void MMMEngine::ExampleBehaviour::Start()

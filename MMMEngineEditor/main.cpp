@@ -1,4 +1,4 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include <iostream>
 #include <filesystem>
 
@@ -22,6 +22,7 @@
 #include "DLLHotLoadHelper.h"
 #include "PhysX.h"
 #include "ShaderInfo.h"
+#include "PhysicsSettings.h"
 
 namespace fs = std::filesystem;
 using namespace MMMEngine;
@@ -36,15 +37,24 @@ void AfterProjectLoaded()
 	GlobalRegistry::g_pApp->SetWindowTitle(L"MMMEditor [ " + Utility::StringHelper::StringToWString(currentProject.rootPath) + L" ]");
 	ObjectManager::Get().StartUp();
 
+
+	PhysicsSettings::Get().StartUp(currentProject.ProjectRootFS() / "ProjectSettings");
+
 	// 유저 스크립트 불러오기
-	fs::path cwd = fs::current_path();
-	DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
+	fs::path hotDir;
+	if (const char* lad = std::getenv("LOCALAPPDATA"))
+		hotDir = fs::path(lad) / "MMMEngine" / "HotReload";
+	else
+		hotDir = fs::temp_directory_path() / "MMMEngine" / "HotReload";
+
+	DLLHotLoadHelper::CleanupHotReloadCopies(hotDir);
 
 	fs::path projectPath = ProjectManager::Get().GetActiveProject().rootPath;
+	fs::path originDll = projectPath / "Binaries" / "Win64" / "UserScripts.dll";
 
-	fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(projectPath / "Binaries" / "Win64" / "UserScripts.dll", cwd);
+	fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(originDll, hotDir);
 
-	BehaviourManager::Get().StartUp(dllPath.stem().u8string());
+	BehaviourManager::Get().StartUp(dllPath.u8string());
 
 	// 리소스 매니저 부팅
 	ResourceManager::Get().StartUp(projectPath.generic_wstring() + L"/");

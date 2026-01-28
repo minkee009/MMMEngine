@@ -1,4 +1,4 @@
-#include "Transform.h"
+ï»¿#include "Transform.h"
 #include "StringHelper.h"
 #include "rttr/registration"
 #include "GameObject.h"
@@ -11,27 +11,26 @@ RTTR_REGISTRATION
 	using namespace rttr;
 	using namespace MMMEngine;
 
-	using Vec3Fn = void (Transform::*)(const Vector3&);		//¿À¹ö·Îµå ¶§¹®¿¡ ±¸Çö = (float,float,float) , (Vector3) Áß ´©±¼ È£ÃâÇÒÁö ¸ğÈ£ÇÔ -> RTTR¿¡·¯!
-	using QuatFn = void (Transform::*)(const Quaternion&);  //¸¶Âù°¡Áö·Î ¿À¹ö·Îµå ¶§¹®¿¡ ±¸Çö
+	using Vec3Fn = void (Transform::*)(const Vector3&);		//ì˜¤ë²„ë¡œë“œ ë•Œë¬¸ì— êµ¬í˜„ = (float,float,float) , (Vector3) ì¤‘ ëˆ„êµ´ í˜¸ì¶œí• ì§€ ëª¨í˜¸í•¨ -> RTTRì—ëŸ¬!
+	using QuatFn = void (Transform::*)(const Quaternion&);  //ë§ˆì°¬ê°€ì§€ë¡œ ì˜¤ë²„ë¡œë“œ ë•Œë¬¸ì— êµ¬í˜„
 	Vec3Fn setpos = &Transform::SetLocalPosition;		
 	QuatFn setrot = &Transform::SetLocalRotation;
 	Vec3Fn setscale = &Transform::SetLocalScale;
 
 	registration::class_<Transform>("Transform")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<Transform>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<Transform>"))
 		(rttr::metadata("INSPECTOR", "DONT_ADD_COMP"))
 		.property("Position", &Transform::GetLocalPosition, setpos)
 		.property("Rotation", &Transform::GetLocalRotation, setrot)
 		.property("Scale", &Transform::GetLocalScale, setscale)
-		.property("Parent", &Transform::m_parent, registration::private_access)(rttr::policy::prop::as_reference_wrapper);// (rttr::metadata("DONT_SHOW", true));
+		.property("Parent", &Transform::m_parent, registration::private_access)(rttr::policy::prop::as_reference_wrapper);// (rttr::metadata("INSPECTOR", "HIDDEN"));
 
 	registration::class_<ObjPtr<Transform>>("ObjPtr<Transform>")
 		.constructor<>(
 			[]() {
 				return Object::NewObject<Transform>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Transform>>();
+			})
+		.method("Inject", &ObjPtr<Transform>::Inject);
 }
 
 void MMMEngine::Transform::AddChild(ObjPtr<Transform> child)
@@ -58,7 +57,7 @@ void MMMEngine::Transform::MarkDirty()
 	m_isWorldMatDirty = true;
 	for (const auto& child : m_childs)
 	{
-		child->MarkDirty(); // ÀÚ½Äµéµµ ´õ·¯¿öÁ³´Ù°í Ç¥½Ã
+		child->MarkDirty(); // ìì‹ë“¤ë„ ë”ëŸ¬ì›Œì¡Œë‹¤ê³  í‘œì‹œ
 	}
 }
 
@@ -217,7 +216,7 @@ void MMMEngine::Transform::SetWorldPosition(const Vector3& pos)
 		Vector3 v = pos - pPos;
 
 		Quaternion invRot = pRot;
-		invRot.Inverse(invRot); // ¶Ç´Â pRot.Inverse(...)
+		invRot.Inverse(invRot); // ë˜ëŠ” pRot.Inverse(...)
 		v = Vector3::Transform(v, invRot);
 
 		const float eps = 1e-6f;
@@ -251,12 +250,12 @@ void MMMEngine::Transform::SetWorldRotation(const Quaternion& rot)
 
 void MMMEngine::Transform::SetWorldEulerRotation(const Vector3& rot)
 {
-	// ¿ÀÀÏ·¯ °¢(µµ ´ÜÀ§)À» ¶óµğ¾È ´ÜÀ§·Î º¯È¯
+	// ì˜¤ì¼ëŸ¬ ê°(ë„ ë‹¨ìœ„)ì„ ë¼ë””ì•ˆ ë‹¨ìœ„ë¡œ ë³€í™˜
 	auto radRotX = DirectX::XMConvertToRadians(rot.x);
 	auto radRotY = DirectX::XMConvertToRadians(rot.y);
 	auto radRotZ = DirectX::XMConvertToRadians(rot.z);
 
-	// ¶óµğ¾È ¿ÀÀÏ·¯ °¢À¸·Î ÄõÅÍ´Ï¾ğ »ı¼º
+	// ë¼ë””ì•ˆ ì˜¤ì¼ëŸ¬ ê°ìœ¼ë¡œ ì¿¼í„°ë‹ˆì–¸ ìƒì„±
 	Quaternion worldRot = Quaternion::CreateFromYawPitchRoll(radRotY, radRotX, radRotZ);
 
 	SetWorldRotation(worldRot);
@@ -306,25 +305,25 @@ void MMMEngine::Transform::SetLocalScale(const Vector3& scale)
 
 void MMMEngine::Transform::SetParent(ObjPtr<Transform> parent, bool worldPositionStays)
 {
-	// ÀÌ¹Ì °°Àº ºÎ¸ğ¸é return
+	// ì´ë¯¸ ê°™ì€ ë¶€ëª¨ë©´ return
 	if (parent == m_parent) return;
 
 	for (auto p = parent; p != nullptr; p = p->m_parent)
 	{
 		if (p == SelfPtr(this))
-			return; // cycle °ÅºÎ
+			return; // cycle ê±°ë¶€
 	}
 
-	// ÇöÀç ¿ùµå Æ÷Áö¼Ç ¹é¾÷
+	// í˜„ì¬ ì›”ë“œ í¬ì§€ì…˜ ë°±ì—…
 	const auto worldScaleBefore = GetWorldScale();
 	const auto worldRotationBefore = GetWorldRotation();
 	const auto worldPositionBefore = GetWorldPosition();
 
-	// ±âÁ¸ ºÎ¸ğ¿¡¼­ Á¦°Å
+	// ê¸°ì¡´ ë¶€ëª¨ì—ì„œ ì œê±°
 	if (m_parent)
 		m_parent->RemoveChild(SelfPtr(this));
 
-	// ºÎ¸ğ ±³Ã¼
+	// ë¶€ëª¨ êµì²´
 	m_parent = parent;
 
 	if (m_parent)
@@ -334,7 +333,7 @@ void MMMEngine::Transform::SetParent(ObjPtr<Transform> parent, bool worldPositio
 	{
 		if (m_parent)
 		{
-			// ºÎ¸ğ ±âÁØ »ó ·ÎÄÃ Çà·Ä
+			// ë¶€ëª¨ ê¸°ì¤€ ìƒ ë¡œì»¬ í–‰ë ¬
 			auto pScale = m_parent->GetWorldScale();
 			auto pRot = m_parent->GetWorldRotation();
 			auto pPos = m_parent->GetWorldPosition();
@@ -366,7 +365,7 @@ void MMMEngine::Transform::SetParent(ObjPtr<Transform> parent, bool worldPositio
 		}
 		else
 		{
-			// ºÎ¸ğ°¡ ¾øÀ¸¸é ·ÎÄÃ = ¿ùµå
+			// ë¶€ëª¨ê°€ ì—†ìœ¼ë©´ ë¡œì»¬ = ì›”ë“œ
 			m_localScale = worldScaleBefore;
 			m_localRotation = worldRotationBefore;
 			m_localPosition = worldPositionBefore;
@@ -376,7 +375,7 @@ void MMMEngine::Transform::SetParent(ObjPtr<Transform> parent, bool worldPositio
 	MarkDirty();
 	onMatrixUpdate.Invoke(this);  
 	if(GetGameObject().IsValid())
-		GetGameObject()->UpdateActiveInHierarchy(); // ºÎ¸ğ°¡ ¹Ù²î¾úÀ¸¹Ç·Î Hierarchy È°¼ºÈ­ »óÅÂ ¾÷µ¥ÀÌÆ®
+		GetGameObject()->UpdateActiveInHierarchy(); // ë¶€ëª¨ê°€ ë°”ë€Œì—ˆìœ¼ë¯€ë¡œ Hierarchy í™œì„±í™” ìƒíƒœ ì—…ë°ì´íŠ¸
 }
 
 MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::Find(const std::string& path)
@@ -384,15 +383,15 @@ MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::Find(const std::st
 	if (path.empty())
 		return nullptr;
 
-	// 1. °æ·Î¸¦ '/'·Î ºĞÇÒ
+	// 1. ê²½ë¡œë¥¼ '/'ë¡œ ë¶„í• 
 	std::vector<std::string> tokens = StringHelper::Split(path, '/');
 	if (tokens.empty())
 		return nullptr;
 
-	// 2. ÇöÀç Transform¿¡¼­ ½ÃÀÛ
+	// 2. í˜„ì¬ Transformì—ì„œ ì‹œì‘
 	auto current = SelfPtr(this);
 
-	// 3. ÅäÅ« ¼øÈ¸
+	// 3. í† í° ìˆœíšŒ
 	for (const auto& token : tokens)
 	{
 		bool found = false;
@@ -401,7 +400,7 @@ MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::Find(const std::st
 		{
 			if (child && child->GetName() == token)
 			{
-				// ÀÏÄ¡ÇÏ´Â ÀÚ½Ä ¹ß°ß
+				// ì¼ì¹˜í•˜ëŠ” ìì‹ ë°œê²¬
 				current = child;
 				found = true;
 				break;
@@ -410,7 +409,7 @@ MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::Find(const std::st
 
 		if (!found)
 		{
-			// ÇöÀç ·¹º§¿¡¼­ ÀÌ¸§À» ¸ø Ã£À¸¸é °æ·Î ½ÇÆĞ
+			// í˜„ì¬ ë ˆë²¨ì—ì„œ ì´ë¦„ì„ ëª» ì°¾ìœ¼ë©´ ê²½ë¡œ ì‹¤íŒ¨
 			return ObjPtr<Transform>();
 		}
 	}
@@ -452,34 +451,34 @@ void MMMEngine::Transform::SetSiblingIndex(size_t idx)
 
 	if (idx >= m_parent->m_childs.size())
 	{
-		// ÀÎµ¦½º°¡ ¹üÀ§¸¦ ¹ş¾î³ª¸é ¾Æ¹« ÀÛ¾÷µµ ÇÏÁö ¾ÊÀ½
+		// ì¸ë±ìŠ¤ê°€ ë²”ìœ„ë¥¼ ë²—ì–´ë‚˜ë©´ ì•„ë¬´ ì‘ì—…ë„ í•˜ì§€ ì•ŠìŒ
 		return;
 	}
 
 	if (m_parent->m_childs[idx] == SelfPtr(this))
 	{
-		// ÀÌ¹Ì ÇØ´ç ÀÎµ¦½º¿¡ ÀÖ´Ù¸é ¾Æ¹« ÀÛ¾÷µµ ÇÏÁö ¾ÊÀ½
+		// ì´ë¯¸ í•´ë‹¹ ì¸ë±ìŠ¤ì— ìˆë‹¤ë©´ ì•„ë¬´ ì‘ì—…ë„ í•˜ì§€ ì•ŠìŒ
 		return;
 	}
 
-	//ÀÚ½ÄÀÇ ¹è¿­ÀÚ À§Ä¡¸¦ Ã£À½
+	//ìì‹ì˜ ë°°ì—´ì ìœ„ì¹˜ë¥¼ ì°¾ìŒ
 	auto& children = m_parent->m_childs;
 	auto current_it = std::find(children.begin(), children.end(), this);
 
-	// ÇöÀç ÀÎµ¦½º °è»ê
+	// í˜„ì¬ ì¸ë±ìŠ¤ ê³„ì‚°
 	size_t current_idx = std::distance(children.begin(), current_it);
 
-	//std::rotate¸¦ »ç¿ëÇÏ¿© ¿ä¼Ò ÀÌµ¿
+	//std::rotateë¥¼ ì‚¬ìš©í•˜ì—¬ ìš”ì†Œ ì´ë™
 	if (current_idx < idx)
 	{
-		// ÇöÀç ÀÎµ¦½º°¡ ¸ñÇ¥ ÀÎµ¦½ºº¸´Ù ÀÛÀ¸¸é ¿À¸¥ÂÊÀ¸·Î ÀÌµ¿
+		// í˜„ì¬ ì¸ë±ìŠ¤ê°€ ëª©í‘œ ì¸ë±ìŠ¤ë³´ë‹¤ ì‘ìœ¼ë©´ ì˜¤ë¥¸ìª½ìœ¼ë¡œ ì´ë™
 		std::rotate(children.begin() + current_idx,
 			children.begin() + current_idx + 1,
 			children.begin() + idx + 1);
 	}
 	else
 	{
-		// ÇöÀç ÀÎµ¦½º°¡ ¸ñÇ¥ ÀÎµ¦½ºº¸´Ù Å©¸é ¿ŞÂÊÀ¸·Î ÀÌµ¿
+		// í˜„ì¬ ì¸ë±ìŠ¤ê°€ ëª©í‘œ ì¸ë±ìŠ¤ë³´ë‹¤ í¬ë©´ ì™¼ìª½ìœ¼ë¡œ ì´ë™
 		std::rotate(children.begin() + idx,
 			children.begin() + current_idx,
 			children.begin() + current_idx + 1);
@@ -496,6 +495,6 @@ size_t MMMEngine::Transform::GetSiblingIndex() const
 			return std::distance(m_parent->m_childs.begin(), it);
 		}
 	}
-	return 0; // ºÎ¸ğ°¡ ¾ø°Å³ª Ã£À» ¼ö ¾ø´Â °æ¿ì 0 ¹İÈ¯
+	return 0; // ë¶€ëª¨ê°€ ì—†ê±°ë‚˜ ì°¾ì„ ìˆ˜ ì—†ëŠ” ê²½ìš° 0 ë°˜í™˜
 }
 

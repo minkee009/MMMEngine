@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "Transform.h"
 #include "Resource.h"
+#include <regex>
 
 #include "EditorRegistry.h"
 using namespace MMMEngine::EditorRegistry;
@@ -11,14 +12,155 @@ using namespace DirectX;
 #include "StringHelper.h"
 #include "ProjectManager.h"
 #include "ResourceManager.h"
-
+#include <rttr/variant_sequential_view.h>
 #include <optional>
+#include <iterator> 
 
 using namespace MMMEngine;
 using namespace MMMEngine::Editor;
 using namespace MMMEngine::Utility;
 
+static rttr::variant MakeDefaultElement(rttr::type elemType)
+{
+    // 기본 생성이 가능한 타입이어야 함 (POD/기본형/기본생성자 있는 struct 등)
+    if (elemType.is_arithmetic())
+    {
+        if (elemType == rttr::type::get<int>())   return 0;
+        if (elemType == rttr::type::get<float>()) return 0.0f;
+        if (elemType == rttr::type::get<bool>())  return false;
+    }
+    if (elemType == rttr::type::get<DirectX::SimpleMath::Vector3>())
+        return DirectX::SimpleMath::Vector3(0, 0, 0);
 
+    // 그 외는 RTTR create()
+    return elemType.create(); // 실패하면 invalid 가능
+}
+
+static bool DrawElementPOD(const char* label, rttr::variant& elem, rttr::type elemType, bool readOnly)
+{
+    bool changed = false;
+
+    if (elemType == rttr::type::get<int>())
+    {
+        int v = elem.to_int();
+        if (readOnly) ImGui::BeginDisabled(true);
+        changed = ImGui::DragInt(label, &v);
+        if (readOnly) ImGui::EndDisabled();
+        if (changed && !readOnly) elem = v;
+    }
+    else if (elemType == rttr::type::get<float>())
+    {
+        float v = elem.to_double(); // float로도 안전
+        if (readOnly) ImGui::BeginDisabled(true);
+        changed = ImGui::DragFloat(label, &v, 0.1f);
+        if (readOnly) ImGui::EndDisabled();
+        if (changed && !readOnly) elem = v;
+    }
+    else if (elemType == rttr::type::get<bool>())
+    {
+        bool v = elem.to_bool();
+        if (readOnly) ImGui::BeginDisabled(true);
+        changed = ImGui::Checkbox(label, &v);
+        if (readOnly) ImGui::EndDisabled();
+        if (changed && !readOnly) elem = v;
+    }
+    else if (elemType == rttr::type::get<DirectX::SimpleMath::Vector3>())
+    {
+        auto v = elem.get_value<DirectX::SimpleMath::Vector3>();
+        float d[3] = { v.x, v.y, v.z };
+        if (readOnly) ImGui::BeginDisabled(true);
+        changed = ImGui::DragFloat3(label, d, 0.1f);
+        if (readOnly) ImGui::EndDisabled();
+        if (changed && !readOnly) elem = DirectX::SimpleMath::Vector3(d[0], d[1], d[2]);
+    }
+    else
+    {
+        ImGui::TextDisabled("%s (unsupported: %s)", label, elemType.get_name().to_string().c_str());
+    }
+
+    return changed;
+}
+
+static void DrawSequentialProperty_UnityLike(const std::string& name,
+    rttr::variant& containerVar,
+    const rttr::property& prop,
+    rttr::instance inst,
+    bool readOnly)
+{
+    auto view = containerVar.create_sequential_view();
+    if (!view.is_valid()) return;
+
+    const bool dynamic = view.is_dynamic();
+    rttr::type elemType = view.get_value_type();
+
+    // todo : 나중에 왼쪽 정렬로 만들어버리기 ( 커서 직접 옮기고 헤더 폭 알아서 줄이기 )
+
+    // 1. 프로퍼티 헤더를 오른쪽으로 밀기
+    ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+
+    // 2. ID 충돌 방지: 레이블 뒤에 ##을 붙여 ID를 고정합니다.
+    // 사이즈가 변해도 name이 같으면 열림 상태가 유지됩니다.
+    std::string headerLabel = name + "  [" + std::to_string(view.get_size()) + "]###" + name;
+
+    bool opened = ImGui::CollapsingHeader(headerLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+    if (opened)
+    {
+        // 내부 아이템 들여쓰기
+        ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+
+        // --- Size UI ---
+        int size = (int)view.get_size();
+        int newSize = size;
+        bool sizeEditable = (!readOnly && dynamic);
+
+        if (!sizeEditable) ImGui::BeginDisabled(true);
+        ImGui::SetNextItemWidth(120);
+        // Size 필드에도 고유 ID 부여
+        if (ImGui::InputInt(("Size##" + name).c_str(), &newSize))
+        {
+            if (sizeEditable)
+            {
+                newSize = std::max(0, newSize);
+                view.set_size((size_t)newSize);
+            }
+        }
+        if (!sizeEditable) ImGui::EndDisabled();
+
+        // --- Elements Loop ---
+        int idx = 0;
+        for (auto it = view.begin(); it != view.end();)
+        {
+            ImGui::PushID(idx);
+
+            rttr::variant elem = (*it);
+            rttr::variant unwrapped = elem.extract_wrapped_value();
+            if (unwrapped.is_valid()) elem = unwrapped;
+
+            std::string label = "Element " + std::to_string(idx);
+
+            rttr::variant edited = elem;
+            bool changed = DrawElementPOD(label.c_str(), edited, elemType, readOnly);
+
+            if (changed && !readOnly)
+            {
+                view.set_value((size_t)idx, edited);
+            }
+
+            ++it;
+            ++idx;
+            ImGui::PopID();
+        }
+
+        ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+    }
+
+    // 3. 들여쓰기 복구
+    ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
+
+    if (!readOnly)
+        prop.set_value(inst, containerVar);
+}
 
 static std::string MakeStringKey(const rttr::instance& inst, const rttr::property& prop)
 {
@@ -56,7 +198,6 @@ void MMMEngine::Editor::InspectorWindow::ClearCache()
 }
 
 void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
-
 {
     static ObjPtr<GameObject> s_lastCachedObject = nullptr;
     static std::unordered_map<std::string, std::string> cache;
@@ -152,6 +293,11 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
             if (readOnly) ImGui::EndDisabled();
         }
 
+        else if (var.is_sequential_container())
+        {
+            // 읽기 전용 여부
+            DrawSequentialProperty_UnityLike(name, var, prop, inst, readOnly);
+        }
         else if (var.is_type<float>())
         {
             float f = var.get_value<float>();
@@ -185,6 +331,128 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
             if (changed && !readOnly)
                 prop.set_value(inst, ntger);
         }
+        else if (var.is_type<Color>())
+        {
+            Color c = var.get_value<Color>();
+            float rgba[4] = { c.x, c.y, c.z, c.w };
+
+            if (readOnly) ImGui::BeginDisabled(true);
+
+            // ColorEdit4는 0~1 범위 기대 (HDR 원하면 ColorEditFlags_HDR)
+            bool changed = ImGui::ColorEdit4(name.c_str(), rgba,
+                ImGuiColorEditFlags_Float | ImGuiColorEditFlags_AlphaBar);
+
+            if (readOnly) ImGui::EndDisabled();
+
+            if (changed && !readOnly)
+                prop.set_value(inst, Color(rgba[0], rgba[1], rgba[2], rgba[3]));
+        }
+        else if (var.is_type<Vector4>())
+        {
+            Vector4 v = var.get_value<Vector4>();
+            float data[4] = { v.x, v.y, v.z, v.w };
+
+            if (readOnly) ImGui::BeginDisabled(true);
+            bool changed = ImGui::DragFloat4(name.c_str(), data, 0.1f);
+            if (readOnly) ImGui::EndDisabled();
+
+            if (changed && !readOnly)
+                prop.set_value(inst, Vector4(data[0], data[1], data[2], data[3]));
+        }
+        else if (propType.get_name().to_string().find("ObjPtr") != std::string::npos)
+        {
+            MMMEngine::Object* obj = nullptr;
+            std::string refName = "nullptr";
+
+            if (var.convert(obj) && obj != nullptr)
+            {
+                if (auto compConvert = dynamic_cast<Component*>(obj))
+                {
+                    if (compConvert->GetGameObject().IsValid())
+                        refName = compConvert->GetGameObject()->GetName();
+                    else
+                        refName = "Destroyed GameObject";
+                }
+                else
+                {
+                    if (auto goConvert = dynamic_cast<GameObject*>(obj))
+                        refName = goConvert->GetName();
+                    else
+                        refName = name;
+                }
+            }
+
+
+
+            // 프로퍼티 이름
+            std::string ptrPropType = propType.get_name().to_string() + " " + prop.get_name().to_string();
+            ptrPropType = std::regex_replace(ptrPropType, std::regex("ObjPtr"), "");
+            ImGui::Text("%s:", ptrPropType.c_str());
+            ImGui::SameLine();
+            // 경로 표시 (클릭 가능하게)
+            ImGui::PushID(name.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
+            ImGui::Button(refName.c_str(), ImVec2(-1, 0));
+            ImGui::PopStyleColor();
+            ImGui::PopID();
+            //MUID dragged_muid = GetMuid("gameobject_muid");
+            Utility::MUID result = Utility::MUID::Empty();
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("gameobject_muid"))
+                {
+                    if (payload->IsDelivery() && payload->Data && payload->DataSize == sizeof(Utility::MUID))
+                    {
+                        std::memcpy(&result, payload->Data, sizeof(Utility::MUID));
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            MUID dragged_muid = result;
+            if(dragged_muid.IsValid())
+            {
+                auto sceneRef = SceneManager::Get().GetCurrentScene();
+                auto dragged = SceneManager::Get().FindWithMUID(sceneRef, dragged_muid);
+
+                auto innertype = StringHelper::ExtractInnerTypeName(propType.get_name().to_string());
+
+                if (innertype == "GameObject")
+                {
+                    const ObjPtrBase& baseRef = dragged;
+                    auto func = propType.get_method("Inject");
+                    if (func.is_valid())
+                    {
+                        auto fvar = func.invoke(var, baseRef);
+                        if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
+                        {
+                            std::cout << "success" << std::endl;
+                            prop.set_value(inst, var);
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    for (auto& _comp : dragged->GetAllComponents())
+                    {
+                        const ObjPtrBase& baseRef = _comp;
+                        auto func = propType.get_method("Inject");
+                        if (func.is_valid())
+                        {
+                            auto fvar = func.invoke(var, baseRef);
+                            if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
+                            {
+                                std::cout << "success" << std::endl;
+                                prop.set_value(inst, var);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
         else if (propType.get_name().to_string().find("shared_ptr") != std::string::npos)
         {
             auto args = propType.get_template_arguments();
@@ -216,7 +484,7 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
 
                     // 프로퍼티 이름
                     ImGui::Text("%s:", name.c_str());
-
+                    ImGui::SameLine();
                     // 경로 표시 (클릭 가능하게)
                     ImGui::PushID(name.c_str());
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
@@ -407,24 +675,6 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
                 updatedQ.Normalize();
                 prop.set_value(inst, updatedQ);
             }
-        }
-        else if (propType.get_name().to_string().find("ResPtr") != std::string::npos)
-        {
-            Resource* res = nullptr;
-            auto sharedRes = var.get_value<std::shared_ptr<Resource>>();
-            if (sharedRes)
-                res = sharedRes.get();
-
-            std::string displayPath = res ? StringHelper::WStringToString(res->GetFilePath()) : "None";
-
-            // 경로 표시 버튼
-            if (ImGui::Button(displayPath.c_str()))
-            {
-                ImGui::OpenPopup("Select Resource");
-            }
-
-            // Drag & Drop 지원
-            // None으로 설정 버튼 (X)
         }
     }
     ImGui::PopID();

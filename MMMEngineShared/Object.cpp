@@ -1,4 +1,4 @@
-#include "GameObject.h"
+ï»¿#include "GameObject.h"
 #include "Object.h"
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
@@ -33,7 +33,8 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() { 
 				return Object::NewObject<Object>(); 
-			});
+			})
+		.method("Inject", &ObjPtr<Object>::Inject);
 }
 
 MMMEngine::Object::Object() : m_instanceID(s_nextInstanceID++)
@@ -41,8 +42,8 @@ MMMEngine::Object::Object() : m_instanceID(s_nextInstanceID++)
 	if (!ObjectManager::Get().IsCreatingObject())
 	{
 		throw std::runtime_error(
-			"Object´Â CreatePtr·Î¸¸ »ı¼ºÇÒ ¼ö ÀÖ½À´Ï´Ù.\n"
-			"½ºÅÃ »ı¼ºÀÌ³ª Á÷Á¢ new »ç¿ëÀÌ °¨ÁöµÇ¾ú½À´Ï´Ù."
+			"ObjectëŠ” CreatePtrë¡œë§Œ ìƒì„±í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.\n"
+			"ìŠ¤íƒ ìƒì„±ì´ë‚˜ ì§ì ‘ new ì‚¬ìš©ì´ ê°ì§€ë˜ì—ˆìŠµë‹ˆë‹¤."
 		);
 	}
 
@@ -57,52 +58,52 @@ MMMEngine::Object::~Object()
 	if (!ObjectManager::Get().IsDestroyingObject())
 	{
 #ifdef _DEBUG
-		// Debug: µğ¹ö°Å Áß´Ü + ½ºÅÃ Æ®·¹ÀÌ½º
-		std::cerr << "\n=== ¿ÀºêÁ§Æ® ÆÄ±« ¿À·ù ===" << std::endl;
-		std::cerr << "Object´Â Destroy·Î¸¸ ÆÄ±«ÇÒ ¼ö ÀÖ½À´Ï´Ù." << std::endl;
-		std::cerr << "Á÷Á¢ delete »ç¿ëÀÌ °¨ÁöµÇ¾ú½À´Ï´Ù." << std::endl;
-		std::cerr << "\n>>> È£Ãâ ½ºÅÃ È®ÀÎ <<<\n" << std::endl;
+		// Debug: ë””ë²„ê±° ì¤‘ë‹¨ + ìŠ¤íƒ íŠ¸ë ˆì´ìŠ¤
+		std::cerr << "\n=== ì˜¤ë¸Œì íŠ¸ íŒŒê´´ ì˜¤ë¥˜ ===" << std::endl;
+		std::cerr << "ObjectëŠ” Destroyë¡œë§Œ íŒŒê´´í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤." << std::endl;
+		std::cerr << "ì§ì ‘ delete ì‚¬ìš©ì´ ê°ì§€ë˜ì—ˆìŠµë‹ˆë‹¤." << std::endl;
+		std::cerr << "\n>>> í˜¸ì¶œ ìŠ¤íƒ í™•ì¸ <<<\n" << std::endl;
 		__debugbreak();
 #endif
-		// Release¿Í Debug ¸ğµÎ: Áï½Ã Á¾·á
-		std::cerr << "\nFATAL ERROR: Çã¿ëµÇÁö ¾Ê´Â ¹æ¹ıÀ¸·Î ¿ÀºêÁ§Æ® ÆÄ±«" << std::endl;
+		// Releaseì™€ Debug ëª¨ë‘: ì¦‰ì‹œ ì¢…ë£Œ
+		std::cerr << "\nFATAL ERROR: í—ˆìš©ë˜ì§€ ì•ŠëŠ” ë°©ë²•ìœ¼ë¡œ ì˜¤ë¸Œì íŠ¸ íŒŒê´´" << std::endl;
 		std::abort(); 
 	}
 }
 
 void MMMEngine::Object::DontDestroyOnLoad(const ObjPtrBase& objPtr)
 {
-	// GameObjectÀÎ °æ¿ì ±× ÀÚÃ¼¸¦ ¾À¿¡°Ô ³Ñ±â±â
+	// GameObjectì¸ ê²½ìš° ê·¸ ìì²´ë¥¼ ì”¬ì—ê²Œ ë„˜ê¸°ê¸°
 	if (auto go = ObjectManager::Get().GetPtr<Object>(objPtr.GetPtrID(), objPtr.GetPtrGeneration()).Cast<GameObject>())
 	{
-		// ÀÌ¹Ì ÆÄ±«µÇ¾ú°Å³ª ÀÌ¹Ì DontDestroyOnLoad ¾À¿¡ ÀÖÀ¸¸é Ã³¸®ÇÏÁö ¾ÊÀ½
+		// ì´ë¯¸ íŒŒê´´ë˜ì—ˆê±°ë‚˜ ì´ë¯¸ DontDestroyOnLoad ì”¬ì— ìˆìœ¼ë©´ ì²˜ë¦¬í•˜ì§€ ì•ŠìŒ
 		if (go->IsDestroyed() || go->GetScene().id_DDOL)
 			return;
 
-		// ºÎ¸ğ°¡ ÀÖ´Â °æ¿ì ºÎ¸ğ¸¦ ²÷±â
+		// ë¶€ëª¨ê°€ ìˆëŠ” ê²½ìš° ë¶€ëª¨ë¥¼ ëŠê¸°
 		go->GetTransform()->SetParent(nullptr);
 
 		std::vector<ObjPtr<GameObject>> gameObjectsToProcess;
 		gameObjectsToProcess.push_back(go);
 
-		// BFS (³Êºñ ¿ì¼± Å½»ö) ¹æ½ÄÀ¸·Î °èÃş ±¸Á¶¸¦ ¼øÈ¸ÇÏ¿© ½ºÅÃ ¿À¹öÇÃ·Î¿ì ¹æÁö
+		// BFS (ë„ˆë¹„ ìš°ì„  íƒìƒ‰) ë°©ì‹ìœ¼ë¡œ ê³„ì¸µ êµ¬ì¡°ë¥¼ ìˆœíšŒí•˜ì—¬ ìŠ¤íƒ ì˜¤ë²„í”Œë¡œìš° ë°©ì§€
 		while (!gameObjectsToProcess.empty())
 		{
 			ObjPtr<GameObject> currentGo = gameObjectsToProcess.back();
 			gameObjectsToProcess.pop_back();
 
-			// ÀÌ¹Ì Ã³¸®Çß°Å³ª ÆÄ±«µÇ¾ú°Å³ª DontDestroyOnLoad ¾À¿¡ ÀÖÀ¸¸é °Ç³Ê¶Ü
+			// ì´ë¯¸ ì²˜ë¦¬í–ˆê±°ë‚˜ íŒŒê´´ë˜ì—ˆê±°ë‚˜ DontDestroyOnLoad ì”¬ì— ìˆìœ¼ë©´ ê±´ë„ˆëœ€
 			if (currentGo->IsDestroyed() || currentGo->GetScene().id_DDOL)
 				continue;
 
-			// ÀÚ½ÅÀ» ÇöÀç ¾À¿¡¼­ ÇØÁ¦ÇÏ°í DontDestroyOnLoad ¾À¿¡ µî·Ï
-			if (auto sceneRaw = SceneManager::Get().GetSceneRaw(currentGo->GetScene())) // ¾ÀÀÌ À¯È¿ÇÑÁö È®ÀÎ
+			// ìì‹ ì„ í˜„ì¬ ì”¬ì—ì„œ í•´ì œí•˜ê³  DontDestroyOnLoad ì”¬ì— ë“±ë¡
+			if (auto sceneRaw = SceneManager::Get().GetSceneRaw(currentGo->GetScene())) // ì”¬ì´ ìœ íš¨í•œì§€ í™•ì¸
 			{
 				sceneRaw->UnRegisterGameObject(currentGo);
 			}
 			SceneManager::Get().RegisterGameObjectToDDOL(currentGo);
 
-			// ÀÚ½ÄµéÀ» Å¥¿¡ Ãß°¡ÇÏ¿© ´ÙÀ½ ¹İº¹¿¡¼­ Ã³¸®
+			// ìì‹ë“¤ì„ íì— ì¶”ê°€í•˜ì—¬ ë‹¤ìŒ ë°˜ë³µì—ì„œ ì²˜ë¦¬
 			for (size_t i = 0; i < currentGo->GetTransform()->GetChildCount(); ++i)
 			{
 				if (auto childGo = currentGo->GetTransform()->GetChild(i)->GetGameObject())
@@ -119,7 +120,7 @@ void MMMEngine::Object::Destroy(const ObjPtrBase& objPtr, float delay)
 	if (ObjectManager::Get().GetPtr<Object>(objPtr.GetPtrID(), objPtr.GetPtrGeneration()).Cast<Transform>())
 	{
 #ifdef _DEBUG
-		assert(false && "TransformÀº ÆÄ±«ÇÒ ¼ö ¾ø½À´Ï´Ù.");
+		assert(false && "Transformì€ íŒŒê´´í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
 #endif
 		return;
 	}

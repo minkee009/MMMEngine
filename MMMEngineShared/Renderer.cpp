@@ -1,4 +1,4 @@
-#include "Renderer.h"
+﻿#include "Renderer.h"
 #include <rttr/registration>
 #include "GameObject.h"
 
@@ -8,7 +8,7 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<Renderer>("Renderer")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<Renderer>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<Renderer>"))
 		.property("isEnabled", &Renderer::GetEnabled, &Renderer::SetEnabled);
 
 
@@ -16,9 +16,8 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<Renderer>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Renderer>>();
+			})
+		.method("Inject", &ObjPtr<Renderer>::Inject);
 }
 
 bool MMMEngine::Renderer::IsActiveAndEnabled()

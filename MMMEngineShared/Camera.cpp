@@ -1,4 +1,4 @@
-#include "Camera.h"
+ï»¿#include "Camera.h"
 #include "Transform.h"
 #include "rttr/registration"
 #include "SceneManager.h"
@@ -12,11 +12,11 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<Camera>("Camera")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<Camera>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<Camera>"))
 		.property("FOV", &Camera::GetFov, &Camera::SetFOV)
 		.property("Near", &Camera::GetNear, &Camera::SetNear)
 		.property("Far", &Camera::GetFar, &Camera::SetFar)
-		// todo :  AsepectRatio <- Ä«¸Ş¶ó°¡ Á÷Á¢ ¼³Á¤ÇÏ¸é ¾ÈµÊ, RenderManagerÀÇ ¾ÀÅ¸°Ù ÀÌ¹ÌÁöÀÇ ÇØ»óµµ·Î Ã³¸®ÇØÁÖ¼À
+		// todo :  AsepectRatio <- ì¹´ë©”ë¼ê°€ ì§ì ‘ ì„¤ì •í•˜ë©´ ì•ˆë¨, RenderManagerì˜ ì”¬íƒ€ê²Ÿ ì´ë¯¸ì§€ì˜ í•´ìƒë„ë¡œ ì²˜ë¦¬í•´ì£¼ì…ˆ
 		.property("AspectRatio", &Camera::GetAsepct, &Camera::SetAspect);
 
 
@@ -24,9 +24,8 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<Camera>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Camera>>();
+			})
+		.method("Inject", &ObjPtr<Camera>::Inject);
 }
 
 void MMMEngine::Camera::MarkViewMatrixDirty()
@@ -155,7 +154,7 @@ MMMEngine::ObjPtr<MMMEngine::Camera> MMMEngine::Camera::GetMainCamera()
 {
 	if (!s_mainCam.IsValid() || s_mainCam->IsDestroyed())
 	{
-		//»õ·Î¿î ¸ŞÀÎÄ· Ã£±â
+		//ìƒˆë¡œìš´ ë©”ì¸ìº  ì°¾ê¸°
 		auto mainCamGOs = GameObject::FindGameObjectsWithTag("MainCamera");
 
 		if (mainCamGOs.size() != 0)
@@ -178,7 +177,7 @@ MMMEngine::ObjPtr<MMMEngine::Camera> MMMEngine::Camera::GetMainCamera()
 
 MMMEngine::ObjPtr<MMMEngine::GameObject> MMMEngine::Camera::CreateMainCamera()
 {
-	//Ä«¸Ş¶ó ¿ÀºêÁ§Æ®¸¦ »ı¼ºÇÒ ¾ÀÀÌ ¾øÀ½
+	//ì¹´ë©”ë¼ ì˜¤ë¸Œì íŠ¸ë¥¼ ìƒì„±í•  ì”¬ì´ ì—†ìŒ
 	if (SceneManager::Get().GetCurrentScene().id == static_cast<size_t>(-1))
 		return nullptr;
 

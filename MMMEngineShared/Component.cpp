@@ -1,4 +1,4 @@
-#include "Component.h"
+﻿#include "Component.h"
 #include "GameObject.h"
 #include "Transform.h"
 
@@ -12,11 +12,10 @@ RTTR_REGISTRATION
 
 	registration::class_<Component>("Component")
 		.property_readonly("GameObject", &Component::GetGameObject, registration::private_access)
-		.property_readonly("Transform", &Component::GetTransform);
+		.property_readonly("Transform", &Component::GetTransform)(rttr::metadata("INSPECTOR", "HIDDEN"));
 
-	//registration::class_<ObjPtr<Component>>("ObjPtr<Component>");
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Component>>();
+	registration::class_<ObjPtr<Component>>("ObjPtr<Component>")
+		.method("Inject", &ObjPtr<Component>::Inject);
 }
 
 

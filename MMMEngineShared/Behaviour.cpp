@@ -1,4 +1,4 @@
-#include "Behaviour.h"
+ï»¿#include "Behaviour.h"
 #include "BehaviourManager.h"
 
 #include "rttr/registration"
@@ -13,8 +13,6 @@ RTTR_REGISTRATION
 		(rttr::metadata("INSPECTOR", "DONT_ADD_COMP"))
 		.property("Enabled", &Behaviour::GetEnabled, &Behaviour::SetEnabled)
 		.property_readonly("IsActiveAndEnabled", &Behaviour::IsActiveAndEnabled)(rttr::metadata("INSPECTOR", "HIDDEN"));
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<Behaviour>>();
 }
 
 
@@ -31,7 +29,7 @@ void MMMEngine::Behaviour::Initialize()
 
 void MMMEngine::Behaviour::UnInitialize()
 {
-	BehaviourManager::Get().UnRegisterBehaviour(SelfPtr(this)); // BehaviourManager¿¡¼­ Á¦°Å
+	BehaviourManager::Get().UnRegisterBehaviour(SelfPtr(this)); // BehaviourManagerì—ì„œ ì œê±°
 	m_messages.clear();
 }
 
@@ -39,7 +37,7 @@ void MMMEngine::Behaviour::SetEnabled(bool value)
 {
 	if (value != m_enabled)
 	{
-		//¹Ù²ğ ¶§ ¹«¾ğ°¥ ½ÇÇàÇÏ´Â ÄÚµå ÀÛ¼ºÇÏ±â
+		//ë°”ë€” ë•Œ ë¬´ì–¸ê°ˆ ì‹¤í–‰í•˜ëŠ” ì½”ë“œ ì‘ì„±í•˜ê¸°
 		m_enabled = value;
 	}
 }

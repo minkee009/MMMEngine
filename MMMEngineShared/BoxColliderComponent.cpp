@@ -1,6 +1,7 @@
-#include "BoxColliderComponent.h"
+﻿#include "BoxColliderComponent.h"
 #include "rttr/registration"
 #include "PhysxManager.h"
+#include "PhysxHelper.h"
 
 RTTR_REGISTRATION
 {
@@ -8,18 +9,17 @@ RTTR_REGISTRATION
 	using namespace MMMEngine;
 
 	registration::class_<BoxColliderComponent>("BoxCollider")
-		(rttr::metadata("wrapper_type", rttr::type::get<ObjPtr<BoxColliderComponent>>()))
+		(rttr::metadata("wrapper_type_name", "ObjPtr<BoxColliderComponent>"))
 		.property("Extents", &BoxColliderComponent::GetHalfExtents, &BoxColliderComponent::SetHalfExtents)
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
 		;
 
-	registration::class_<ObjPtr<BoxColliderComponent>>("ObjPtr<BoxCollider>")
+	registration::class_<ObjPtr<BoxColliderComponent>>("ObjPtr<BoxColliderComponent>")
 		.constructor(
 			[]() {
 				return Object::NewObject<BoxColliderComponent>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<BoxColliderComponent>>();
+			})
+		.method("Inject", &ObjPtr<BoxColliderComponent>::Inject);
 }
 
 void MMMEngine::BoxColliderComponent::SetHalfExtents(Vector3 he)
@@ -72,4 +72,16 @@ void MMMEngine::BoxColliderComponent::BuildShape(physx::PxPhysics* physics, phys
 	if (!shape) return;
 
 	SetShape(shape, true);
+}
+
+MMMEngine::ColliderComponent::DebugColliderShapeDesc MMMEngine::BoxColliderComponent::GetDebugShapeDesc() const
+{
+	DebugColliderShapeDesc s_Desc;
+	s_Desc.type = DebugColliderType::Box;
+	s_Desc.halfExtents = m_halfExtents;
+
+	// 로컬 포즈가 있으면 같이
+	s_Desc.localCenter = ToVec(m_LocalPose.p);
+	s_Desc.localRotation = ToQuat(m_LocalPose.q);
+	return s_Desc;
 }

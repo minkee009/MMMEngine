@@ -24,6 +24,7 @@ using namespace MMMEngine::Utility;
 #include "FilesWindow.h"
 #include "SceneViewWindow.h"
 #include "GameViewWindow.h"
+#include "PhysicsSettingsWindow.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -364,6 +365,15 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
                 ImGui::MenuItem(u8"프로젝트 빌드");
                 ImGui::EndMenu();
             }
+            if (ImGui::BeginMenu(u8"도구##fadeOut1"))
+            {
+                if (ImGui::MenuItem(u8"물리 설정"))
+                {
+                    g_editor_window_physicsSettings = true;
+                    p_open = false;
+                }
+                ImGui::EndMenu();
+            }
 
             ImGui::EndMenuBar();
         }
@@ -682,6 +692,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     InspectorWindow::Get().Render();
     GameViewWindow::Get().Render();
     SceneViewWindow::Get().Render();
+    PhysicsSettingsWindow::Get().Render();
 }
 
 void MMMEngine::Editor::ImGuiEditorContext::EndFrame()
