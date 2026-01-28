@@ -14,7 +14,7 @@ cbuffer MatBuffer : register(b3)
 {
     float4 mBaseColor;
     
-    float mMetalic;
+    float mMetallic;
     float mRoughness;
     float mAoStrength;
     float mEmissive;

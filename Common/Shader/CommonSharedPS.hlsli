@@ -18,7 +18,8 @@ cbuffer Cambuffer : register(b0)
 // Directional Light 1~2
 cbuffer LightBuffer : register(b1)
 {
-    float4 mLightDir;
+    float3 mLightDir;
+    float  mLightPadding;
     float3 mLightColor;
     float  mIntensity;
 }

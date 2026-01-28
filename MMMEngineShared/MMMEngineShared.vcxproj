@@ -212,6 +212,7 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RendererTools.h" />
     <ClInclude Include="RenderManager.h" />
+    <ClInclude Include="RenderShared.h" />
     <ClInclude Include="RenderStateGuard.h" />
     <ClInclude Include="Resolution.h" />
     <ClInclude Include="Resource.h" />
@@ -230,6 +231,7 @@
     <ClInclude Include="SerializableEvent.h" />
     <ClInclude Include="ShaderInfo.h" />
     <ClInclude Include="SkeletalMesh.h" />
+    <ClInclude Include="SkySphere.h" />
     <ClInclude Include="SphereColliderComponent.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="UserScriptsCommon.h" />
@@ -297,6 +299,7 @@
     <ClCompile Include="ScriptBehaviour.cpp" />
     <ClCompile Include="ShaderInfo.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
+    <ClCompile Include="SkySphere.cpp" />
     <ClCompile Include="SphereColliderComponent.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
     <ClCompile Include="VShader.cpp" />

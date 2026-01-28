@@ -5,6 +5,7 @@
 #include "Transform.h"
 #include "ShaderInfo.h"
 #include "PShader.h"
+#include "Material.h"
 
 #include "StaticMesh.h"
 #include "rttr/registration.h"

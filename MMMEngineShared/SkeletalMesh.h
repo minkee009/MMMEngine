@@ -1,9 +1,11 @@
-#pragma once
+ï»¿#pragma once
 #include "Export.h"
 #include "Resource.h"
 #include "RenderShared.h"
+#include "ResourceManager.h"
 
 namespace MMMEngine {
+	class Material;
 	class MMMENGINE_API SkeletalMesh : public Resource
 	{
 		RTTR_ENABLE(Resource);
@@ -12,26 +14,26 @@ namespace MMMEngine {
 			friend class SceneManager;
 			friend class Scene;
 	public:
-		// ¸Ş½Ã µ¥ÀÌÅÍ
+		// ë©”ì‹œ ë°ì´í„°
 		MeshData meshData;
-		// GPU ¹öÆÛ
+		// GPU ë²„í¼
 		MeshGPU gpuBuffer;
-		// ¸ŞÅ×¸®¾ó
+		// ë©”í…Œë¦¬ì–¼
 		std::vector<ResPtr<Material>> materials;
-		// ¸Ş½Ã ±×·ì <MatIdx, MeshIdx>
+		// ë©”ì‹œ ê·¸ë£¹ <MatIdx, MeshIdx>
 		std::unordered_map<UINT, std::vector<UINT>> meshGroupData;
 
-		// º» ¹öÆÛ
+		// ë³¸ ë²„í¼
 		Mesh_BoneBuffer boneBuffer;
 		Mesh_BoneBuffer offsetBuffer;
 
-		// ¾Ö´Ï¸ŞÀÌ¼Ç Å¬¸³ ¸ñ·Ï
+		// ì• ë‹ˆë©”ì´ì…˜ í´ë¦½ ëª©ë¡
 
 
 		bool castShadows = true;
 		bool receiveShadows = true;
 
-		// TODO::Á÷·ÄÈ­ ½ÃÄÑ¾ßÇÔ
+		// TODO::ì§ë ¬í™” ì‹œì¼œì•¼í•¨
 		bool LoadFromFilePath(const std::wstring& _path) override;
 	};
 }

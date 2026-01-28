@@ -16,6 +16,9 @@
 
 namespace MMMEngine
 {
+	enum class CollisionPhase { Enter, Stay, Exit };
+	enum class TriggerPhase { Enter, Exit };
+
 	struct CollisionInfo
 	{
 		ObjPtr<GameObject> self;
@@ -47,8 +50,7 @@ namespace MMMEngine
 	};
 
 
-	enum class CollisionPhase { Enter, Stay, Exit };
-	enum class TriggerPhase { Enter, Exit };
+
 
 	class MMMENGINE_API PhysxManager : public Utility::ExportSingleton<PhysxManager>
 	{

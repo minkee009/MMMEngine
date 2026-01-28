@@ -1,4 +1,4 @@
-#include "Material.h"
+﻿#include "Material.h"
 #include "VShader.h"
 #include "PShader.h"
 #include "Texture2D.h"
@@ -11,6 +11,7 @@
 
 #include <rttr/registration>
 #include "MaterialSerializer.h"
+#include "ShaderInfo.h"
 
 namespace fs = std::filesystem;
 namespace mw = Microsoft::WRL;
@@ -23,11 +24,17 @@ RTTR_REGISTRATION
 
 	registration::class_<Material>("Material")
 		.constructor<>()(policy::ctor::as_std_shared_ptr)
-		.property("VShader", &Material::GetVShaderRttr, &Material::SetVShader);
+		.property("VShader", &Material::GetVShaderRttr, &Material::SetVShader)
+		.property("PShader", &Material::GetPShaderRttr, &Material::SetPShader);
 
 	type::register_converter_func(
 		[](std::shared_ptr<Resource> from, bool& ok) -> std::shared_ptr<Material>
 		{
+			if (!from) {  // nullptr 허용
+				ok = true;
+				return nullptr;
+			}
+			
 			auto result = std::dynamic_pointer_cast<Material>(from);
 			ok = (result != nullptr);
 			return result;
@@ -36,12 +43,38 @@ RTTR_REGISTRATION
 }
 
 
-// 프로퍼티 설정
-void MMMEngine::Material::SetProperty(const std::wstring& _name, const MMMEngine::PropertyValue& value)
+// 프로퍼티 생성
+void MMMEngine::Material::AddProperty(const std::wstring& _name, const PropertyValue& _value)
 {
-	m_properties[_name] = value;
+	// 없으면 생성, 있으면 갱신
+	auto it = m_properties.find(_name);
+	if (it == m_properties.end())
+		m_properties[_name] = _value;
+	else
+		it->second = _value;
 }
 
+// 프로퍼티 갱신
+void MMMEngine::Material::SetProperty(const std::wstring& _name, const MMMEngine::PropertyValue& _value)
+{
+	auto it = m_properties.find(_name);
+	if (it == m_properties.end())
+		return;
+
+	// 같은 타입이면 갱신
+	if (_value.index() == it->second.index()) {
+		it->second = _value;
+	}
+}
+
+// 프로퍼티 삭제
+void MMMEngine::Material::RemoveProperty(const std::wstring& _name)
+{
+	auto it = m_properties.find(_name);
+	if (it != m_properties.end()) {
+		m_properties.erase(it);
+	}
+}
 
 // 프로퍼티 가져오기
 MMMEngine::PropertyValue MMMEngine::Material::GetProperty(const std::wstring& _name) const
@@ -84,6 +117,11 @@ const std::wstring& MMMEngine::Material::GetVShaderRttr()
 	return m_pVShader->GetFilePath();
 }
 
+const std::wstring& MMMEngine::Material::GetPShaderRttr()
+{
+	return m_pPShader->GetFilePath();
+}
+
 void MMMEngine::Material::LoadTexture(const std::wstring& _propertyName, const std::wstring& _filePath)
 {
 	auto texture = ResourceManager::Get().Load<Texture2D>(_filePath);
@@ -94,6 +132,10 @@ void MMMEngine::Material::LoadTexture(const std::wstring& _propertyName, const s
 bool MMMEngine::Material::LoadFromFilePath(const std::wstring& _filePath)
 {
 	MaterialSerializer::Get().UnSerealize(this, _filePath);
+
+	// 타입에 따라 프로퍼티 생성, 삭제
+	auto type = ShaderInfo::Get().GetShaderType(m_pPShader->GetFilePath());
+	ShaderInfo::Get().ConvertMaterialType(type, this);
 
 	return true;
 }

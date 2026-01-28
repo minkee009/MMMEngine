@@ -1,30 +1,29 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Export.h"
-#include "Resource.h"
-#include <variant>
 #include <SimpleMath.h>
 #include <wrl/client.h>
 #include <d3d11_4.h>
-#include "Texture2D.h"
-#include <filesystem>
-#include "ResourceManager.h"
 
+#include <filesystem>
+
+#include "ResourceManager.h"
+#include "Texture2D.h"
+
+#include "ShaderInfo.h"
 #include "json/json.hpp"
 #include "rttr/type"
 
 namespace MMMEngine {
-	using PropertyValue = std::variant<
-		int, float, DirectX::SimpleMath::Vector3, DirectX::SimpleMath::Matrix,
-		ResPtr<MMMEngine::Texture2D>
-	>;
-
 	class PShader;
 	class VShader;
 	class MaterialSerializer;
+	class RenderManager;
 	class MMMENGINE_API Material : public Resource
 	{
 		friend class MaterialSerializer;
+		friend class RenderManager;
+		friend class ShaderInfo;
 		RTTR_ENABLE(Resource);
 		RTTR_REGISTRATION_FRIEND
 			friend class ResourceManager;
@@ -36,8 +35,9 @@ namespace MMMEngine {
 		ResPtr<PShader> m_pPShader;
 
 	public:
-
-		void SetProperty(const std::wstring& _name, const PropertyValue& value);
+		void AddProperty(const std::wstring& _name, const PropertyValue& _value);
+		void SetProperty(const std::wstring& _name, const PropertyValue& _value);
+		void RemoveProperty(const std::wstring& _name);
 		PropertyValue GetProperty(const std::wstring& name) const;
 		const std::unordered_map<std::wstring, PropertyValue>& GetProperties() { return m_properties; }
 
@@ -47,13 +47,14 @@ namespace MMMEngine {
 		const ResPtr<PShader> GetPShader();
 
 		const std::wstring& GetVShaderRttr();
+		const std::wstring& GetPShaderRttr();
 
 		void LoadTexture(const std::wstring& _name, const std::wstring& _filePath);
 
 		bool LoadFromFilePath(const std::wstring& _filePath) override;
 
 		bool operator<(const Material& other) const {
-			return GetFilePath() < other.GetFilePath(); // Resource¿¡ ÀÌ¸§ÀÌ ÀÖ´Ù°í °¡Á¤
+			return GetFilePath() < other.GetFilePath(); // Resourceì— ì´ë¦„ì´ ìžˆë‹¤ê³  ê°€ì •
 		}
 
 		bool operator==(const Material& other) const {

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #ifndef NOMINMAX
 	#define NOMINMAX
@@ -6,7 +6,10 @@
 
 #include <SimpleMath.h>
 #include <memory>
-#include <Material.h>
+#include <d3d11_4.h>
+#include <wrl/client.h>
+#include <vector>
+#include <array>
 
 #define BONE_MAXSIZE 256
 
@@ -24,8 +27,8 @@ namespace MMMEngine {
 	};
 
 	struct Render_CamBuffer {
-		DirectX::SimpleMath::Matrix mView = DirectX::SimpleMath::Matrix::Identity;			// Ä«¸Ş¶óÁÂÇ¥°è º¯È¯Çà·Ä
-		DirectX::SimpleMath::Matrix mProjection = DirectX::SimpleMath::Matrix::Identity;	// ndcÁÂÇ¥°è º¯È¯Çà·Ä
+		DirectX::SimpleMath::Matrix mView = DirectX::SimpleMath::Matrix::Identity;			// ì¹´ë©”ë¼ì¢Œí‘œê³„ ë³€í™˜í–‰ë ¬
+		DirectX::SimpleMath::Matrix mProjection = DirectX::SimpleMath::Matrix::Identity;	// ndcì¢Œí‘œê³„ ë³€í™˜í–‰ë ¬
 		DirectX::SimpleMath::Vector4 camPos;
 	};
 
@@ -37,12 +40,12 @@ namespace MMMEngine {
 
 	struct Mesh_Vertex
 	{
-		DirectX::SimpleMath::Vector3 Pos;		// Á¤Á¡ À§Ä¡ Á¤º¸
-		DirectX::SimpleMath::Vector3 Normal;	// ³ë¸Ö
-		DirectX::SimpleMath::Vector3 Tangent;	// ÅºÁ¨Æ®
-		DirectX::SimpleMath::Vector2 UV;		// ÅØ½ºÃÄ UV
-		std::array<int, 4> BoneIndices{ -1, -1, -1, -1 };		// ¹öÅØ½º¿Í ¿¬°áµÈ º»µéÀÇ ÀÎµ¦½º
-		std::array<float, 4> BoneWeights{ .0f, .0f, .0f, .0f };	// °¢ º»µéÀÇ °¡ÁßÄ¡
+		DirectX::SimpleMath::Vector3 Pos;		// ì •ì  ìœ„ì¹˜ ì •ë³´
+		DirectX::SimpleMath::Vector3 Normal;	// ë…¸ë©€
+		DirectX::SimpleMath::Vector3 Tangent;	// íƒ„ì  íŠ¸
+		DirectX::SimpleMath::Vector2 UV;		// í…ìŠ¤ì³ UV
+		std::array<int, 4> BoneIndices{ -1, -1, -1, -1 };		// ë²„í…ìŠ¤ì™€ ì—°ê²°ëœ ë³¸ë“¤ì˜ ì¸ë±ìŠ¤
+		std::array<float, 4> BoneWeights{ .0f, .0f, .0f, .0f };	// ê° ë³¸ë“¤ì˜ ê°€ì¤‘ì¹˜
 	};
 
 	struct Mesh_BoneBuffer
@@ -61,7 +64,7 @@ namespace MMMEngine {
 	};
 
 	struct MeshGPU {
-		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> vertexBuffers;	// ¹öÅØ½º ¹öÆÛ (idx ¸Ş½Ã±×·ì
-		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> indexBuffers;		// ÀÎµ¦½º ¹öÆÛ
+		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> vertexBuffers;	// ë²„í…ìŠ¤ ë²„í¼ (idx ë©”ì‹œê·¸ë£¹
+		std::vector<Microsoft::WRL::ComPtr<ID3D11Buffer>> indexBuffers;		// ì¸ë±ìŠ¤ ë²„í¼
 	};
 }
