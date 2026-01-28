@@ -26,7 +26,8 @@ RTTR_REGISTRATION
 		.constructor(
 			[]() {
 				return Object::NewObject<RigidBodyComponent>();
-			});
+			})
+		.method("Inject", &ObjPtr<RigidBodyComponent>::Inject);
 	registration::enumeration<RigidBodyComponent::Type>("RigidType")
 		(
 			rttr::value("Dynamic", RigidBodyComponent::Type::Dynamic),

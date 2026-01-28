@@ -275,9 +275,8 @@ RTTR_PLUGIN_REGISTRATION
 		.constructor(
 			[]() {
 				return Object::NewObject<ExampleBehaviour>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<ExampleBehaviour>>();
+			})
+        .method("Inject", &ObjPtr<ExampleBehaviour>::Inject);
 }
 
 void MMMEngine::ExampleBehaviour::Start()

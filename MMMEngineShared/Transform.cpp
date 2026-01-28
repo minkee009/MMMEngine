@@ -29,7 +29,8 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<Transform>();
-			});
+			})
+		.method("Inject", &ObjPtr<Transform>::Inject);
 }
 
 void MMMEngine::Transform::AddChild(ObjPtr<Transform> child)

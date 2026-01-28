@@ -18,7 +18,8 @@ RTTR_REGISTRATION
 		.constructor(
 			[]() {
 				return Object::NewObject<BoxColliderComponent>();
-			});
+			})
+		.method("Inject", &ObjPtr<BoxColliderComponent>::Inject);
 }
 
 void MMMEngine::BoxColliderComponent::SetHalfExtents(Vector3 he)

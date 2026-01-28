@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "ObjectManager.h"
 #include "Object.h"
 
@@ -34,9 +34,26 @@ namespace MMMEngine
     ObjPtr<U> ObjPtr<T>::As() const
     {
         static_assert(std::is_base_of_v<Object, U>,
-            "As<U>() : U´Â Object¸¦ »ó¼Ó¹Ş¾Æ¾ß ÇÕ´Ï´Ù.");
+            "As<U>() : UëŠ” Objectë¥¼ ìƒì†ë°›ì•„ì•¼ í•©ë‹ˆë‹¤.");
 
         return ObjectManager::Get().GetPtr<U>(m_ptrID, m_ptrGeneration);
+    }
+
+    template<typename T>
+    inline bool ObjPtr<T>::Inject(const ObjPtrBase& ptr)
+    {
+        auto* base = static_cast<MMMEngine::Object*>(ptr.GetRaw());
+        T* raw = dynamic_cast<T*>(base);
+
+        if (raw != nullptr)
+        {
+            m_raw = raw;
+            m_ptrGeneration = ptr.GetPtrGeneration();
+            m_ptrID = ptr.GetPtrID();
+            return true;
+        }
+
+        return false;
     }
 
     template<typename T>
@@ -71,8 +88,8 @@ namespace MMMEngine
     ObjPtr<T> Object::SelfPtr(T* self)
     {
 #ifdef _DEBUG
-        static_assert(std::is_base_of_v<Object, T>, "SelfPtr<T> : T´Â Object¸¦ »ó¼Ó¹Ş¾Æ¾ßÇÕ´Ï´Ù.");
-        assert(static_cast<Object*>(self) == this && "SelfPtrÀÇ ÀÎÀÚ°¡ ÀÚ½ÅÀÌ ¾Æ´Õ´Ï´Ù!");
+        static_assert(std::is_base_of_v<Object, T>, "SelfPtr<T> : TëŠ” Objectë¥¼ ìƒì†ë°›ì•„ì•¼í•©ë‹ˆë‹¤.");
+        assert(static_cast<Object*>(self) == this && "SelfPtrì˜ ì¸ìê°€ ìì‹ ì´ ì•„ë‹™ë‹ˆë‹¤!");
 #endif
         return ObjectManager::Get().GetPtrFast<T>(static_cast<T*>(this), m_ptrID, m_ptrGen);
     }
@@ -82,7 +99,7 @@ namespace rttr
 {
 #ifdef _MSC_VER
 #pragma warning( push )
-#pragma warning( disable : 4506 ) // warning C4506: ÀÎ¶óÀÎ ÇÔ¼ö¿¡ ´ëÇÑ Á¤ÀÇ°¡ ¾ø½À´Ï´Ù.
+#pragma warning( disable : 4506 ) // warning C4506: ì¸ë¼ì¸ í•¨ìˆ˜ì— ëŒ€í•œ ì •ì˜ê°€ ì—†ìŠµë‹ˆë‹¤.
 #endif
 
     template<typename T>

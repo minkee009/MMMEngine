@@ -418,11 +418,6 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
                 {
                     target = loadedResource;               // v는 이제 shared_ptr<StaticMesh> 타입 variant
                 }
-
-          
-
-
-
                 return;
             }
         }

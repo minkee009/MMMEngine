@@ -24,7 +24,8 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<Camera>();
-			});
+			})
+		.method("Inject", &ObjPtr<Camera>::Inject);
 }
 
 void MMMEngine::Camera::MarkViewMatrixDirty()
