@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "rttr/type"
 #include "rttr/registration_friend.h"
 #include "MUID.h"
@@ -42,10 +42,10 @@ namespace MMMEngine
         virtual ~Object();
 
         template<typename T>
-        ObjPtr<T> SelfPtr(T* self);     // ÀÚ½ÅÀÇ ÄÚµå¿¡¼­ ÀÚ½ÅÀÇ ObjPtÀ» Ã£±âÀ§ÇÑ ¹æ¹ı -> this¿Í °°À½, À¯È¿ÇÑ ¹üÀ§ : »ı¼ºÀÚ È£Ãâ ÀÌÈÄ, ¼Ò¸êÀÚ È£Ãâ ÀÌÀü
+        ObjPtr<T> SelfPtr(T* self);     // ìì‹ ì˜ ì½”ë“œì—ì„œ ìì‹ ì˜ ObjPtì„ ì°¾ê¸°ìœ„í•œ ë°©ë²• -> thisì™€ ê°™ìŒ, ìœ íš¨í•œ ë²”ìœ„ : ìƒì„±ì í˜¸ì¶œ ì´í›„, ì†Œë©¸ì í˜¸ì¶œ ì´ì „
 
-        virtual void Construct() {};    // SelfPtr(this)¸¦ »ç¿ëÇÏ±â À§ÇÑ »ı¼ºÀÚ È£Ãâ ÀÌÈÄ ÀÌº¥Æ® -> ´Ù¸¥ ´ë»ó¿¡ ´ëÇÑ ÂüÁ¶ ¿¬°á¿¡ »ç¿ë
-        virtual void Dispose() {};      // SelfPtr(this)¸¦ »ç¿ëÇÏ±â À§ÇÑ ¼Ò¸êÀÚ È£Ãâ ÀÌÀü ÀÌº¥Æ® -> ´Ù¸¥ ´ë»ó¿¡ ´ëÇÑ ÂüÁ¶ ²÷±â¿¡ »ç¿ë
+        virtual void Construct() {};    // SelfPtr(this)ë¥¼ ì‚¬ìš©í•˜ê¸° ìœ„í•œ ìƒì„±ì í˜¸ì¶œ ì´í›„ ì´ë²¤íŠ¸ -> ë‹¤ë¥¸ ëŒ€ìƒì— ëŒ€í•œ ì°¸ì¡° ì—°ê²°ì— ì‚¬ìš©
+        virtual void Dispose() {};      // SelfPtr(this)ë¥¼ ì‚¬ìš©í•˜ê¸° ìœ„í•œ ì†Œë©¸ì í˜¸ì¶œ ì´ì „ ì´ë²¤íŠ¸ -> ë‹¤ë¥¸ ëŒ€ìƒì— ëŒ€í•œ ì°¸ì¡° ëŠê¸°ì— ì‚¬ìš©
 	public:
 		Object(const Object&) = delete;
 		Object& operator=(const Object&) = delete;
@@ -83,8 +83,8 @@ namespace MMMEngine
         friend class ObjectManager;
         friend class ObjectSerializer;
 
-        virtual void* GetRaw() const = 0;
     public:
+        virtual void*       GetRaw() const = 0;
         virtual void        Reset() = 0;
         virtual uint32_t    GetPtrID() const = 0;
         virtual uint32_t    GetPtrGeneration() const = 0;
@@ -124,7 +124,7 @@ namespace MMMEngine
             return m_raw;
         }
 
-        // private »ı¼ºÀÚ - ObjectManager¸¸ »ı¼º °¡´É
+        // private ìƒì„±ì - ObjectManagerë§Œ ìƒì„± ê°€ëŠ¥
         ObjPtr(T* raw, uint32_t id, uint32_t gen)
             : m_raw(raw)
             , m_ptrID(id)
@@ -133,11 +133,11 @@ namespace MMMEngine
         }
 
     public:
-        // ±âº» »ı¼ºÀÚ (null handle)
+        // ê¸°ë³¸ ìƒì„±ì (null handle)
         ObjPtr(std::nullptr_t) { Reset(); }
         ObjPtr() = default;
 
-        // º¹»ç/ÀÌµ¿Àº Çã¿ë
+        // ë³µì‚¬/ì´ë™ì€ í—ˆìš©
         ObjPtr(const ObjPtr&) = default;
         ObjPtr(ObjPtr&&) noexcept = default;
         ObjPtr& operator=(const ObjPtr&) = default;
@@ -165,9 +165,9 @@ namespace MMMEngine
         }
 
         /// <summary>
-        /// ´ÙÀÌ³ª¹Í Ä³½ºÆ®¸¦ ÀÌ¿ëÇÏ¿© ºü¸£°Ô Å¸ÀÔº¯È¯À» À¯µµÇÕ´Ï´Ù. 
-        /// ³»ºÎ¿¡¼­ ÁÖ¼ÒÀ¯È¿¼º °Ë»ç ¾øÀÌ Å¸ÀÔº¯È¯µÈ ObjectPtrÀ» ¹İÈ¯ÇÕ´Ï´Ù.
-        /// Å¸ÀÔº¯È¯ÀÌ À¯È¿ÇÏÁö ¾ÊÀº°æ¿ì ³»ºÎ Æ÷ÀÎÅÍ°¡ nullptrÀÌ µË´Ï´Ù.
+        /// ë‹¤ì´ë‚˜ë¯¹ ìºìŠ¤íŠ¸ë¥¼ ì´ìš©í•˜ì—¬ ë¹ ë¥´ê²Œ íƒ€ì…ë³€í™˜ì„ ìœ ë„í•©ë‹ˆë‹¤. 
+        /// ë‚´ë¶€ì—ì„œ ì£¼ì†Œìœ íš¨ì„± ê²€ì‚¬ ì—†ì´ íƒ€ì…ë³€í™˜ëœ ObjectPtrì„ ë°˜í™˜í•©ë‹ˆë‹¤.
+        /// íƒ€ì…ë³€í™˜ì´ ìœ íš¨í•˜ì§€ ì•Šì€ê²½ìš° ë‚´ë¶€ í¬ì¸í„°ê°€ nullptrì´ ë©ë‹ˆë‹¤.
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <returns></returns>
@@ -175,26 +175,28 @@ namespace MMMEngine
         ObjPtr<U> Cast() const;
 
         /// <summary>
-        /// Å¸ÀÔ º¯È¯À» ½ÃµµÇÑ ÈÄ ¼º°ø ½Ã Å¸ÀÔº¯È¯µÈ ObjectPtrÀ» ¹İÈ¯ÇÕ´Ï´Ù.
-        /// As<U>()´Â ¿ÏÀüÀ¯È¿ÇÑ Å¸ÀÔº¯È¯À» ¸ñÇ¥·Î µÎ±â ¶§¹®¿¡
-        /// º¯È¯¿¡ ½ÇÆĞÇÑ °æ¿ì ÄÄÆÄÀÏÅ¸ÀÓ¿¡·¯°¡ ÀÏ¾î³³´Ï´Ù.
+        /// íƒ€ì… ë³€í™˜ì„ ì‹œë„í•œ í›„ ì„±ê³µ ì‹œ íƒ€ì…ë³€í™˜ëœ ObjectPtrì„ ë°˜í™˜í•©ë‹ˆë‹¤.
+        /// As<U>()ëŠ” ì™„ì „ìœ íš¨í•œ íƒ€ì…ë³€í™˜ì„ ëª©í‘œë¡œ ë‘ê¸° ë•Œë¬¸ì—
+        /// ë³€í™˜ì— ì‹¤íŒ¨í•œ ê²½ìš° ì»´íŒŒì¼íƒ€ì„ì—ëŸ¬ê°€ ì¼ì–´ë‚©ë‹ˆë‹¤.
         /// </summary>
         /// <typeparam name="U"></typeparam>
         /// <returns></returns>
         template<typename U>
         ObjPtr<U> As() const;
 
+        bool Inject(const ObjPtrBase& ptr);
+
         T& operator*() const
         {
             T* raw = Get();
-            assert(raw && "ObjectPtrÀÇ ¿ªÂüÁ¶°¡ Àß¸øµÇ¾ú½À´Ï´Ù!");
+            assert(raw && "ObjectPtrì˜ ì—­ì°¸ì¡°ê°€ ì˜ëª»ë˜ì—ˆìŠµë‹ˆë‹¤!");
             return *raw;
         }
 
         T* operator->() const
         {
             T* raw = Get();
-            assert(raw && "À¯È¿ÇÏÁö ¾ÊÀº ObjectPtr¿¡ Á¢±ÙÇß½À´Ï´Ù!");
+            assert(raw && "ìœ íš¨í•˜ì§€ ì•Šì€ ObjectPtrì— ì ‘ê·¼í–ˆìŠµë‹ˆë‹¤!");
             return raw;
         }
 
@@ -209,10 +211,10 @@ namespace MMMEngine
             return !(*this == other);
         }
 
-        // === nullptr ºñ±³ (null ÇÚµé °Ë»ç) ===
+        // === nullptr ë¹„êµ (null í•¸ë“¤ ê²€ì‚¬) ===
         virtual bool operator==(std::nullptr_t) const override
         {
-            return m_ptrID == UINT32_MAX;  // null ÇÚµé
+            return m_ptrID == UINT32_MAX;  // null í•¸ë“¤
         }
 
         virtual bool operator!=(std::nullptr_t) const override
@@ -249,18 +251,18 @@ namespace rttr
     struct wrapper_mapper<MMMEngine::ObjPtr<T>>
     {
         using type = MMMEngine::ObjPtr<T>;
-        using wrapped_type = T*; // get()ÀÇ ¹İÈ¯ Å¸ÀÔ°ú ¹İµå½Ã ÀÏÄ¡ÇØ¾ß ÇÔ :contentReference[oaicite:2]{index=2}
+        using wrapped_type = T*; // get()ì˜ ë°˜í™˜ íƒ€ì…ê³¼ ë°˜ë“œì‹œ ì¼ì¹˜í•´ì•¼ í•¨ :contentReference[oaicite:2]{index=2}
 
         static wrapped_type get(const type& obj)
         {
-            // friend wrapper_mapper ¼±¾ğµÇ¾î ÀÖ¾î¼­ private Get() Á¢±Ù °¡´É
-            return obj.Get(); // À¯È¿¼º °Ë»ç Æ÷ÇÔ
+            // friend wrapper_mapper ì„ ì–¸ë˜ì–´ ìˆì–´ì„œ private Get() ì ‘ê·¼ ê°€ëŠ¥
+            return obj.Get(); // ìœ íš¨ì„± ê²€ì‚¬ í¬í•¨
         }
 
         template <typename U>
         static MMMEngine::ObjPtr<U> convert(const type& source, bool& ok)
         {
-            // ObjPtr<T> -> ObjPtr<U> º¯È¯ Áö¿ø (¿¹: Base -> Derived)
+            // ObjPtr<T> -> ObjPtr<U> ë³€í™˜ ì§€ì› (ì˜ˆ: Base -> Derived)
             if (auto casted = source.Cast<U>())
             {
                 ok = true;

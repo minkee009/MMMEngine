@@ -1,4 +1,4 @@
-#include "StringHelper.h"
+ï»¿#include "StringHelper.h"
 #include <Windows.h>
 #include <sstream>
 
@@ -23,16 +23,16 @@ std::wstring MMMEngine::Utility::StringHelper::StringToWString(const std::string
     int size_needed = MultiByteToWideChar(CP_UTF8,
         0,
         str.c_str(),
-        (int)str.length(), // NULL Á¾·á ¹®ÀÚ Á¦¿Ü
+        (int)str.length(), // NULL ì¢…ë£Œ ë¬¸ì ì œì™¸
         NULL,
         0);
 
     if (size_needed == 0) {
-        // º¯È¯ ½ÇÆĞ
+        // ë³€í™˜ ì‹¤íŒ¨
         return std::wstring();
     }
 
-    std::wstring wstrTo(size_needed, 0); // ÇÊ¿äÇÑ Å©±â¸¸Å­ ÇÒ´ç
+    std::wstring wstrTo(size_needed, 0); // í•„ìš”í•œ í¬ê¸°ë§Œí¼ í• ë‹¹
     MultiByteToWideChar(CP_UTF8,
         0,
         str.c_str(),
@@ -48,24 +48,24 @@ std::string MMMEngine::Utility::StringHelper::WStringToString(const std::wstring
     if (wstr.empty())
         return std::string();
 
-    // ÇÊ¿äÇÑ string Å©±â °è»ê (NULL Á¾·á ¹®ÀÚ Á¦¿Ü)
-    // CP_UTF8¸¦ »ç¿ëÇÏ¿© Ãâ·Â ¹®ÀÚ¿­ÀÌ UTF-8ÀÓÀ» ÁöÁ¤ÇÕ´Ï´Ù.
+    // í•„ìš”í•œ string í¬ê¸° ê³„ì‚° (NULL ì¢…ë£Œ ë¬¸ì ì œì™¸)
+    // CP_UTF8ë¥¼ ì‚¬ìš©í•˜ì—¬ ì¶œë ¥ ë¬¸ìì—´ì´ UTF-8ì„ì„ ì§€ì •í•©ë‹ˆë‹¤.
     int size_needed = WideCharToMultiByte(CP_UTF8,
         0,
         wstr.c_str(),
-        (int)wstr.length(), // NULL Á¾·á ¹®ÀÚ Á¦¿Ü
+        (int)wstr.length(), // NULL ì¢…ë£Œ ë¬¸ì ì œì™¸
         NULL,
         0,
         NULL,
         NULL);
 
     if (size_needed == 0) {
-        // º¯È¯ ½ÇÆĞ
+        // ë³€í™˜ ì‹¤íŒ¨
         return std::string();
     }
 
-    // string Å©±â Á¶Á¤ ¹× º¯È¯ ¼öÇà
-    std::string strTo(size_needed, 0); // ÇÊ¿äÇÑ Å©±â¸¸Å­ ÇÒ´ç
+    // string í¬ê¸° ì¡°ì • ë° ë³€í™˜ ìˆ˜í–‰
+    std::string strTo(size_needed, 0); // í•„ìš”í•œ í¬ê¸°ë§Œí¼ í• ë‹¹
     WideCharToMultiByte(CP_UTF8,
         0,
         wstr.c_str(),
@@ -168,8 +168,17 @@ std::string MMMEngine::Utility::StringHelper::CP949ToUTF8(const std::string& cp9
     std::string str(nLen, 0);
     WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], nLen, NULL, NULL);
 
-    // ³¡¿¡ ºÙ´Â null terminator Á¦°Å
+    // ëì— ë¶™ëŠ” null terminator ì œê±°
     if (!str.empty() && str.back() == '\0') str.pop_back();
 
     return str;
+}
+
+std::string MMMEngine::Utility::StringHelper::ExtractInnerTypeName(const std::string& s)
+{
+    // "ObjPtr<Player>" -> "Player"
+    auto l = s.find('<');
+    auto r = s.rfind('>');
+    if (l == std::string::npos || r == std::string::npos || r <= l) return {};
+    return s.substr(l + 1, r - l - 1);
 }

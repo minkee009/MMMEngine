@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Export.h"
 #include <string>
 #include <vector>
@@ -16,5 +16,6 @@ namespace MMMEngine::Utility
 		static std::wstring ExtractFileName(const std::wstring& filepath);
 		static std::string ExtractFileName(const std::string& filepath);
 		static std::string CP949ToUTF8(const std::string& cp949Str);
+		static std::string ExtractInnerTypeName(const std::string& s);
 	};
 }

@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "Transform.h"
 #include "Resource.h"
+#include <regex>
 
 #include "EditorRegistry.h"
 using namespace MMMEngine::EditorRegistry;
@@ -91,6 +92,8 @@ static void DrawSequentialProperty_UnityLike(const std::string& name,
 
     const bool dynamic = view.is_dynamic();
     rttr::type elemType = view.get_value_type();
+
+    // todo : 나중에 왼쪽 정렬로 만들어버리기 ( 커서 직접 옮기고 헤더 폭 알아서 줄이기 )
 
     // 1. 프로퍼티 헤더를 오른쪽으로 밀기
     ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
@@ -356,7 +359,99 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
             if (changed && !readOnly)
                 prop.set_value(inst, Vector4(data[0], data[1], data[2], data[3]));
         }
+        else if (propType.get_name().to_string().find("ObjPtr") != std::string::npos)
+        {
+            MMMEngine::Object* obj = nullptr;
+            std::string refName = "nullptr";
 
+
+
+            if (var.convert(obj) && obj != nullptr)
+            {
+                if (auto compConvert = dynamic_cast<Component*>(obj))
+                {
+                    if (compConvert->GetGameObject().IsValid())
+                        refName = compConvert->GetGameObject()->GetName();
+                    else
+                        refName = "Destroyed GameObject";
+                }
+                else
+                {
+                    if (auto goConvert = dynamic_cast<GameObject*>(obj))
+                        refName = goConvert->GetName();
+                    else
+                        refName = name;
+                }
+            }
+            // 프로퍼티 이름
+            std::string ptrPropType = propType.get_name().to_string() + " " + prop.get_name().to_string();
+            ptrPropType = std::regex_replace(ptrPropType, std::regex("ObjPtr"), "");
+            ImGui::Text("%s:", ptrPropType.c_str());
+            ImGui::SameLine();
+            // 경로 표시 (클릭 가능하게)
+            ImGui::PushID(name.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
+            ImGui::Button(refName.c_str(), ImVec2(-1, 0));
+            ImGui::PopStyleColor();
+            ImGui::PopID();
+            //MUID dragged_muid = GetMuid("gameobject_muid");
+            Utility::MUID result = Utility::MUID::Empty();
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("gameobject_muid"))
+                {
+                    if (payload->IsDelivery() && payload->Data && payload->DataSize == sizeof(Utility::MUID))
+                    {
+                        std::memcpy(&result, payload->Data, sizeof(Utility::MUID));
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            MUID dragged_muid = result;
+            if(dragged_muid.IsValid())
+            {
+                auto sceneRef = SceneManager::Get().GetCurrentScene();
+                auto dragged = SceneManager::Get().FindWithMUID(sceneRef, dragged_muid);
+
+                auto innertype = StringHelper::ExtractInnerTypeName(propType.get_name().to_string());
+
+                if (innertype == "GameObject")
+                {
+                    const ObjPtrBase& baseRef = dragged;
+                    auto func = propType.get_method("Inject");
+                    if (func.is_valid())
+                    {
+                        auto fvar = func.invoke(var, baseRef);
+                        if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
+                        {
+                            std::cout << "success" << std::endl;
+                            prop.set_value(inst, var);
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    for (auto& _comp : dragged->GetAllComponents())
+                    {
+                        const ObjPtrBase& baseRef = _comp;
+                        auto func = propType.get_method("Inject");
+                        if (func.is_valid())
+                        {
+                            auto fvar = func.invoke(var, baseRef);
+                            if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
+                            {
+                                std::cout << "success" << std::endl;
+                                prop.set_value(inst, var);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
         else if (propType.get_name().to_string().find("shared_ptr") != std::string::npos)
         {
             auto args = propType.get_template_arguments();
@@ -388,7 +483,7 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
 
                     // 프로퍼티 이름
                     ImGui::Text("%s:", name.c_str());
-
+                    ImGui::SameLine();
                     // 경로 표시 (클릭 가능하게)
                     ImGui::PushID(name.c_str());
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
@@ -579,24 +674,6 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
                 updatedQ.Normalize();
                 prop.set_value(inst, updatedQ);
             }
-        }
-        else if (propType.get_name().to_string().find("ResPtr") != std::string::npos)
-        {
-            Resource* res = nullptr;
-            auto sharedRes = var.get_value<std::shared_ptr<Resource>>();
-            if (sharedRes)
-                res = sharedRes.get();
-
-            std::string displayPath = res ? StringHelper::WStringToString(res->GetFilePath()) : "None";
-
-            // 경로 표시 버튼
-            if (ImGui::Button(displayPath.c_str()))
-            {
-                ImGui::OpenPopup("Select Resource");
-            }
-
-            // Drag & Drop 지원
-            // None으로 설정 버튼 (X)
         }
     }
     ImGui::PopID();

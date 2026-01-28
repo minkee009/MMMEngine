@@ -16,7 +16,8 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<Renderer>();
-			});
+			})
+		.method("Inject", &ObjPtr<Renderer>::Inject);
 }
 
 bool MMMEngine::Renderer::IsActiveAndEnabled()

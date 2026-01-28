@@ -17,7 +17,8 @@ RTTR_REGISTRATION
 		.constructor(
 			[]() {
 				return Object::NewObject<SphereColliderComponent>();
-			});
+			})
+		.method("Inject", &ObjPtr<SphereColliderComponent>::Inject);
 }
 
 void MMMEngine::SphereColliderComponent::SetRadius(float radius)

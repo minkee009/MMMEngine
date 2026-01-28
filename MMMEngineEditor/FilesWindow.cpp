@@ -647,9 +647,8 @@ RTTR_PLUGIN_REGISTRATION
 		.constructor(
 			[]() {
 				return Object::NewObject<)" << scriptName << R"(>();
-			});
-
-	type::register_wrapper_converter_for_base_classes<MMMEngine::ObjPtr<)" << scriptName << R"(>>();
+			})
+        .method("Inject", &ObjPtr<ExampleBehaviour>::Inject);
 }
 
 void MMMEngine::)" << scriptName << R"(::Start()

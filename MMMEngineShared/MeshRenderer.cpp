@@ -22,7 +22,8 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<MeshRenderer>();
-			});
+			})
+		.method("Inject", &ObjPtr<MeshRenderer>::Inject);
 }
 
 void MMMEngine::MeshRenderer::SetMesh(ResPtr<StaticMesh>& _mesh)

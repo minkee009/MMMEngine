@@ -38,7 +38,8 @@ RTTR_REGISTRATION
 		.constructor(
 			[](SceneRef scene, const std::string& name) {
 				return Object::NewObject<GameObject>(scene, name);
-			});
+			})
+		.method("Inject", &ObjPtr<GameObject>::Inject);
 }
 
 void MMMEngine::GameObject::RegisterComponent(const ObjPtr<Component>& comp)
