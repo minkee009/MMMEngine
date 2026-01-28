@@ -153,7 +153,10 @@ void Update()
 		{
 			if (!EditorRegistry::g_editor_scene_playing
 				|| EditorRegistry::g_editor_scene_pause)
+			{
+				PhysxManager::Get().SetStep();
 				return;
+			}
 
 			BehaviourManager::Get().BroadCastBehaviourMessage("FixedUpdate");
 			PhysxManager::Get().StepFixed(fixedDt);
