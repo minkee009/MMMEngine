@@ -3,9 +3,13 @@
 #include "EditorRegistry.h"
 #include "RenderStateGuard.h"
 #include "RenderManager.h"
+#include "SceneManager.h"
 #include <ImGuizmo.h>
 #include "Transform.h"
 #include <imgui_internal.h>
+#include "ColliderComponent.h"
+#include "Camera.h"
+#include <memory>
 
 using namespace MMMEngine::Editor;
 using namespace MMMEngine;
@@ -41,6 +45,22 @@ void MMMEngine::Editor::SceneViewWindow::Initialize(ID3D11Device* device, ID3D11
 	}
 
 	CreateRenderTargets(device, m_lastWidth, m_lastHeight);
+
+	m_states = std::make_unique<CommonStates>(m_cachedDevice);
+	m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_cachedContext);
+	m_effect = std::make_unique<BasicEffect>(m_cachedDevice);
+	m_effect->SetVertexColorEnabled(true);
+	{
+		void const* shaderByteCode;
+		size_t byteCodeLength;
+
+		m_effect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength);
+
+		m_cachedDevice->CreateInputLayout(
+			VertexPositionColor::InputElements, VertexPositionColor::InputElementCount,
+			shaderByteCode, byteCodeLength,
+			m_pDebugDrawIL.ReleaseAndGetAddressOf());
+	}
 }
 
 void MMMEngine::Editor::SceneViewWindow::Render()
@@ -453,6 +473,138 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	RenderManager::Get().SetViewMatrix(view);
 	RenderManager::Get().SetProjMatrix(proj);
 	RenderManager::Get().RenderOnlyRenderer();
+
+	// 디버그 드로잉
+	if (m_enableDebugDraw)
+	{
+		if (!m_enableDebugDrawZbuffer)
+		{
+			context->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
+			context->OMSetDepthStencilState(m_states->DepthNone(), 0);
+			context->RSSetState(m_states->CullNone());
+		}
+
+		m_effect->SetView(view);
+		m_effect->SetProjection(proj);
+		m_effect->Apply(context);
+		context->IASetInputLayout(m_pDebugDrawIL.Get());
+
+		m_batch->Begin();
+
+		auto& sceneGameObjects = SceneManager::Get().GetAllGameObjectInCurrentScene();
+
+		for (size_t i = 0; i < sceneGameObjects.size(); ++i)
+		{
+			auto& go = sceneGameObjects[i];
+
+			if (!go->IsActiveInHierarchy())
+				continue;
+
+			auto& ColliderComponents = go->GetComponents<ColliderComponent>();
+
+			for (auto& col : ColliderComponents)
+			{
+				if (!col.IsValid() && col->IsDestroyed())
+				{
+					continue;
+				}
+				auto desc = col->GetDebugShapeDesc();
+
+				switch (desc.type)
+				{
+				case ColliderComponent::DebugColliderType::Box:
+				{
+					BoundingBox box;
+					box.Center = desc.localCenter;
+					box.Extents = desc.halfExtents;
+					BoundingOrientedBox obb;
+					obb.CreateFromBoundingBox(obb, box);
+					obb.Transform(obb, go->GetTransform()->GetWorldMatrix());
+					DX::Draw(m_batch.get(), obb, Colors::LightGreen);
+					break;
+				}
+				case ColliderComponent::DebugColliderType::Sphere:
+				{
+					BoundingSphere sphere;
+					sphere.Center = desc.localCenter;
+					sphere.Radius = desc.radius;
+					DX::Draw(m_batch.get(), sphere, go->GetTransform()->GetWorldMatrix(), Colors::LightGreen);
+					break;
+				}
+				case ColliderComponent::DebugColliderType::Capsule:
+				{
+					XMMATRIX worldMatrix = go->GetTransform()->GetWorldMatrix();
+					BoundingSphere sphere;
+
+					// 상단 구체 (로컬 좌표)
+					sphere.Center = desc.localCenter + Vector3{ 0, desc.halfHeight, 0 };
+					sphere.Radius = desc.radius;
+					DX::Draw(m_batch.get(), sphere, worldMatrix, Colors::LightGreen);
+
+					// 하단 구체 (로컬 좌표)
+					sphere.Center = desc.localCenter - Vector3{ 0, desc.halfHeight, 0 };
+					sphere.Radius = desc.radius;
+					DX::Draw(m_batch.get(), sphere, worldMatrix, Colors::LightGreen);
+
+					const Vector3 p0 = go->GetTransform()->GetWorldPosition() + go->GetTransform()->GetWorldMatrix().Up() * desc.halfHeight;
+					const Vector3 p1 = go->GetTransform()->GetWorldPosition() - go->GetTransform()->GetWorldMatrix().Up() * desc.halfHeight;
+
+					// 하나
+					{
+						VertexPositionColor v0(p0 + go->GetTransform()->GetWorldMatrix().Left() * sphere.Radius, Colors::LightGreen);
+						VertexPositionColor v1(p1 + go->GetTransform()->GetWorldMatrix().Left() * sphere.Radius, Colors::LightGreen);
+						m_batch->DrawLine(v0, v1);
+					}
+					
+
+
+					{
+						VertexPositionColor v0(p0 + go->GetTransform()->GetWorldMatrix().Right() * sphere.Radius, Colors::LightGreen);
+						VertexPositionColor v1(p1 + go->GetTransform()->GetWorldMatrix().Right() * sphere.Radius, Colors::LightGreen);
+						m_batch->DrawLine(v0, v1);
+					}
+
+					{
+
+						VertexPositionColor v0(p0 + go->GetTransform()->GetWorldMatrix().Forward() * sphere.Radius, Colors::LightGreen);
+						VertexPositionColor v1(p1 + go->GetTransform()->GetWorldMatrix().Forward() * sphere.Radius, Colors::LightGreen);
+						m_batch->DrawLine(v0, v1);
+					}
+
+
+					{
+						VertexPositionColor v0(p0 + go->GetTransform()->GetWorldMatrix().Backward() * sphere.Radius, Colors::LightGreen);
+						VertexPositionColor v1(p1 + go->GetTransform()->GetWorldMatrix().Backward() * sphere.Radius, Colors::LightGreen);
+						m_batch->DrawLine(v0, v1);
+					}
+
+				
+					
+
+					break;
+				}
+				default:
+					break;
+				}
+			}
+		}
+
+		if (Camera::GetMainCamera().IsValid() &&
+			g_selectedGameObject == Camera::GetMainCamera()->GetGameObject())
+		{
+			auto mainCam = Camera::GetMainCamera();
+
+			BoundingFrustum frustum;
+			BoundingFrustum::CreateFromMatrix(frustum, mainCam->GetProjMatrix());
+			frustum.Transform(frustum, mainCam->GetTransform()->GetWorldMatrix());
+
+			DX::Draw(m_batch.get(), frustum, Colors::GhostWhite);
+		}
+
+			
+
+		m_batch->End();
+	}
 
 	// 여기서 함수 끝나면 guard 소멸자에서 원래 RT/Viewport/Blend 등 자동 복원됨
 }

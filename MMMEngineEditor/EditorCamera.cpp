@@ -1,4 +1,4 @@
-#include "EditorCamera.h"
+ï»¿#include "EditorCamera.h"
 #include "MMMInput.h"
 #include "MMMTime.h"
 
@@ -8,7 +8,7 @@ using namespace DirectX;
 struct FocusState {
     bool active = false;
     Vector3 targetPos;
-    float duration = 0.5f; // ÀÌµ¿ ½Ã°£
+    float duration = 0.5f; // ì´ë™ ì‹œê°„
     float elapsedTime = 0.0f;
     Vector3 startPos;
 };
@@ -27,12 +27,12 @@ void MMMEngine::Editor::EditorCamera::FocusOn(const Vector3& worldPosition, floa
 {
     m_focusState.startPos = GetPosition();
     
-    // 1. ÇöÀç Ä«¸Ş¶ó°¡ ¹Ù¶óº¸°í ÀÖ´Â ¹æÇâ º¤ÅÍ¸¦ °¡Á®¿É´Ï´Ù.
+    // 1. í˜„ì¬ ì¹´ë©”ë¼ê°€ ë°”ë¼ë³´ê³  ìˆëŠ” ë°©í–¥ ë²¡í„°ë¥¼ ê°€ì ¸ì˜µë‹ˆë‹¤.
     Matrix worldMat = GetTransformMatrix();
-    Vector3 lookDir = -worldMat.Forward(); // Ä«¸Ş¶ó°¡ º¸°í ÀÖ´Â ¾Õ¹æÇâ
+    Vector3 lookDir = -worldMat.Forward(); // ì¹´ë©”ë¼ê°€ ë³´ê³  ìˆëŠ” ì•ë°©í–¥
     
-    // 2. ¸ñÇ¥ À§Ä¡ °áÁ¤
-    // ¹°Ã¼ À§Ä¡(worldPosition)¿¡¼­ ¹Ù¶óº¸´Â ¹æÇâÀÇ ¹İ´ë(-lookDir)·Î distance¸¸Å­ ÀÌµ¿
+    // 2. ëª©í‘œ ìœ„ì¹˜ ê²°ì •
+    // ë¬¼ì²´ ìœ„ì¹˜(worldPosition)ì—ì„œ ë°”ë¼ë³´ëŠ” ë°©í–¥ì˜ ë°˜ëŒ€(-lookDir)ë¡œ distanceë§Œí¼ ì´ë™
     m_focusState.targetPos = worldPosition - (lookDir * distance);
 
     m_focusState.elapsedTime = 0.0f;
@@ -46,7 +46,7 @@ void MMMEngine::Editor::EditorCamera::UpdateProjMatrix()
 
 void MMMEngine::Editor::EditorCamera::UpdateProjFrustum()
 {
-
+    BoundingFrustum::CreateFromMatrix(m_cachedProjFrustum, m_cachedProjMatrix);
 }
 
 const DirectX::SimpleMath::Matrix MMMEngine::Editor::EditorCamera::GetCameraMatrix()
@@ -77,6 +77,18 @@ const DirectX::SimpleMath::Matrix& MMMEngine::Editor::EditorCamera::GetProjMatri
     return m_cachedProjMatrix;
 }
 
+const DirectX::BoundingFrustum& MMMEngine::Editor::EditorCamera::GetProjFrustum()
+{
+    if (m_isProjMatrixDirty)
+    {
+        UpdateProjMatrix();
+        UpdateProjFrustum();
+        m_isProjMatrixDirty = false;
+    }
+
+    return m_cachedProjFrustum;
+}
+
 void MMMEngine::Editor::EditorCamera::MarkViewMatrixDirty()
 {
     m_isViewMatrixDirty = true;
@@ -97,7 +109,7 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
 {
     const float moveSpeed = 5.0f;
     const float rotSpeed = 0.1f;
-    const float panSpeed = 0.01f; // ÆÒ ÀÌµ¿ ¼Óµµ (Á¶Àı ÇÊ¿ä)
+    const float panSpeed = 0.01f; // íŒ¬ ì´ë™ ì†ë„ (ì¡°ì ˆ í•„ìš”)
 
     static float targetPitch = DirectX::XMConvertToDegrees(m_rotation.ToEuler().x);
     static float targetYaw = DirectX::XMConvertToDegrees(m_rotation.ToEuler().y);
@@ -124,7 +136,7 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
             SetPosition(m_focusState.targetPos);
             m_focusState.active = false;
 
-            // [Áß¿ä] Æ÷Ä¿½º ¿Ï·á ÈÄ ¸ğµç º¸°£ º¯¼ö¸¦ ÇöÀçÀÇ ¹°¸®Àû »óÅÂ·Î µ¤¾î¾²±â
+            // [ì¤‘ìš”] í¬ì»¤ìŠ¤ ì™„ë£Œ í›„ ëª¨ë“  ë³´ê°„ ë³€ìˆ˜ë¥¼ í˜„ì¬ì˜ ë¬¼ë¦¬ì  ìƒíƒœë¡œ ë®ì–´ì“°ê¸°
             auto euler = m_rotation.ToEuler();
             targetPitch = pitch = DirectX::XMConvertToDegrees(euler.x);
             targetYaw = yaw = DirectX::XMConvertToDegrees(euler.y);
@@ -135,7 +147,7 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
             t = t * t * (3.0f - 2.0f * t); // SmoothStep
             SetPosition(Vector3::Lerp(m_focusState.startPos, m_focusState.targetPos, t));
 
-            // [Áß¿ä] Æ÷Ä¿½º µµÁß¿¡µµ ¸¶¿ì½º ÁÂÇ¥´Â °è¼Ó ¾÷µ¥ÀÌÆ®ÇØ¼­ delta Æ¦ ¹æÁö
+            // [ì¤‘ìš”] í¬ì»¤ìŠ¤ ë„ì¤‘ì—ë„ ë§ˆìš°ìŠ¤ ì¢Œí‘œëŠ” ê³„ì† ì—…ë°ì´íŠ¸í•´ì„œ delta íŠ ë°©ì§€
             m_lastMouseX = mousePos.x;
             m_lastMouseY = mousePos.y;
             return;
@@ -144,16 +156,16 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
 
     if (Input::GetKey(KeyCode::MouseRight))
     {
-        // ¸¶¿ì½º È¸Àü Ã³¸®
+        // ë§ˆìš°ìŠ¤ íšŒì „ ì²˜ë¦¬
         if (!m_firstMouseUpdate)
         {
             if (deltaX != 0 || deltaY != 0)
             {
-                // ¸¶¿ì½º µ¨Å¸·Î È¸Àü Àû¿ë
+                // ë§ˆìš°ìŠ¤ ë¸íƒ€ë¡œ íšŒì „ ì ìš©
                 targetYaw += deltaX * rotSpeed;
-                targetPitch += deltaY * rotSpeed; // Y´Â ¹İ´ë ¹æÇâ
+                targetPitch += deltaY * rotSpeed; // YëŠ” ë°˜ëŒ€ ë°©í–¥
 
-                // Pitch Á¦ÇÑ
+                // Pitch ì œí•œ
                 //targetPitch = std::max( -89.0f, std::min(89.0f, targetPitch));
             }
         }
@@ -162,7 +174,7 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
             m_firstMouseUpdate = false;
         }
 
-        // ÀÌµ¿ Ã³¸® (´õ È¿À²ÀûÀ¸·Î)
+        // ì´ë™ ì²˜ë¦¬ (ë” íš¨ìœ¨ì ìœ¼ë¡œ)
         Matrix worldMat = GetTransformMatrix();
 
         Vector3 move =
@@ -178,23 +190,23 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
     }
     else if (wheel != 0.0f)
     {
-        // °ü¼º Á¦°Å: ÈÙ·Î ¿òÁ÷ÀÏ ¶§´Â ±âÁ¸ movement ½º¹«µùÀ» ²÷¾îÁÜ
+        // ê´€ì„± ì œê±°: íœ ë¡œ ì›€ì§ì¼ ë•ŒëŠ” ê¸°ì¡´ movement ìŠ¤ë¬´ë”©ì„ ëŠì–´ì¤Œ
         movement = Vector3::Zero;
         targetMovement = Vector3::Zero;
 
-        // ÇöÀç Ä«¸Ş¶óÀÇ ÁøÇà¹æÇâ(¾Õ/µÚ)·Î ÀÌµ¿
+        // í˜„ì¬ ì¹´ë©”ë¼ì˜ ì§„í–‰ë°©í–¥(ì•/ë’¤)ë¡œ ì´ë™
         Matrix worldMat = GetTransformMatrix();
-        Vector3 forward = worldMat.Backward(); // Ä«¸Ş¶ó°¡ ¹Ù¶óº¸´Â ¹æÇâ
+        Vector3 forward = worldMat.Backward(); // ì¹´ë©”ë¼ê°€ ë°”ë¼ë³´ëŠ” ë°©í–¥
 
-        // ½ºÅ©·Ñ ¹æÇâ/¼Óµµ: ÇÊ¿äÇÏ¸é ºÎÈ£¸¸ ¹Ù²ã
-        const float zoomSpeed = 2.0f; // Á¶Àı°ª(³ëÄ¡´ç ¸î À¯´Ö ÀÌµ¿)
+        // ìŠ¤í¬ë¡¤ ë°©í–¥/ì†ë„: í•„ìš”í•˜ë©´ ë¶€í˜¸ë§Œ ë°”ê¿”
+        const float zoomSpeed = 2.0f; // ì¡°ì ˆê°’(ë…¸ì¹˜ë‹¹ ëª‡ ìœ ë‹› ì´ë™)
         SetPosition(GetPosition() + forward * (wheel * zoomSpeed));
     }
     else if (currentOp == 0 && Input::GetKey(KeyCode::MouseLeft))
     {
         Matrix worldMat = GetTransformMatrix();
 
-        movement = Vector3::Zero; // ÇÚµå Á¶ÀÛ ½Ã °ü¼º Á¦°Å
+        movement = Vector3::Zero; // í•¸ë“œ ì¡°ì‘ ì‹œ ê´€ì„± ì œê±°
         Vector3 deltaPos = (worldMat.Right() * (-deltaX * panSpeed)) + (worldMat.Up() * (deltaY * panSpeed));
         SetPosition(GetPosition() + deltaPos);
     }
@@ -213,7 +225,7 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
     movement = Vector3::Lerp(movement, targetMovement, 6.0f * Time::GetUnscaledDeltaTime());
     SetPosition(GetPosition() + movement * moveSpeed * Time::GetUnscaledDeltaTime());
 
-    // ¸¶¿ì½º À§Ä¡ ¾÷µ¥ÀÌÆ® (Æ÷Ä¿½º°¡ ¾Æ´Ò ¶§µµ °øÅë ¼öÇà)
+    // ë§ˆìš°ìŠ¤ ìœ„ì¹˜ ì—…ë°ì´íŠ¸ (í¬ì»¤ìŠ¤ê°€ ì•„ë‹ ë•Œë„ ê³µí†µ ìˆ˜í–‰)
     m_lastMouseX = mousePos.x;
     m_lastMouseY = mousePos.y;
 }

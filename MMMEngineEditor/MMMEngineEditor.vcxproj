@@ -153,6 +153,7 @@
     <ClInclude Include="AssimpLoader.h" />
     <ClInclude Include="BuildManager.h" />
     <ClInclude Include="ConsoleWindow.h" />
+    <ClInclude Include="DebugDraw.h" />
     <ClInclude Include="DLLHotLoadHelper.h" />
     <ClInclude Include="DragAndDrop.h" />
     <ClInclude Include="EditorCamera.h" />
@@ -191,6 +192,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="BuildManager.cpp" />
+    <ClCompile Include="DebugDraw.cpp" />
     <ClCompile Include="DLLHotLoadHelper.cpp" />
     <ClCompile Include="EditorCamera.cpp" />
     <ClCompile Include="EditorGridRenderer.cpp" />

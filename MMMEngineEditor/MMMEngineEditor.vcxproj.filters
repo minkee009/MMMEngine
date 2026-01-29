@@ -198,6 +198,9 @@
     <ClInclude Include="SceneChangeWindow.h">
       <Filter>헤더 파일\EditorWindow\Popup</Filter>
     </ClInclude>
+    <ClInclude Include="DebugDraw.h">
+      <Filter>헤더 파일\Helper</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -289,6 +292,9 @@
     </ClCompile>
     <ClCompile Include="SceneChangeWindow.cpp">
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugDraw.cpp">
+      <Filter>소스 파일\Helper</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

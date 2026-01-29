@@ -144,47 +144,74 @@ namespace MMMEngine::Editor
         return projFile;
     }
 
-    bool ProjectManager::OpenProject(const fs::path& projectFile)
+    bool ProjectManager::OpenProject(const std::filesystem::path& projectFile)
     {
-        if (!fs::exists(projectFile) || !fs::is_regular_file(projectFile))
-            return false;
+        namespace fs = std::filesystem;
 
-        json j;
+        if (!fs::exists(projectFile))
         {
-            std::ifstream in(projectFile, std::ios::binary);
-            if (!in) return false;
-            try { in >> j; }
-            catch (...) { return false; }
+            return false;
         }
 
-        // projectFile 기준 root (권장)
-        fs::path root = projectFile.parent_path().parent_path();
-
-        // json 검증
-        if (!j.contains("lastSceneIndex") || !j["lastSceneIndex"].is_number_unsigned())
-            return false;
-
-        // json rootPath가 있으면 참고(불일치 시 file 기준 우선)
-        if (j.contains("rootPath") && j["rootPath"].is_string())
+        // JSON 파일 읽기
+        std::ifstream ifs(projectFile);
+        if (!ifs.is_open())
         {
-            fs::path jsonRoot = fs::path(j["rootPath"].get<std::string>());
-            if (!jsonRoot.empty())
+            return false;
+        }
+
+        nlohmann::json j;
+        try
+        {
+            ifs >> j;
+        }
+        catch (...)
+        {
+            return false;
+        }
+        ifs.close();
+
+        // Project 객체 생성 및 JSON에서 데이터 읽기
+        Project proj;
+
+        // JSON에서 lastSceneIndex 읽기 (없으면 기본값 0)
+        if (j.contains("lastSceneIndex"))
+        {
+            proj.lastSceneIndex = j["lastSceneIndex"].get<uint32_t>();
+        }
+        else
+        {
+            proj.lastSceneIndex = 0;
+        }
+
+        // rootPath를 현재 찾은 프로젝트 폴더로 업데이트
+        // projectFile은 "프로젝트루트/ProjectSettings/project.json"
+        fs::path actualRoot = projectFile.parent_path().parent_path();
+
+        // "/" 구분자로 변환
+        std::string rootPathStr = actualRoot.generic_string();
+        proj.rootPath = rootPathStr;
+
+        // 업데이트된 내용을 다시 저장
+        try
+        {
+            std::ofstream ofs(projectFile);
+            if (ofs.is_open())
             {
-                std::error_code ec;
-                bool eq = fs::equivalent(root, jsonRoot, ec);
-                (void)eq;
-                // 정책: file 기준 root를 유지
+                nlohmann::json updatedJson;
+                updatedJson["rootPath"] = proj.rootPath;
+                updatedJson["lastSceneIndex"] = proj.lastSceneIndex;
+
+                ofs << updatedJson.dump(4);
+                ofs.close();
             }
         }
+        catch (...)
+        {
+            // 저장 실패해도 프로젝트는 로드
+        }
 
-        Project p;
-        p.rootPath = root.generic_u8string(); // 엔진 내부는 '/' 유지
-        p.lastSceneIndex = j["lastSceneIndex"].get<uint32_t>();
-
-        EnsureProjectFolders(root);
-        m_project = p;
-        SaveLastProjectFile(projectFile);
-
+        m_project = proj;
         return true;
     }
 

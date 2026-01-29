@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Export.h"
 #include "Behaviour.h"
 #include "SimpleMath.h"
@@ -15,7 +15,7 @@ namespace MMMEngine
 		float m_fov; // 0 ~ 360 degree
 		float m_near; // near plane
 		float m_far; // far plane
-		// todo : AsepectRatio <- Ä«¸Þ¶ó°¡ Á÷Á¢ ¼³Á¤ÇÏ¸é ¾ÈµÊ, RenderManagerÀÇ ¾ÀÅ¸°Ù ÀÌ¹ÌÁöÀÇ ÇØ»óµµ·Î Ã³¸®ÇØÁÖ¼À
+		// todo : AsepectRatio <- ì¹´ë©”ë¼ê°€ ì§ì ‘ ì„¤ì •í•˜ë©´ ì•ˆë¨, RenderManagerì˜ ì”¬íƒ€ê²Ÿ ì´ë¯¸ì§€ì˜ í•´ìƒë„ë¡œ ì²˜ë¦¬í•´ì£¼ì…ˆ
 		float m_aspect; // { width / height } ratio
 		mutable bool m_isProjMatrixDirty;
 		mutable bool m_isViewMatrixDirty;
