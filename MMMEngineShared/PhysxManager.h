@@ -19,7 +19,7 @@ namespace MMMEngine
 	enum class CollisionPhase { Enter, Stay, Exit };
 	enum class TriggerPhase { Enter, Exit };
 
-	struct CollisionInfo
+	struct MMMENGINE_API CollisionInfo
 	{
 		ObjPtr<GameObject> self;
 		ObjPtr<GameObject> other;
@@ -36,7 +36,7 @@ namespace MMMEngine
 		CollisionPhase phase = CollisionPhase::Stay;
 	};
 
-	struct TriggerInfo
+	struct MMMENGINE_API TriggerInfo
 	{
 		ObjPtr<GameObject> self;
 		ObjPtr<GameObject> other;

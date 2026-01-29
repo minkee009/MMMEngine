@@ -99,7 +99,7 @@ namespace MMMEngine
 		void ApplyFilterData();
 
 
-		void ApplyLocalPose();
+		virtual void ApplyLocalPose();
 
 		void ApplyShapeModeFlags();
 
@@ -157,6 +157,7 @@ namespace MMMEngine
 
 			// Sphere
 			float sphereRadius = 0.5f;
+
 		};
 
 		virtual DebugColliderShapeDesc GetDebugShapeDesc() const = 0;

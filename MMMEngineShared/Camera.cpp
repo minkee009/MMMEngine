@@ -154,22 +154,16 @@ MMMEngine::ObjPtr<MMMEngine::Camera> MMMEngine::Camera::GetMainCamera()
 {
 	if (!s_mainCam.IsValid() || s_mainCam->IsDestroyed())
 	{
-		//새로운 메인캠 찾기
 		auto mainCamGOs = GameObject::FindGameObjectsWithTag("MainCamera");
 
-		if (mainCamGOs.size() != 0)
-			for (auto& camGO : mainCamGOs)
+		for (auto& camGO : mainCamGOs)
+		{
+			if (auto mainCam = camGO->GetComponent<Camera>())
 			{
-				if (auto mainCam = camGO->GetComponent<Camera>())
-				{
-					s_mainCam = mainCam;
-					break;
-				}
+				s_mainCam = mainCam;
+				break;
 			}
-	}
-	else
-	{
-		s_mainCam = nullptr;
+		}
 	}
 
 	return s_mainCam;
