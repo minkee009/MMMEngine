@@ -158,6 +158,10 @@ namespace MMMEngine {
 		// 요 각도 (라디안)
 		float Px_GetYaw() const;
 
+
+		void MarkMassDirty();
+		bool IsMassDirty() const;
+		void ClearMassDirty();
 	private:
 		Desc m_Desc;
 
@@ -224,5 +228,7 @@ namespace MMMEngine {
 
 		//collider 전체 삭제에 대한 책임을 가지는 단 하나의 rigid 보장 bool flag
 		bool m_ColliderMaster = false;
+
+		bool m_MassDirty = false;
 	};
 }

@@ -120,6 +120,11 @@ void MMMEngine::PhysxManager::NotifyColliderRemoved(ColliderComponent* col)
     if (!rbPtr.IsValid()) return; // 정책상 거의 없어야 하지만 방어
     auto* rb = (RigidBodyComponent*)rbPtr.GetRaw();
 
+    EraseCommandsForCollider(col);
+    m_DirtyColliders.erase(col);
+    m_FilterDirtyColliders.erase(col);
+    m_PendingDestroyCols.push_back(col);
+
     RequestDetachCollider(rb, col);
 }
 
@@ -295,6 +300,14 @@ void MMMEngine::PhysxManager::SetLayerCollision(uint32_t layerA, uint32_t layerB
 // actor생성 및 acotr를 추가하는 작업 / shape생성 밑 붙이는 작업 / shape 교체등을 여기서 한다
 void MMMEngine::PhysxManager::FlushCommands_PreStep()
 {
+    for (auto* col : m_PendingDestroyCols)
+    {
+        if (!col) continue;
+
+        // rb를 몰라도 PhysScene이 ownerByCollider로 찾아서 detach 가능하게 만들면 베스트
+        m_PhysScene.DetachCollider(nullptr, col);
+    }
+    m_PendingDestroyCols.clear();
     //ChangeRigidType 먼저 처리하도록
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
@@ -512,12 +525,12 @@ void MMMEngine::PhysxManager::DispatchPhysicsEvents()
     for (const auto& e : contacts)
     {
         // userData -> 엔진 컴포넌트 복구
-        auto* rbA = static_cast<RigidBodyComponent*>(e.a ? e.a->userData : nullptr);
-        auto* rbB = static_cast<RigidBodyComponent*>(e.b ? e.b->userData : nullptr);
-        auto* colA = static_cast<ColliderComponent*>(e.aShape ? e.aShape->userData : nullptr);
-        auto* colB = static_cast<ColliderComponent*>(e.bShape ? e.bShape->userData : nullptr);
+        auto rbA = ObjectManager::Get().GetPtrFromRaw<RigidBodyComponent>(e.a ? e.a->userData : nullptr);
+        auto rbB = ObjectManager::Get().GetPtrFromRaw<RigidBodyComponent>(e.b ? e.b->userData : nullptr);
+        auto colA = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(e.aShape ? e.aShape->userData : nullptr);
+        auto colB = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(e.bShape ? e.bShape->userData : nullptr);
 
-        if (!rbA || !rbB || !colA || !colB) continue;
+        if (!rbA.IsValid() || !rbB.IsValid() || !colA.IsValid() || !colB.IsValid()) continue;
 
         auto goA = rbA->GetGameObject();
         auto goB = rbB->GetGameObject();
@@ -571,8 +584,8 @@ void MMMEngine::PhysxManager::DispatchPhysicsEvents()
     const auto& triggers = m_PhysScene.GetFrameTriggers();
     for (const auto& t : triggers)
     {
-        auto* triggerCol = static_cast<ColliderComponent*>(t.triggerShape ? t.triggerShape->userData : nullptr);
-        auto* otherCol = static_cast<ColliderComponent*>(t.otherShape ? t.otherShape->userData : nullptr);
+        auto triggerCol = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(t.triggerShape ? t.triggerShape->userData : nullptr);
+        auto otherCol = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(t.otherShape ? t.otherShape->userData : nullptr);
         if (!triggerCol || !otherCol) continue;
 
         auto goT = triggerCol->GetGameObject();

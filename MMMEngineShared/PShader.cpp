@@ -1,4 +1,4 @@
-#include "PShader.h"
+ï»¿#include "PShader.h"
 #include "RenderManager.h"
 #include "RendererTools.h"
 #include <d3dcompiler.h>
@@ -12,7 +12,7 @@ bool MMMEngine::PShader::LoadFromFilePath(const std::wstring& filePath)
 
 	auto m_pDevice = RenderManager::Get().GetDevice();
 
-	// PS½¦ÀÌ´õ ÄÄÆÄÀÏ
+	// PSì‰ì´ë” ì»´íŒŒì¼
 	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 
 	HR_T(D3DCompileFromFile(

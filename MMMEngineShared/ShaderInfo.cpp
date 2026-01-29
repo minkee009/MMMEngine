@@ -109,19 +109,15 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_PBR][L"mLightPadding"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mLightColor"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mIntensity"] = { PropertyType::Constant, 1 };
+
 	m_propertyInfoMap[ShaderType::S_PBR][L"mBaseColor"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mMetallic"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mRoughness"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mAoStrength"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mEmissive"] = { PropertyType::Constant, 3 };
 
-	m_propertyInfoMap[ShaderType::S_SKYBOX][L"_cubemap"]	= { PropertyType::Texture, 0 };
-	m_propertyInfoMap[ShaderType::S_SKYBOX][L"_sp0"]		= { PropertyType::Sampler, 0 };
-
 	// 쉐이더 타입정보정의
-	m_typeInfoMap[L"Shader/PBR/PS/BRDFShader.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY };
-	m_typeInfoMap[L"Shader/SkyBox/SkyBoxPixelShader.hlsl"] = { ShaderType::S_SKYBOX, RenderType::R_SKYBOX };
-
+	m_typeInfoMap[L"Shader/PBR/PS/BRDFShader.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY, nullptr };
 
 	// 구조체별 이름 등록 (쉐이더 이름과같게)
 	m_CBBufferMap[L"MatBuffer"] = CreateConstantBuffer<PBR_MaterialBuffer>();
@@ -186,61 +182,7 @@ void MMMEngine::ShaderInfo::UpdateProperty(ID3D11DeviceContext4* context,
 	const std::wstring& propertyName,
 	const void* data)
 {
-	// 1. 글로벌 프로퍼티 먼저 확인
-	auto gIt = m_globalPropMap.find(shaderType);
-	if (gIt != m_globalPropMap.end())
-	{
-		auto& gPropMap = gIt->second;
-		auto gPropIt = gPropMap.find(propertyName);
-		if (gPropIt != gPropMap.end())
-		{
-			const PropertyValue& gval = gPropIt->second;
-			const PropertyInfo& pinfo = m_propertyInfoMap[shaderType][propertyName];
-
-			if (pinfo.propertyType == PropertyType::Constant)
-			{
-				// 글로벌 ConstantBuffer 값 적용
-				auto cbIt = m_CBPropertyMap[shaderType].find(propertyName);
-				if (cbIt == m_CBPropertyMap[shaderType].end())
-					return;
-
-				const CBPropertyInfo& cbInfo = cbIt->second;
-				auto bufIt = m_CBBufferMap.find(cbInfo.bufferName);
-				if (bufIt == m_CBBufferMap.end())
-					return;
-
-				auto buffer = bufIt->second;
-
-				D3D11_MAPPED_SUBRESOURCE mapped;
-				if (SUCCEEDED(context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &mapped)))
-				{
-					// gval이 std::variant라면 std::visit으로 꺼내서 memcpy
-					std::visit([&](auto&& arg) {
-						memcpy((BYTE*)mapped.pData + cbInfo.offset, &arg, cbInfo.size);
-						}, gval);
-					context->Unmap(buffer.Get(), 0);
-				}
-				return;
-			}
-			else if (pinfo.propertyType == PropertyType::Texture)
-			{
-				auto texPtr = std::get<ResPtr<Texture2D>>(gval);
-				if (!texPtr)
-					return;
-
-				ID3D11ShaderResourceView* srv =
-					texPtr->m_pSRV.Get();
-				context->PSSetShaderResources(pinfo.bufferIndex, 1, &srv);
-				return;
-			}
-			else if (pinfo.propertyType == PropertyType::Sampler)
-			{
-				return;
-			}
-		}
-	}
-
-	// 2. 글로벌에 없으면 머티리얼 프로퍼티 업데이트 (기존 로직)
+	// PropertyInfo 조회
 	auto propIt = m_propertyInfoMap.find(shaderType);
 	if (propIt == m_propertyInfoMap.end())
 		return;
@@ -252,8 +194,8 @@ void MMMEngine::ShaderInfo::UpdateProperty(ID3D11DeviceContext4* context,
 
 	const PropertyInfo& pinfo = pinfoIt->second;
 
-	if (pinfo.propertyType == PropertyType::Constant)
-	{
+	if (pinfo.propertyType == PropertyType::Constant) {
+		// ConstantBuffer 변수 정보 조회
 		auto cbIt = m_CBPropertyMap[shaderType].find(propertyName);
 		if (cbIt == m_CBPropertyMap[shaderType].end())
 			return;
@@ -272,30 +214,27 @@ void MMMEngine::ShaderInfo::UpdateProperty(ID3D11DeviceContext4* context,
 			context->Unmap(buffer.Get(), 0);
 		}
 	}
-	else if (pinfo.propertyType == PropertyType::Texture)
-	{
-		ID3D11ShaderResourceView* srv =
-			reinterpret_cast<ID3D11ShaderResourceView*>(const_cast<void*>(data));
+	else if (pinfo.propertyType == PropertyType::Texture) {
+		// Texture는 SRV 바인딩만 하면 됨
+		ID3D11ShaderResourceView* srv = reinterpret_cast<ID3D11ShaderResourceView*>(const_cast<void*>(data));
 		context->PSSetShaderResources(pinfo.bufferIndex, 1, &srv);
 	}
-	else if (pinfo.propertyType == PropertyType::Sampler)
-	{
-		return;
-		/*ID3D11SamplerState* sampler =
-			reinterpret_cast<ID3D11SamplerState*>(const_cast<void*>(data));
-		context->PSSetSamplers(pinfo.bufferIndex, 1, &sampler);*/
+	else if (pinfo.propertyType == PropertyType::Sampler) {
+		// SamplerState는 Sampler 슬롯에 바인딩
+		ID3D11SamplerState* sampler = reinterpret_cast<ID3D11SamplerState*>(const_cast<void*>(data));
+		context->PSSetSamplers(pinfo.bufferIndex, 1, &sampler);
 	}
 
 }
 
 const int MMMEngine::ShaderInfo::PropertyToIdx(const ShaderType _type, const std::wstring& _propertyName, PropertyInfo* _out /*= nullptr*/) const
 {
-	// ShaderType 존재 확인 (글로벌 먼저 확인)
+	// ShaderType 존재 확인
 	auto typeIt = m_propertyInfoMap.find(_type);
 	if (typeIt == m_propertyInfoMap.end())
 		return -1;
 
-	// PropertyName 존재 확인 (글로벌 먼저 확인)
+	// PropertyName 존재 확인
 	auto propIt = typeIt->second.find(_propertyName);
 	if (propIt == typeIt->second.end())
 		return -1;
@@ -426,101 +365,4 @@ void MMMEngine::ShaderInfo::ConvertMaterialType(const ShaderType _type, Material
 	{
 		_mat->RemoveProperty(propName);
 	}
-}
-
-void MMMEngine::ShaderInfo::AddGlobalPropVal(const ShaderType _type, const std::wstring _propName, const PropertyValue& _value)
-{
-	m_globalPropMap[_type][_propName] = _value;
-}
-
-void MMMEngine::ShaderInfo::SetGlobalPropVal(const ShaderType _type, const std::wstring _propName, const PropertyValue& _value)
-{
-	auto tit = m_globalPropMap.find(_type);
-	if (tit == m_globalPropMap.end())
-		return;
-	
-	auto nit = tit->second.find(_propName);
-	if (nit == tit->second.end())
-		return;
-	
-	if (nit->second.index() == _value.index()) {
-		nit->second = _value;
-	}
-}
-
-void MMMEngine::ShaderInfo::RemoveGlobalPropVal(const ShaderType _type, const std::wstring _propName)
-{
-	auto tit = m_globalPropMap.find(_type);
-	if (tit == m_globalPropMap.end())
-		return;
-
-	auto nit = tit->second.find(_propName);
-	if (nit == tit->second.end())
-		return;
-
-	tit->second.erase(nit);
-}
-
-Microsoft::WRL::ComPtr<ID3D11InputLayout> MMMEngine::ShaderInfo::CreateVShaderLayout(ID3D10Blob* _blob)
-{
-	Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
-	D3DReflect(_blob->GetBufferPointer(),
-		_blob->GetBufferSize(),
-		IID_PPV_ARGS(&reflector));
-
-	D3D11_SHADER_DESC shaderDesc;
-	reflector->GetDesc(&shaderDesc);
-
-	std::vector<D3D11_INPUT_ELEMENT_DESC> inputLayoutDesc;
-
-	for (UINT i = 0; i < shaderDesc.InputParameters; i++)
-	{
-		D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
-		reflector->GetInputParameterDesc(i, &paramDesc);
-
-		D3D11_INPUT_ELEMENT_DESC elementDesc = {};
-		elementDesc.SemanticName = paramDesc.SemanticName;
-		elementDesc.SemanticIndex = paramDesc.SemanticIndex;
-		elementDesc.InputSlot = 0;
-		elementDesc.AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-		elementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-		elementDesc.InstanceDataStepRate = 0;
-
-		// DXGI_FORMAT 매핑
-		if (paramDesc.Mask == 1)
-		{
-			if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32_UINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32_SINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32_FLOAT;
-		}
-		else if (paramDesc.Mask <= 3)
-		{
-			if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32_UINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32_SINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
-		}
-		else if (paramDesc.Mask <= 7)
-		{
-			if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_UINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_SINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-		}
-		else if (paramDesc.Mask <= 15)
-		{
-			if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
-			else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		}
-
-		inputLayoutDesc.push_back(elementDesc);
-	}
-
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
-	HR_T(RenderManager::Get().GetDevice()->CreateInputLayout(inputLayoutDesc.data(),
-		(UINT)inputLayoutDesc.size(),
-		_blob->GetBufferPointer(),
-		_blob->GetBufferSize(),
-		&inputLayout));
-
-	return inputLayout;
 }

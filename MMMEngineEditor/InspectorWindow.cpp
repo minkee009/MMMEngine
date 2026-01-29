@@ -52,7 +52,7 @@ static bool DrawElementPOD(const char* label, rttr::variant& elem, rttr::type el
     {
         float v = elem.to_double(); // float로도 안전
         if (readOnly) ImGui::BeginDisabled(true);
-        changed = ImGui::DragFloat(label, &v, 0.1f);
+        changed = ImGui::DragFloat(label, &v, 0.01f);
         if (readOnly) ImGui::EndDisabled();
         if (changed && !readOnly) elem = v;
     }
@@ -303,7 +303,20 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst)
             float f = var.get_value<float>();
 
             if (readOnly) ImGui::BeginDisabled(true);
-            bool changed = ImGui::DragFloat(name.c_str(), &f);
+            auto md_min = prop.get_metadata("MIN");
+            auto md_max = prop.get_metadata("MAX");
+            float min = 0.0f;
+            float max = 0.0f;
+            if (md_min.is_valid() && md_min.can_convert<float>())
+            {
+				min = md_min.get_value<float>();
+            }
+            if (md_max.is_valid() && md_max.can_convert<float>())
+            {
+                max = md_max.get_value<float>();
+            }
+
+            bool changed = ImGui::DragFloat(name.c_str(), &f, 0.01f, min, max);
             if (readOnly) ImGui::EndDisabled();
 
             if (changed && !readOnly)

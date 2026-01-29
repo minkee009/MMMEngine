@@ -19,7 +19,7 @@ namespace MMMEngine
 	enum class CollisionPhase { Enter, Stay, Exit };
 	enum class TriggerPhase { Enter, Exit };
 
-	struct CollisionInfo
+	struct MMMENGINE_API CollisionInfo
 	{
 		ObjPtr<GameObject> self;
 		ObjPtr<GameObject> other;
@@ -28,29 +28,26 @@ namespace MMMEngine
 		Vector3 point;           // 월드 접촉점(대표값)
 		float penetrationDepth;  // >= 0
 
-		ColliderComponent* selfCollider = nullptr;
-		ColliderComponent* otherCollider = nullptr;
+		ObjPtr<ColliderComponent> selfCollider = nullptr;
+		ObjPtr<ColliderComponent> otherCollider = nullptr;
 
 		bool isTrigger = false; // collision이면 false
 
 		CollisionPhase phase = CollisionPhase::Stay;
 	};
 
-	struct TriggerInfo
+	struct MMMENGINE_API TriggerInfo
 	{
 		ObjPtr<GameObject> self;
 		ObjPtr<GameObject> other;
 
-		ColliderComponent* selfCollider = nullptr;
-		ColliderComponent* otherCollider = nullptr;
+		ObjPtr<ColliderComponent> selfCollider = nullptr;
+		ObjPtr<ColliderComponent> otherCollider = nullptr;
 
 		bool isEnter = false;
 
 		TriggerPhase phase = TriggerPhase::Enter;
 	};
-
-
-
 
 	class MMMENGINE_API PhysxManager : public Utility::ExportSingleton<PhysxManager>
 	{
@@ -90,7 +87,9 @@ namespace MMMEngine
 
 		void SetLayerCollision(uint32_t layerA, uint32_t layerB, bool canCollide);
 
-		std::vector<std::variant<CollisionInfo, TriggerInfo>> GetCallbackQue() { return Callback_Que; }
+		std::vector<std::variant<CollisionInfo, TriggerInfo>>& GetCallbackQue() { return Callback_Que; }
+
+		std::vector<ColliderComponent*> m_PendingDestroyCols;
 
 	private:
 		// 내부에서만 쓰는 헬퍼

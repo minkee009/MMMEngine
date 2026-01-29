@@ -215,6 +215,7 @@ physx::PxTransform MMMEngine::ColliderComponent::GetWorldPosPx() const
     return actor->getGlobalPose() * m_Shape->getLocalPose();
 }
 
+
 void MMMEngine::ColliderComponent::SetShape(physx::PxShape* shape, bool owned)
 {
     if (m_Shape)
@@ -258,3 +259,21 @@ void MMMEngine::ColliderComponent::Initialize()
 	}
 	MMMEngine::PhysxManager::Get().NotifyColliderAdded(this);
 }
+
+void MMMEngine::ColliderComponent::UnInitialize()
+{
+    PhysxManager::Get().NotifyColliderRemoved(this);
+
+    if (m_Shape)
+    {
+        if (auto* actor = m_Shape->getActor())
+            actor->detachShape(*m_Shape);
+
+        if (m_Owned)
+            m_Shape->release();
+
+        m_Shape = nullptr;
+        m_Owned = false;
+    }
+}
+

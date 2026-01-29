@@ -32,6 +32,7 @@ namespace MMMEngine
 		virtual void BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) = 0;
 
 		void Initialize() override;
+		void UnInitialize() override;
 
 		physx::PxShape* GetPxShape() const { return m_Shape; }
 		ShapeMode GetShapeMode() const { return m_Mode; }
@@ -86,7 +87,6 @@ namespace MMMEngine
 		//디버그 함수
 		virtual void PrintFilter() {};
 
-
 	protected:
 		// 파생 클래스가 shape 생성 후 반드시 호출
 		void SetShape(physx::PxShape* shape, bool owned = true);
@@ -99,7 +99,7 @@ namespace MMMEngine
 		void ApplyFilterData();
 
 
-		void ApplyLocalPose();
+		virtual void ApplyLocalPose();
 
 		void ApplyShapeModeFlags();
 
@@ -157,6 +157,7 @@ namespace MMMEngine
 
 			// Sphere
 			float sphereRadius = 0.5f;
+
 		};
 
 		virtual DebugColliderShapeDesc GetDebugShapeDesc() const = 0;

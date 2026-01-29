@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #define NOMINMAX
 #include "SimpleMath.h"
 
@@ -10,6 +10,8 @@ namespace MMMEngine::Editor
 		DirectX::SimpleMath::Vector3 m_position;
 		DirectX::SimpleMath::Quaternion m_rotation;
 		mutable DirectX::SimpleMath::Matrix m_cachedTransformMatrix;
+
+		mutable DirectX::BoundingFrustum m_cachedProjFrustum;
 
 		float m_fov;
 		float m_near;
@@ -33,6 +35,8 @@ namespace MMMEngine::Editor
 		const DirectX::SimpleMath::Matrix GetCameraMatrix();  // view * projection Matrix
 		const DirectX::SimpleMath::Matrix& GetViewMatrix();
 		const DirectX::SimpleMath::Matrix& GetProjMatrix();
+
+		const DirectX::BoundingFrustum& GetProjFrustum();
 
 		const DirectX::SimpleMath::Matrix& GetTransformMatrix()
 		{
@@ -62,12 +66,12 @@ namespace MMMEngine::Editor
 		inline void SetRotation(DirectX::SimpleMath::Quaternion rot) { m_rotation = rot; MarkTransformMatrixDirty(); }
 		inline void SetEulerRotation(DirectX::SimpleMath::Vector3 rot) 
 		{ 	
-			// µµ ´ÜÀ§¸¦ ¶óµğ¾ÈÀ¸·Î º¯È¯
+			// ë„ ë‹¨ìœ„ë¥¼ ë¼ë””ì•ˆìœ¼ë¡œ ë³€í™˜
 			auto radRotX = DirectX::XMConvertToRadians(rot.x);
 			auto radRotY = DirectX::XMConvertToRadians(rot.y);
 			auto radRotZ = DirectX::XMConvertToRadians(rot.z);
 
-			// DirectX ¹æ½ÄÀ¸·Î ·ÎÄÃ È¸Àü ÄõÅÍ´Ï¾ğ »ı¼º
+			// DirectX ë°©ì‹ìœ¼ë¡œ ë¡œì»¬ íšŒì „ ì¿¼í„°ë‹ˆì–¸ ìƒì„±
 			m_rotation = DirectX::SimpleMath::Quaternion::CreateFromYawPitchRoll(radRotY, radRotX, radRotZ);
 
 			MarkTransformMatrixDirty();
