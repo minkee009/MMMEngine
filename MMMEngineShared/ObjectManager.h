@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Export.h"
 #include "ExportSingleton.hpp"
 #include "Object.h"
@@ -24,14 +24,14 @@ namespace MMMEngine
         std::vector<ObjectPtrInfo> m_objectPtrInfos;
         std::queue<uint32_t> m_freePtrIDs;
 
-        std::vector<uint32_t> m_delayedDestroy;   //ÆÄ±« ¿¹¾à ID
-        std::vector<uint32_t> m_pendingDestroy;   //¿ÏÀü ÆÄ±« ID
+        std::vector<uint32_t> m_delayedDestroy;   //íŒŒê´´ ì˜ˆì•½ ID
+        std::vector<uint32_t> m_pendingDestroy;   //ì™„ì „ íŒŒê´´ ID
 
     public:
         static bool IsCreatingObject();
         static bool IsDestroyingObject();
 
-        // RAII ½ºÄÚÇÁ -> Object ½ºÅÃ »ı¼º ¸·±â¿ë
+        // RAII ìŠ¤ì½”í”„ -> Object ìŠ¤íƒ ìƒì„± ë§‰ê¸°ìš©
         class MMMENGINE_API CreationScope
         {
         public:
@@ -48,7 +48,7 @@ namespace MMMEngine
 
         bool IsValidPtr(uint32_t ptrID, uint32_t generation, const void* ptr) const;
 
-        // SelfPtr<T>ÀÇ ºü¸¥ ±¸ÇöÀ» À§ÇÑ ÇÔ¼ö, Àı´ë ¿ÜºÎ È£ÃâÇÏÁö ¸» °Í
+        // SelfPtr<T>ì˜ ë¹ ë¥¸ êµ¬í˜„ì„ ìœ„í•œ í•¨ìˆ˜, ì ˆëŒ€ ì™¸ë¶€ í˜¸ì¶œí•˜ì§€ ë§ ê²ƒ
         template<typename T>
         ObjPtr<T> GetPtrFast(Object* raw, uint32_t ptrID, uint32_t ptrGen)
         {
@@ -67,13 +67,27 @@ namespace MMMEngine
 
 #ifndef NDEBUG
             T* typedObj = dynamic_cast<T*>(obj);
-            assert(typedObj && "GetPtr<T>: Å¸ÀÔ ºÒÀÏÄ¡! ptrID¿¡ µé¾îÀÖ´Â ½ÇÁ¦ Å¸ÀÔÀ» È®ÀÎÇÏ¼¼¿ä.");
+            assert(typedObj && "GetPtr<T>: íƒ€ì… ë¶ˆì¼ì¹˜! ptrIDì— ë“¤ì–´ìˆëŠ” ì‹¤ì œ íƒ€ì…ì„ í™•ì¸í•˜ì„¸ìš”.");
 #endif
             if(m_objectPtrInfos[ptrID].ptrGenerations != ptrGen)
                 return ObjPtr<T>();
 
             return ObjPtr<T>(static_cast<T*>(obj), ptrID, ptrGen);
         }
+
+
+		// ì—”ì§„ ì½”ì–´ì—ì„œ ì‚¬ìš©í•  ìˆ˜ ìˆëŠ” í—¬í¼ í•¨ìˆ˜ ( ì ˆëŒ€ ì™¸ë¶€ í˜¸ì¶œí•˜ì§€ ë§ ê²ƒ )
+        template<typename T>
+        ObjPtr<T> GetPtrFromRaw(void* raw)
+        {
+            if (!raw)
+                return ObjPtr<T>();
+
+			Object* obj = static_cast<Object*>(raw);
+            uint32_t ptrID = obj->m_ptrID;
+            uint32_t ptrGen = obj->m_ptrGen;
+            return GetPtrFast<T>(obj, ptrID, ptrGen);
+		}
 
         template<typename T>
         ObjPtr<T> FindObjectByType()
@@ -118,8 +132,8 @@ namespace MMMEngine
         template<typename T, typename... Args>
         ObjPtr<T> NewObject(Args&&... args)
         {
-            static_assert(std::is_base_of_v<Object, T>, "T´Â ¹İµå½Ã Object¸¦ »ó¼Ó¹Ş¾Æ¾ß ÇÕ´Ï´Ù.");
-            static_assert(!std::is_abstract_v<T>, "Ãß»óÀûÀÎ Object´Â ¸¸µé ¼ö ¾ø½À´Ï´Ù.");
+            static_assert(std::is_base_of_v<Object, T>, "TëŠ” ë°˜ë“œì‹œ Objectë¥¼ ìƒì†ë°›ì•„ì•¼ í•©ë‹ˆë‹¤.");
+            static_assert(!std::is_abstract_v<T>, "ì¶”ìƒì ì¸ ObjectëŠ” ë§Œë“¤ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
 
             CreationScope scope;
 
@@ -129,14 +143,14 @@ namespace MMMEngine
 
             if (m_freePtrIDs.empty())
             {
-                // »õ ½½·Ô ÇÒ´ç
+                // ìƒˆ ìŠ¬ë¡¯ í• ë‹¹
                 ptrID = static_cast<uint32_t>(m_objectPtrInfos.size());
                 m_objectPtrInfos.push_back({ newObj,0,-1.0f,false });
                 ptrGen = 0;
             }
             else
             {
-                // Àç»ç¿ë ½½·Ô
+                // ì¬ì‚¬ìš© ìŠ¬ë¡¯
                 ptrID = m_freePtrIDs.front();
                 m_freePtrIDs.pop();
                 m_objectPtrInfos[ptrID].raw = newObj;

@@ -65,9 +65,11 @@ namespace MMMEngine::Editor
                         m_progress.store(p);
                     });
 
+
+                bm.SetProgressCallbackString([](const std::string& progress) { std::cout << progress.c_str() << std::endl; });
+
                 const auto projectRoot =
                     ProjectManager::Get().GetActiveProject().rootPath;
-
 #ifdef _DEBUG
                 auto out = bm.BuildUserScripts(projectRoot, BuildConfiguration::Debug);
 #else

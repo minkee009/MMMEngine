@@ -1,4 +1,4 @@
-#ifndef NOMINMAX
+﻿#ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
@@ -50,14 +50,18 @@ namespace MMMEngine
 		std::vector<Light*> m_lights;
 
 		void ApplyMatToContext(ID3D11DeviceContext4* _context, Material* _material);
+		void ApplyLightToMat(ID3D11DeviceContext4* _context, Light* _light, Material* _mat);
 		void ExcuteCommands();
 		void InitCache();
 
 		void InitRenderers();
 		void UpdateRenderers();
+		void UpdateLights();
 
 		void InitD3D();
 		void Start();
+
+		void UpdateProperty(const std::wstring& _propName, const PropertyValue& _value, ShaderType _type);
 	protected:
 		HWND m_hWnd;
 
@@ -98,9 +102,6 @@ namespace MMMEngine
 
 		// 버퍼 기본색상
 		DirectX::SimpleMath::Vector4 m_ClearColor;
-
-		// 인풋 레이아웃
-		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pDefaultInputLayout;
 
 		// 트랜스폼 버퍼
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pTransbuffer = nullptr;		// 캠 버퍼
@@ -150,29 +151,5 @@ namespace MMMEngine
 
 		const Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_pDevice; }
 		const Microsoft::WRL::ComPtr<ID3D11DeviceContext4> GetContext() const { return m_pDeviceContext; }
-		const Microsoft::WRL::ComPtr<ID3D11InputLayout> GetDefaultInputLayout() const { return m_pDefaultInputLayout; }
-	public:
-		/*template <typename T, typename... Args>
-		std::weak_ptr<RendererBase> AddRenderer(RenderType _passType, Args&&... args) {
-			std::shared_ptr<T> temp = std::make_shared<T>(std::forward<Args>(args)...);
-			m_Passes[_passType].push_back(temp);
-			m_initQueue.push(temp);
-
-			return temp;
-		}
-
-		template <typename T>
-		bool RemoveRenderer(MMMEngine::RenderType _passType, std::shared_ptr<T>& _renderer) {
-			if (_renderer && (m_Passes.find(_passType) != m_Passes.end())) {
-				auto it = std::find(m_Passes[_passType].begin(), m_Passes[_passType].end(), _renderer);
-
-				if (it != m_Passes[_passType].end()) {
-					m_Passes[_passType].erase(it);
-					return true;
-				}
-			}
-
-			return false;
-		}*/
 	};
 }

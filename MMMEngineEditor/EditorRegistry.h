@@ -8,6 +8,8 @@ namespace MMMEngine::EditorRegistry
 	inline bool g_editor_window_inspector = true;
 	inline bool g_editor_window_files = true;
 	inline bool g_editor_window_scenelist = false;
+	inline bool g_editor_window_sceneChange = false;
+	inline bool g_editor_window_sceneName = false;
 	inline bool g_editor_window_physicsSettings = false;
 	inline bool g_editor_window_sceneView = true;
 	inline bool g_editor_window_gameView = true;

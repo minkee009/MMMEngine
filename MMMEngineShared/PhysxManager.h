@@ -16,6 +16,9 @@
 
 namespace MMMEngine
 {
+	enum class CollisionPhase { Enter, Stay, Exit };
+	enum class TriggerPhase { Enter, Exit };
+
 	struct CollisionInfo
 	{
 		ObjPtr<GameObject> self;
@@ -25,8 +28,8 @@ namespace MMMEngine
 		Vector3 point;           // 월드 접촉점(대표값)
 		float penetrationDepth;  // >= 0
 
-		ColliderComponent* selfCollider = nullptr;
-		ColliderComponent* otherCollider = nullptr;
+		ObjPtr<ColliderComponent> selfCollider = nullptr;
+		ObjPtr<ColliderComponent> otherCollider = nullptr;
 
 		bool isTrigger = false; // collision이면 false
 
@@ -38,17 +41,13 @@ namespace MMMEngine
 		ObjPtr<GameObject> self;
 		ObjPtr<GameObject> other;
 
-		ColliderComponent* selfCollider = nullptr;
-		ColliderComponent* otherCollider = nullptr;
+		ObjPtr<ColliderComponent> selfCollider = nullptr;
+		ObjPtr<ColliderComponent> otherCollider = nullptr;
 
 		bool isEnter = false;
 
 		TriggerPhase phase = TriggerPhase::Enter;
 	};
-
-
-	enum class CollisionPhase { Enter, Stay, Exit };
-	enum class TriggerPhase { Enter, Exit };
 
 	class MMMENGINE_API PhysxManager : public Utility::ExportSingleton<PhysxManager>
 	{

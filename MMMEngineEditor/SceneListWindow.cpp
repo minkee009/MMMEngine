@@ -1,4 +1,4 @@
-#include "SceneListWindow.h"
+ï»¿#include "SceneListWindow.h"
 #include "EditorRegistry.h"
 #include "StringHelper.h"
 #include "SceneManager.h"
@@ -19,15 +19,15 @@ struct sceneData
 };
 
 std::vector<sceneData> g_sceneList;
-std::vector<sceneData> g_sceneList_original; // ¿øº» µ¥ÀÌÅÍ º¸°ü
-bool g_hasChanges = false; // º¯°æ»çÇ× ÃßÀû
-bool g_showConfirmDialog = false; // È®ÀÎ ´ÙÀÌ¾ó·Î±× Ç¥½Ã ¿©ºÎ
+std::vector<sceneData> g_sceneList_original; // ì›ë³¸ ë°ì´í„° ë³´ê´€
+bool g_hasChanges = false; // ë³€ê²½ì‚¬í•­ ì¶”ì 
+bool g_showConfirmDialog = false; // í™•ì¸ ë‹¤ì´ì–¼ë¡œê·¸ í‘œì‹œ ì—¬ë¶€
 static char g_newSceneName[256] = "";
 static bool g_showCreateDialog = false;
 static bool g_showEmptyWarningDialog = false;
 static bool g_showDuplicateNameDialog = false;
 static char g_duplicateNameMsg[256] = "";
-static bool g_showLoadDuplicateDialog = false; // ºÒ·¯¿À±â Áßº¹ °æ°í
+static bool g_showLoadDuplicateDialog = false; // ë¶ˆëŸ¬ì˜¤ê¸° ì¤‘ë³µ ê²½ê³ 
 
 static bool IsSceneNameDuplicate(const char* name)
 {
@@ -35,17 +35,17 @@ static bool IsSceneNameDuplicate(const char* name)
 
     for (const auto& s : g_sceneList)
     {
-        if (s.name == name) // ¿ÏÀü µ¿ÀÏ ºñ±³
+        if (s.name == name) // ì™„ì „ ë™ì¼ ë¹„êµ
             return true;
     }
     return false;
 }
 
-// ÆÄÀÏ °æ·Î¿¡¼­ È®ÀåÀÚ¸¦ Á¦¿ÜÇÑ ÆÄÀÏ ÀÌ¸§¸¸ ÃßÃâ
+// íŒŒì¼ ê²½ë¡œì—ì„œ í™•ì¥ìë¥¼ ì œì™¸í•œ íŒŒì¼ ì´ë¦„ë§Œ ì¶”ì¶œ
 static std::string ExtractSceneNameFromPath(const std::string& filepath)
 {
     std::filesystem::path p(filepath);
-    return p.stem().string(); // È®ÀåÀÚ¸¦ Á¦¿ÜÇÑ ÆÄÀÏ¸í
+    return p.stem().string(); // í™•ì¥ìë¥¼ ì œì™¸í•œ íŒŒì¼ëª…
 }
 
 static std::string GetExecutablePath()
@@ -56,18 +56,18 @@ static std::string GetExecutablePath()
     return exePath.parent_path().string();
 }
 
-// Windows ÆÄÀÏ ¿­±â ´ÙÀÌ¾ó·Î±×
+// Windows íŒŒì¼ ì—´ê¸° ë‹¤ì´ì–¼ë¡œê·¸
 static std::string OpenFileDialog()
 {
     OPENFILENAMEA ofn;
     char szFile[260] = { 0 };
 
-    // ½ÇÇà °æ·Î + SceneListPath °áÇÕ
+    // ì‹¤í–‰ ê²½ë¡œ + SceneListPath ê²°í•©
     std::string execPath = GetExecutablePath();
     std::string scenePath = StringHelper::WStringToString(SceneManager::Get().GetSceneListPath());
     std::filesystem::path initialDir = std::filesystem::path(execPath) / scenePath;
 
-    // µğ·ºÅä¸®°¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ
+    // ë””ë ‰í† ë¦¬ê°€ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
     std::string initialDirStr;
     if (std::filesystem::exists(initialDir))
     {
@@ -75,7 +75,7 @@ static std::string OpenFileDialog()
     }
     else
     {
-        initialDirStr = execPath; // ¾À °æ·Î°¡ ¾øÀ¸¸é ½ÇÇà °æ·Î¸¸ »ç¿ë
+        initialDirStr = execPath; // ì”¬ ê²½ë¡œê°€ ì—†ìœ¼ë©´ ì‹¤í–‰ ê²½ë¡œë§Œ ì‚¬ìš©
     }
 
     ZeroMemory(&ofn, sizeof(ofn));
@@ -95,28 +95,28 @@ static std::string OpenFileDialog()
         return std::string(ofn.lpstrFile);
     }
 
-    return ""; // Ãë¼ÒµÈ °æ¿ì
+    return ""; // ì·¨ì†Œëœ ê²½ìš°
 }
 
 void ShowLoadDuplicateDialog()
 {
     if (g_showLoadDuplicateDialog)
     {
-        ImGui::OpenPopup(u8"°æ°í##warning_scenelist_load");
+        ImGui::OpenPopup(u8"ê²½ê³ ##warning_scenelist_load");
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        if (ImGui::BeginPopupModal(u8"°æ°í##warning_scenelist_load", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(u8"ê²½ê³ ##warning_scenelist_load", NULL, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Text(u8"ºÒ·¯¿Â ¾ÀÀÇ ÀÌ¸§ÀÌ ÀÌ¹Ì Á¸ÀçÇÕ´Ï´Ù.");
-            ImGui::Text(u8"´Ù¸¥ ¾À ÆÄÀÏÀ» ¼±ÅÃÇØÁÖ¼¼¿ä.");
+            ImGui::Text(u8"ë¶ˆëŸ¬ì˜¨ ì”¬ì˜ ì´ë¦„ì´ ì´ë¯¸ ì¡´ì¬í•©ë‹ˆë‹¤.");
+            ImGui::Text(u8"ë‹¤ë¥¸ ì”¬ íŒŒì¼ì„ ì„ íƒí•´ì£¼ì„¸ìš”.");
             if (g_duplicateNameMsg[0] != '\0')
                 ImGui::Text("%s", g_duplicateNameMsg);
             ImGui::Separator();
 
             auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x, 0 };
-            if (ImGui::Button(u8"È®ÀÎ", hbuttonsize))
+            if (ImGui::Button(u8"í™•ì¸", hbuttonsize))
             {
                 g_showLoadDuplicateDialog = false;
                 memset(g_duplicateNameMsg, 0, sizeof(g_duplicateNameMsg));
@@ -132,25 +132,25 @@ void ShowDuplicateNameDialog()
 {
     if (g_showDuplicateNameDialog)
     {
-        ImGui::OpenPopup(u8"°æ°í##warning_scenelist_01");
+        ImGui::OpenPopup(u8"ê²½ê³ ##warning_scenelist_01");
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        if (ImGui::BeginPopupModal(u8"°æ°í##warning_scenelist_01", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(u8"ê²½ê³ ##warning_scenelist_01", NULL, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Text(u8"ÀÌ¹Ì Á¸ÀçÇÏ´Â ¾À ÀÌ¸§ÀÔ´Ï´Ù.");
+            ImGui::Text(u8"ì´ë¯¸ ì¡´ì¬í•˜ëŠ” ì”¬ ì´ë¦„ì…ë‹ˆë‹¤.");
             if (g_duplicateNameMsg[0] != '\0')
                 ImGui::Text("%s", g_duplicateNameMsg);
             ImGui::Separator();
 
             auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x, 0 };
-            if (ImGui::Button(u8"È®ÀÎ", hbuttonsize))
+            if (ImGui::Button(u8"í™•ì¸", hbuttonsize))
             {
                 g_showDuplicateNameDialog = false;
-                g_showCreateDialog = true;  // »ı¼º ´ÙÀÌ¾ó·Î±× ´Ù½Ã ¿­±â
+                g_showCreateDialog = true;  // ìƒì„± ë‹¤ì´ì–¼ë¡œê·¸ ë‹¤ì‹œ ì—´ê¸°
                 memset(g_duplicateNameMsg, 0, sizeof(g_duplicateNameMsg));
-                // g_newSceneNameÀº À¯ÁöÇØ¼­ »ç¿ëÀÚ°¡ ¼öÁ¤ÇÒ ¼ö ÀÖ°Ô ÇÔ
+                // g_newSceneNameì€ ìœ ì§€í•´ì„œ ì‚¬ìš©ìê°€ ìˆ˜ì •í•  ìˆ˜ ìˆê²Œ í•¨
                 ImGui::CloseCurrentPopup();
             }
 
@@ -163,21 +163,21 @@ void ShowEmptyWarningDialog()
 {
     if (g_showEmptyWarningDialog)
     {
-        ImGui::OpenPopup(u8"°æ°í##warning_scenelist_02");
+        ImGui::OpenPopup(u8"ê²½ê³ ##warning_scenelist_02");
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        if (ImGui::BeginPopupModal(u8"°æ°í##warning_scenelist_02", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(u8"ê²½ê³ ##warning_scenelist_02", NULL, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Text(u8"¾À ¸®½ºÆ®°¡ ºñ¾îÀÖ½À´Ï´Ù.");
-            ImGui::Text(u8"ÃÖ¼Ò ÇÏ³ª ÀÌ»óÀÇ ¾ÀÀÌ ÇÊ¿äÇÕ´Ï´Ù.");
+            ImGui::Text(u8"ì”¬ ë¦¬ìŠ¤íŠ¸ê°€ ë¹„ì–´ìˆìŠµë‹ˆë‹¤.");
+            ImGui::Text(u8"ìµœì†Œ í•˜ë‚˜ ì´ìƒì˜ ì”¬ì´ í•„ìš”í•©ë‹ˆë‹¤.");
             ImGui::Separator();
 
             auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
             auto getCurrentX = ImGui::GetCursorPosX();
             ImGui::SetCursorPosX(getCurrentX + (hbuttonsize.x / 2));
-            if (ImGui::Button(u8"È®ÀÎ", hbuttonsize))
+            if (ImGui::Button(u8"í™•ì¸", hbuttonsize))
             {
                 g_showEmptyWarningDialog = false;
                 ImGui::CloseCurrentPopup();
@@ -192,14 +192,14 @@ void ShowCreateSceneDialog()
 {
     if (g_showCreateDialog)
     {
-        ImGui::OpenPopup(u8"»õ ¾À »ı¼º");
+        ImGui::OpenPopup(u8"ìƒˆ ì”¬ ìƒì„±");
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        if (ImGui::BeginPopupModal(u8"»õ ¾À »ı¼º", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(u8"ìƒˆ ì”¬ ìƒì„±", NULL, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Text(u8"»õ ¾ÀÀÇ ÀÌ¸§À» ÀÔ·ÂÇÏ¼¼¿ä:");
+            ImGui::Text(u8"ìƒˆ ì”¬ì˜ ì´ë¦„ì„ ì…ë ¥í•˜ì„¸ìš”:");
             ImGui::Separator();
 
             ImGui::SetNextItemWidth(300.0f);
@@ -207,18 +207,18 @@ void ShowCreateSceneDialog()
 
             ImGui::Separator();
 
-            // È®ÀÎ ¹öÆ°
+            // í™•ì¸ ë²„íŠ¼
             auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
 
-            if (ImGui::Button(u8"»ı¼º", hbuttonsize))
+            if (ImGui::Button(u8"ìƒì„±", hbuttonsize))
             {
                 if (strlen(g_newSceneName) > 0)
                 {
-                    // Áßº¹ Ã¼Å©
+                    // ì¤‘ë³µ ì²´í¬
                     if (IsSceneNameDuplicate(g_newSceneName))
                     {
                         g_showDuplicateNameDialog = true;
-                        snprintf(g_duplicateNameMsg, sizeof(g_duplicateNameMsg), u8"ÀÔ·ÂÇÑ ÀÌ¸§: %s", g_newSceneName);
+                        snprintf(g_duplicateNameMsg, sizeof(g_duplicateNameMsg), u8"ì…ë ¥í•œ ì´ë¦„: %s", g_newSceneName);
                         g_showCreateDialog = false;
                         ImGui::CloseCurrentPopup();
                     }
@@ -241,10 +241,10 @@ void ShowCreateSceneDialog()
 
             ImGui::SameLine();
 
-            // Ãë¼Ò ¹öÆ°
-            if (ImGui::Button(u8"Ãë¼Ò", hbuttonsize))
+            // ì·¨ì†Œ ë²„íŠ¼
+            if (ImGui::Button(u8"ì·¨ì†Œ", hbuttonsize))
             {
-                // ÀÔ·Â ÇÊµå ÃÊ±âÈ­
+                // ì…ë ¥ í•„ë“œ ì´ˆê¸°í™”
                 memset(g_newSceneName, 0, sizeof(g_newSceneName));
                 g_showCreateDialog = false;
                 ImGui::CloseCurrentPopup();
@@ -255,7 +255,7 @@ void ShowCreateSceneDialog()
     }
 }
 
-// º¯°æ»çÇ× Àû¿ë ÇÔ¼ö
+// ë³€ê²½ì‚¬í•­ ì ìš© í•¨ìˆ˜
 bool ApplySceneListChanges()
 {
     bool hasEnabledScene = false;
@@ -271,17 +271,17 @@ bool ApplySceneListChanges()
     if (!hasEnabledScene)
     {
         g_showEmptyWarningDialog = true;
-        return false; // ½ÇÆĞ
+        return false; // ì‹¤íŒ¨
     }
 
-    // ½ÇÁ¦·Î ³²Àº °ÍµéÀ» Scene¸Å´ÏÀú¿¡ Àü¼Û
+    // ì‹¤ì œë¡œ ë‚¨ì€ ê²ƒë“¤ì„ Sceneë§¤ë‹ˆì €ì— ì „ì†¡
     auto it = std::remove_if(g_sceneList.begin(), g_sceneList.end(), [](const auto& scene) {
         return !scene.enable;
         });
 
     g_sceneList.erase(it, g_sceneList.end());
 
-    // ÀÌÈÄ ³²Àº °Íµé¸¸ enabledScenes¿¡ ´ã±â
+    // ì´í›„ ë‚¨ì€ ê²ƒë“¤ë§Œ enabledScenesì— ë‹´ê¸°
     std::vector<std::string> enabledScenes;
     for (const auto& scene : g_sceneList) {
         enabledScenes.push_back(scene.name);
@@ -290,23 +290,23 @@ bool ApplySceneListChanges()
     g_sceneList_original = g_sceneList;
     g_hasChanges = false;
 
-    // TODO: SceneManager Àû¿ë
+    // TODO: SceneManager ì ìš©
     auto sceneRef = SceneManager::Get().GetCurrentScene();
     auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
     SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" + StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
     SceneManager::Get().RebulidAndApplySceneList(enabledScenes);
     SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
-    return true; // ¼º°ø
+    return true; // ì„±ê³µ
 }
 
-// º¯°æ»çÇ× Ãë¼Ò ÇÔ¼ö
+// ë³€ê²½ì‚¬í•­ ì·¨ì†Œ í•¨ìˆ˜
 void DiscardSceneListChanges()
 {
-    g_sceneList = g_sceneList_original; // ¿øº»À¸·Î µÇµ¹¸²
+    g_sceneList = g_sceneList_original; // ì›ë³¸ìœ¼ë¡œ ë˜ëŒë¦¼
     g_hasChanges = false;
 }
 
-// º¯°æ»çÇ× È®ÀÎ ÇÔ¼ö
+// ë³€ê²½ì‚¬í•­ í™•ì¸ í•¨ìˆ˜
 void CheckForChanges()
 {
     if (g_sceneList.size() != g_sceneList_original.size())
@@ -328,28 +328,28 @@ void CheckForChanges()
     g_hasChanges = false;
 }
 
-// ¾À ÆÄÀÏ ºÒ·¯¿À±â ÇÔ¼ö
+// ì”¬ íŒŒì¼ ë¶ˆëŸ¬ì˜¤ê¸° í•¨ìˆ˜
 void LoadSceneFile()
 {
     std::string filepath = OpenFileDialog();
 
     if (filepath.empty())
     {
-        // »ç¿ëÀÚ°¡ Ãë¼ÒÇÑ °æ¿ì
+        // ì‚¬ìš©ìê°€ ì·¨ì†Œí•œ ê²½ìš°
         return;
     }
 
     std::string sceneName = ExtractSceneNameFromPath(filepath);
 
-    // Áßº¹ Ã¼Å©
+    // ì¤‘ë³µ ì²´í¬
     if (IsSceneNameDuplicate(sceneName.c_str()))
     {
         g_showLoadDuplicateDialog = true;
-        snprintf(g_duplicateNameMsg, sizeof(g_duplicateNameMsg), u8"Áßº¹µÈ ÀÌ¸§: %s", sceneName.c_str());
+        snprintf(g_duplicateNameMsg, sizeof(g_duplicateNameMsg), u8"ì¤‘ë³µëœ ì´ë¦„: %s", sceneName.c_str());
         return;
     }
 
-    // Áßº¹ÀÌ ¾øÀ¸¸é ¾À ¸®½ºÆ®¿¡ Ãß°¡
+    // ì¤‘ë³µì´ ì—†ìœ¼ë©´ ì”¬ ë¦¬ìŠ¤íŠ¸ì— ì¶”ê°€
     sceneData newScene;
     newScene.enable = true;
     newScene.idx = g_sceneList.empty() ? 0 : g_sceneList.back().idx + 1;
@@ -357,6 +357,18 @@ void LoadSceneFile()
 
     g_sceneList.push_back(newScene);
     g_hasChanges = true;
+}
+
+void MMMEngine::Editor::SceneListWindow::RefreshSceneList()
+{
+    g_sceneList.clear();
+    uint32_t idx = 0;
+    for (auto& scene : SceneManager::Get().GetAllSceneToRaw())
+    {
+        g_sceneList.push_back({ true, idx++, scene->GetName() });
+    }
+    g_sceneList_original.clear();
+    g_sceneList_original = g_sceneList; // ì›ë³¸ ì €ì¥
 }
 
 void MMMEngine::Editor::SceneListWindow::Render()
@@ -371,76 +383,71 @@ void MMMEngine::Editor::SceneListWindow::Render()
     static bool firstLoad = true;
     if (firstLoad)
     {
-        uint32_t idx = 0;
-        for (auto& scene : SceneManager::Get().GetAllSceneToRaw())
-        {
-            g_sceneList.push_back({ true, idx++, scene->GetName() });
-        }
-        g_sceneList_original = g_sceneList; // ¿øº» ÀúÀå
+        RefreshSceneList();
         firstLoad = false;
     }
 
-    // Ã¢ Á¦¸ñ ¼³Á¤ (º¯°æ»çÇ× ÀÖÀ¸¸é * Ãß°¡)
-    std::string windowTitle = g_hasChanges ? u8"¾À ¸®½ºÆ®*###SceneList" : u8"¾À ¸®½ºÆ®###SceneList";
+    // ì°½ ì œëª© ì„¤ì • (ë³€ê²½ì‚¬í•­ ìˆìœ¼ë©´ * ì¶”ê°€)
+    std::string windowTitle = g_hasChanges ? u8"ì”¬ ë¦¬ìŠ¤íŠ¸*###SceneList" : u8"ì”¬ ë¦¬ìŠ¤íŠ¸###SceneList";
 
     ImGui::Begin(windowTitle.c_str(), &g_editor_window_scenelist, ImGuiWindowFlags_NoDocking);
 
-    // Ã¢ÀÌ ´İÈ÷·Á°í ÇÒ ¶§ Ã¼Å©
+    // ì°½ì´ ë‹«íˆë ¤ê³  í•  ë•Œ ì²´í¬
     if (!g_editor_window_scenelist && g_hasChanges && !g_showConfirmDialog)
     {
         g_showConfirmDialog = true;
-        g_editor_window_scenelist = true; // Ã¢À» ´Ù½Ã ¿­¾îµÒ
+        g_editor_window_scenelist = true; // ì°½ì„ ë‹¤ì‹œ ì—´ì–´ë‘ 
     }
 
-    // ÇöÀç Ã¢ÀÇ »ç¿ë °¡´ÉÇÑ ¿µ¿ª Å©±â °¡Á®¿À±â
+    // í˜„ì¬ ì°½ì˜ ì‚¬ìš© ê°€ëŠ¥í•œ ì˜ì—­ í¬ê¸° ê°€ì ¸ì˜¤ê¸°
     ImVec2 available_size = ImGui::GetContentRegionAvail();
-    // Àû¿ë ¹öÆ°ÀÇ ³ôÀÌ (ÆĞµù Æ÷ÇÔ)
+    // ì ìš© ë²„íŠ¼ì˜ ë†’ì´ (íŒ¨ë”© í¬í•¨)
     float button_height = ImGui::GetFrameHeight();
     float spacing = ImGui::GetStyle().ItemSpacing.y;
-    // µå·¡±× ¿µ¿ª Å©±â °è»ê (¹öÆ° ³ôÀÌ¿Í °£°İÀ» Á¦¿ÜÇÑ ³ª¸ÓÁö ÀüÃ¼)
+    // ë“œë˜ê·¸ ì˜ì—­ í¬ê¸° ê³„ì‚° (ë²„íŠ¼ ë†’ì´ì™€ ê°„ê²©ì„ ì œì™¸í•œ ë‚˜ë¨¸ì§€ ì „ì²´)
     ImVec2 drag_box_size(available_size.x, available_size.y - button_height - spacing);
 
     ImGui::BeginChild("DragBox", drag_box_size, true);
 
-    // µå·¡±× ¾Ø µå·ÓÀ¸·Î ¼ø¼­ º¯°æ
+    // ë“œë˜ê·¸ ì•¤ ë“œë¡­ìœ¼ë¡œ ìˆœì„œ ë³€ê²½
     int enableIdx = -1;
     for (int i = 0; i < g_sceneList.size(); i++)
     {
         auto& data = g_sceneList[i];
         if (data.enable)
             enableIdx++;
-        std::string validIdxStr = (!data.enable) ? u8"ºñÈ°¼ºÈ­" : std::to_string(enableIdx);
+        std::string validIdxStr = (!data.enable) ? u8"ë¹„í™œì„±í™”" : std::to_string(enableIdx);
         std::string dataStr = validIdxStr + " - " + data.name;
 
         ImGui::PushID(i);
 
-        // Ã¼Å©¹Ú½º
+        // ì²´í¬ë°•ìŠ¤
         if (ImGui::Checkbox(dataStr.c_str(), &data.enable))
         {
-            CheckForChanges(); // º¯°æ»çÇ× È®ÀÎ
+            CheckForChanges(); // ë³€ê²½ì‚¬í•­ í™•ì¸
         }
 
-        // µå·¡±× ¼Ò½º ¼³Á¤
+        // ë“œë˜ê·¸ ì†ŒìŠ¤ ì„¤ì •
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
         {
             ImGui::SetDragDropPayload("SCENE_ITEM", &i, sizeof(int));
-            ImGui::Text(u8"ÀÌµ¿: %s", dataStr.c_str());
+            ImGui::Text(u8"ì´ë™: %s", dataStr.c_str());
             ImGui::EndDragDropSource();
         }
 
-        // µå·Ó Å¸°Ù ¼³Á¤
+        // ë“œë¡­ íƒ€ê²Ÿ ì„¤ì •
         if (ImGui::BeginDragDropTarget())
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ITEM"))
             {
                 int payload_n = *(const int*)payload->Data;
-                // ¾ÆÀÌÅÛ ¼ø¼­ ±³È¯
+                // ì•„ì´í…œ ìˆœì„œ êµí™˜
                 if (payload_n != i)
                 {
                     sceneData temp = g_sceneList[payload_n];
                     g_sceneList.erase(g_sceneList.begin() + payload_n);
                     g_sceneList.insert(g_sceneList.begin() + i, temp);
-                    g_hasChanges = true; // ¼ø¼­ º¯°æ ½Ã º¯°æ»çÇ× Ç¥½Ã
+                    g_hasChanges = true; // ìˆœì„œ ë³€ê²½ ì‹œ ë³€ê²½ì‚¬í•­ í‘œì‹œ
                 }
             }
             ImGui::EndDragDropTarget();
@@ -450,58 +457,58 @@ void MMMEngine::Editor::SceneListWindow::Render()
     }
 
     auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
-    if (ImGui::Button(u8"ºÒ·¯¿À±â", hbuttonsize))
+    if (ImGui::Button(u8"ë¶ˆëŸ¬ì˜¤ê¸°", hbuttonsize))
     {
-        LoadSceneFile(); // ÆÄÀÏ ºÒ·¯¿À±â ÇÔ¼ö È£Ãâ
+        LoadSceneFile(); // íŒŒì¼ ë¶ˆëŸ¬ì˜¤ê¸° í•¨ìˆ˜ í˜¸ì¶œ
     }
 
     ImGui::SameLine();
 
-    // »õ·Î »ı¼º ¹öÆ°
-    if (ImGui::Button(u8"»õ·Î »ı¼º", hbuttonsize))
+    // ìƒˆë¡œ ìƒì„± ë²„íŠ¼
+    if (ImGui::Button(u8"ìƒˆë¡œ ìƒì„±", hbuttonsize))
     {
         g_showCreateDialog = true;
     }
     ImGui::EndChild();
 
-    // Àû¿ë ¹öÆ° (Ã¢ ³Êºñ¸¸Å­, ÇÏ´Ü °íÁ¤)
-    if (ImGui::Button(u8"Àû¿ë", ImVec2(-1, 0)))
+    // ì ìš© ë²„íŠ¼ (ì°½ ë„ˆë¹„ë§Œí¼, í•˜ë‹¨ ê³ ì •)
+    if (ImGui::Button(u8"ì ìš©", ImVec2(-1, 0)))
     {
-        ApplySceneListChanges(); // ÇÔ¼ö·Î Ã³¸®
+        ApplySceneListChanges(); // í•¨ìˆ˜ë¡œ ì²˜ë¦¬
     }
     ImGui::End();
 
-    // ºó ¸®½ºÆ® °æ°í ´ÙÀÌ¾ó·Î±× ·»´õ¸µ
+    // ë¹ˆ ë¦¬ìŠ¤íŠ¸ ê²½ê³  ë‹¤ì´ì–¼ë¡œê·¸ ë Œë”ë§
     ShowEmptyWarningDialog();
 
-    // »õ ¾À »ı¼º ´ÙÀÌ¾ó·Î±× ·»´õ¸µ
+    // ìƒˆ ì”¬ ìƒì„± ë‹¤ì´ì–¼ë¡œê·¸ ë Œë”ë§
     ShowCreateSceneDialog();
 
-    // Áßº¹ ÀÌ¸§ °æ°í ´ÙÀÌ¾ó·Î±× ·»´õ¸µ
+    // ì¤‘ë³µ ì´ë¦„ ê²½ê³  ë‹¤ì´ì–¼ë¡œê·¸ ë Œë”ë§
     ShowDuplicateNameDialog();
 
-    // ºÒ·¯¿À±â Áßº¹ °æ°í ´ÙÀÌ¾ó·Î±× ·»´õ¸µ
+    // ë¶ˆëŸ¬ì˜¤ê¸° ì¤‘ë³µ ê²½ê³  ë‹¤ì´ì–¼ë¡œê·¸ ë Œë”ë§
     ShowLoadDuplicateDialog();
 
-    // È®ÀÎ ´ÙÀÌ¾ó·Î±×
+    // í™•ì¸ ë‹¤ì´ì–¼ë¡œê·¸
     if (g_showConfirmDialog)
     {
-        ImGui::OpenPopup(u8"º¯°æ»çÇ× È®ÀÎ");
+        ImGui::OpenPopup(u8"ë³€ê²½ì‚¬í•­ í™•ì¸");
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-        if (ImGui::BeginPopupModal(u8"º¯°æ»çÇ× È®ÀÎ", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(u8"ë³€ê²½ì‚¬í•­ í™•ì¸", NULL, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Text(u8"ÀúÀåµÇÁö ¾ÊÀº º¯°æ»çÇ×ÀÌ ÀÖ½À´Ï´Ù.");
-            ImGui::Text(u8"Àû¿ëÇÏÁö ¾Ê°í ´İÀ¸½Ã°Ú½À´Ï±î?");
+            ImGui::Text(u8"ì €ì¥ë˜ì§€ ì•Šì€ ë³€ê²½ì‚¬í•­ì´ ìˆìŠµë‹ˆë‹¤.");
+            ImGui::Text(u8"ì ìš©í•˜ì§€ ì•Šê³  ë‹«ìœ¼ì‹œê² ìŠµë‹ˆê¹Œ?");
             ImGui::Separator();
 
-            if (ImGui::Button(u8"Àû¿ëÇÏ°í ´İ±â", ImVec2(120, 0)))
+            if (ImGui::Button(u8"ì ìš©í•˜ê³  ë‹«ê¸°", ImVec2(120, 0)))
             {
                 const bool ok = ApplySceneListChanges();
 
-                // ÇÙ½É: ½ÇÆĞÇßÀ¸¸é confirmÀ» ³¡³»°í ¸®½ºÆ®·Î µ¹¾Æ°£´Ù
+                // í•µì‹¬: ì‹¤íŒ¨í–ˆìœ¼ë©´ confirmì„ ëë‚´ê³  ë¦¬ìŠ¤íŠ¸ë¡œ ëŒì•„ê°„ë‹¤
                 g_showConfirmDialog = false;
 
                 if (ok)
@@ -510,15 +517,15 @@ void MMMEngine::Editor::SceneListWindow::Render()
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            if (ImGui::Button(u8"Àû¿ëÇÏÁö ¾Ê°í ´İ±â", ImVec2(150, 0)))
+            if (ImGui::Button(u8"ì ìš©í•˜ì§€ ì•Šê³  ë‹«ê¸°", ImVec2(150, 0)))
             {
-                DiscardSceneListChanges(); // ÇÔ¼ö·Î Ã³¸®
+                DiscardSceneListChanges(); // í•¨ìˆ˜ë¡œ ì²˜ë¦¬
                 g_showConfirmDialog = false;
                 g_editor_window_scenelist = false;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
-            if (ImGui::Button(u8"Ãë¼Ò", ImVec2(120, 0)))
+            if (ImGui::Button(u8"ì·¨ì†Œ", ImVec2(120, 0)))
             {
                 g_showConfirmDialog = false;
                 ImGui::CloseCurrentPopup();

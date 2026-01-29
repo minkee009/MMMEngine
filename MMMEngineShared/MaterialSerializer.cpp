@@ -1,4 +1,4 @@
-#include "MaterialSerializer.h"
+ï»¿#include "MaterialSerializer.h"
 #include <rttr/type>
 #include <fstream>
 
@@ -109,7 +109,7 @@ fs::path MMMEngine::MaterialSerializer::Serealize(Material* _material, std::wstr
 
 	std::ofstream file(savePath.string(), std::ios::binary);
 	if (!file.is_open()) {
-		throw std::runtime_error("ÆÄÀÏÀ» ¿­ ¼ö ¾ø½À´Ï´Ù: " + Utility::StringHelper::WStringToString(_path));
+		throw std::runtime_error("íŒŒì¼ì„ ì—´ ìˆ˜ ì—†ìŠµë‹ˆë‹¤: " + Utility::StringHelper::WStringToString(_path));
 	}
 
 	file.write(reinterpret_cast<const char*>(v.data()), v.size());
@@ -119,21 +119,21 @@ fs::path MMMEngine::MaterialSerializer::Serealize(Material* _material, std::wstr
 
 void MMMEngine::MaterialSerializer::UnSerealize(Material* _material, std::wstring _path)
 {
-	// °æ·Î ¸¸µé±â
+	// ê²½ë¡œ ë§Œë“¤ê¸°
 	fs::path loadPath(ResourceManager::Get().GetCurrentRootPath());
 	loadPath = loadPath / _path;
 
-	// ÆÄÀÏ ÀĞ±â
+	// íŒŒì¼ ì½ê¸°
 	std::ifstream inFile(loadPath.wstring(), std::ios::binary);
 	if (!inFile.is_open()) {
-		throw std::runtime_error("ÆÄÀÏÀ» ¿­¼ö ¾ø½À´Ï´Ù.");
+		throw std::runtime_error("íŒŒì¼ì„ ì—´ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
 	}
 
-	// ÆÄÀÏ ÀüÃ¼¸¦ ¸Ş¸ğ¸®¿¡ ·Îµå
+	// íŒŒì¼ ì „ì²´ë¥¼ ë©”ëª¨ë¦¬ì— ë¡œë“œ
 	std::vector<uint8_t> buffer((std::istreambuf_iterator<char>(inFile)),
 		std::istreambuf_iterator<char>());
 
-	// MessagePack ¡æ JSON º¯È¯
+	// MessagePack â†’ JSON ë³€í™˜
 	nlohmann::json snapshot = nlohmann::json::from_msgpack(buffer);
 
 	// Properties
@@ -141,7 +141,7 @@ void MMMEngine::MaterialSerializer::UnSerealize(Material* _material, std::wstrin
 		for (auto& [key, val] : snapshot["properties"].items()) {
 			std::wstring wkey(key.begin(), key.end());
 			PropertyValue pv = property_from_json(val);
-			_material->SetProperty(wkey, pv);
+			_material->AddProperty(wkey, pv);
 		}
 	}
 

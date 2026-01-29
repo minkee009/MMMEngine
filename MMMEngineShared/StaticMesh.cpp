@@ -3,6 +3,7 @@
 #include "ResourceSerializer.h"
 #include <RendererTools.h>
 #include "RenderManager.h"
+#include "Material.h"
 
 //#include <wrl/client.h>
 //#include <d3d11_4.h>

@@ -33,7 +33,7 @@ using namespace Microsoft::WRL;
 void AfterProjectLoaded()
 {
 	auto currentProject = ProjectManager::Get().GetActiveProject();
-	SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", 0, true);
+	SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
 	GlobalRegistry::g_pApp->SetWindowTitle(L"MMMEditor [ " + Utility::StringHelper::StringToWString(currentProject.rootPath) + L" ]");
 	ObjectManager::Get().StartUp();
 
@@ -61,8 +61,6 @@ void AfterProjectLoaded()
 
 	// 쉐이더 인포 시작하기
 	ShaderInfo::Get().StartUp();
-	
-	BuildManager::Get().SetProgressCallbackString([](const std::string& progress) { std::cout << progress.c_str() << std::endl; });
 }
 
 void Initialize()
@@ -231,6 +229,8 @@ void Update()
 
 void Release()
 {
+	ProjectManager::Get().SetLastSceneIndex(SceneManager::Get().GetCurrentScene().id);
+	ProjectManager::Get().SaveActiveProject();
 	PhysxManager::Get().UnbindScene();
 	GlobalRegistry::g_pApp = nullptr;
 	ImGuiEditorContext::Get().Uninitialize();

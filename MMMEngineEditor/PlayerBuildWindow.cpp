@@ -374,7 +374,7 @@ namespace MMMEngine::Editor
             m_exitCode.store(0);
         }
 
-        if (ImGui::Begin(u8"플레이어 빌드", &g_editor_window_playerBuild, ImGuiWindowFlags_None))
+        if (ImGui::Begin(u8"플레이어 빌드", &g_editor_window_playerBuild, ImGuiWindowFlags_NoDocking))
         {
             // 프로젝트 정보 표시
             if (ProjectManager::Get().HasActiveProject())

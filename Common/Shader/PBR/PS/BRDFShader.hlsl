@@ -44,7 +44,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     // 텍스처 샘플링
     float3 albedo = _albedo.Sample(_sp0, input.Tex).rgb * mBaseColor.rgb;
-    float metalic = _metalic.Sample(_sp0, input.Tex).r * mMetalic;
+    float metalic = _metallic.Sample(_sp0, input.Tex).r * mMetallic;
     float roughness = _roughness.Sample(_sp0, input.Tex).r * mRoughness;
     float ao = _ambientOcclusion.Sample(_sp0, input.Tex).r * mAoStrength;
     float3 emissive = _emissive.Sample(_sp0, input.Tex).rgb * mEmissive;
@@ -115,11 +115,12 @@ float4 main(PS_INPUT input) : SV_TARGET
         }
     }
     
-    float3 light = mLightColor;
+    float3 light = mLightColor * mIntensity;
     float3 direct = (diffuse + specular) * light * NL;
     float3 color = (direct * shadowFactor) + amibentIBL + emissive;
     //float4 finalColor = float4(pow(color, 1.0f / 2.2f), 1.0f);
     
-    return float4(color, 1.0f);
+    return float4(texColor.rgb * mLightColor * NL * mIntensity, 1.0f);
+    //return float4(color, 1.0f);
     //return float4(N, 1.0f);
 }

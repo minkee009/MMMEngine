@@ -1,22 +1,23 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Export.h"
 #include "RenderShared.h"
 
 namespace MMMEngine {
 	class RenderManager;
+	class Material;
 	class MMMENGINE_API RenderCommand
 	{
 	public:
-		float camDistance;			// Ä«¸Ş¶ó¿ÍÀÇ °Å¸® (Transculant¿ë)
+		float camDistance;			// ì¹´ë©”ë¼ì™€ì˜ ê±°ë¦¬ (Transculantìš©)
 
-		ID3D11Buffer* vertexBuffer;	// ¹öÅØ½º ¹öÆÛ
-		ID3D11Buffer* indexBuffer;	// ÀÎµ¦½º ¹öÆÛ
-		Material* material;			// ¸ŞÅ×¸®¾ó
+		ID3D11Buffer* vertexBuffer;	// ë²„í…ìŠ¤ ë²„í¼
+		ID3D11Buffer* indexBuffer;	// ì¸ë±ìŠ¤ ë²„í¼
+		Material* material;			// ë©”í…Œë¦¬ì–¼
 
-		UINT indiciesSize = (UINT)-1;		// ÀÎµ¦½º »çÀÌÁî (-1 ³ª¿À¸é ¾ÈµÅ)
-		int worldMatIndex = -1;		// ¿ùµå ¸ÅÆ®¸¯½º ÀÎµ¦½º (-1ÀÌ ³ª¿À¸é Àı´ë¾ÈµÊ!!)
-		int boneMatIndex = -1;		// º» ¸ÅÆ®¸¯½º ÀÎµ¦½º (-1Àº ½ºÅ²µå¸Ş½Ã¾Æ´Ô)
+		UINT indiciesSize = (UINT)-1;		// ì¸ë±ìŠ¤ ì‚¬ì´ì¦ˆ (-1 ë‚˜ì˜¤ë©´ ì•ˆë¼)
+		int worldMatIndex = -1;		// ì›”ë“œ ë§¤íŠ¸ë¦­ìŠ¤ ì¸ë±ìŠ¤ (-1ì´ ë‚˜ì˜¤ë©´ ì ˆëŒ€ì•ˆë¨!!)
+		int boneMatIndex = -1;		// ë³¸ ë§¤íŠ¸ë¦­ìŠ¤ ì¸ë±ìŠ¤ (-1ì€ ìŠ¤í‚¨ë“œë©”ì‹œì•„ë‹˜)
 	};
 }
 

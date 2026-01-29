@@ -512,12 +512,12 @@ void MMMEngine::PhysxManager::DispatchPhysicsEvents()
     for (const auto& e : contacts)
     {
         // userData -> 엔진 컴포넌트 복구
-        auto* rbA = static_cast<RigidBodyComponent*>(e.a ? e.a->userData : nullptr);
-        auto* rbB = static_cast<RigidBodyComponent*>(e.b ? e.b->userData : nullptr);
-        auto* colA = static_cast<ColliderComponent*>(e.aShape ? e.aShape->userData : nullptr);
-        auto* colB = static_cast<ColliderComponent*>(e.bShape ? e.bShape->userData : nullptr);
+        auto rbA = ObjectManager::Get().GetPtrFromRaw<RigidBodyComponent>(e.a ? e.a->userData : nullptr);
+        auto rbB = ObjectManager::Get().GetPtrFromRaw<RigidBodyComponent>(e.b ? e.b->userData : nullptr);
+        auto colA = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(e.aShape ? e.aShape->userData : nullptr);
+        auto colB = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(e.bShape ? e.bShape->userData : nullptr);
 
-        if (!rbA || !rbB || !colA || !colB) continue;
+        if (!rbA.IsValid() || !rbB.IsValid() || !colA.IsValid() || !colB.IsValid()) continue;
 
         auto goA = rbA->GetGameObject();
         auto goB = rbB->GetGameObject();
@@ -571,8 +571,8 @@ void MMMEngine::PhysxManager::DispatchPhysicsEvents()
     const auto& triggers = m_PhysScene.GetFrameTriggers();
     for (const auto& t : triggers)
     {
-        auto* triggerCol = static_cast<ColliderComponent*>(t.triggerShape ? t.triggerShape->userData : nullptr);
-        auto* otherCol = static_cast<ColliderComponent*>(t.otherShape ? t.otherShape->userData : nullptr);
+        auto triggerCol = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(t.triggerShape ? t.triggerShape->userData : nullptr);
+        auto otherCol = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(t.otherShape ? t.otherShape->userData : nullptr);
         if (!triggerCol || !otherCol) continue;
 
         auto goT = triggerCol->GetGameObject();

@@ -1,4 +1,4 @@
-#include "../../CommonShared.hlsli"
+#include "../../CommonSharedPS.hlsli"
 #include "../../DeferredShared.hlsli"
 #include "../PBRShared.hlsli"
 

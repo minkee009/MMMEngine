@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #define NOMINMAX
 #include "ExportSingleton.hpp"
 #include <unordered_map>
@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 #include <d3d11_4.h>
 #include <d3d11shader.h>
+#include <variant>
 
 #include "RendererTools.h"
 #include "ResourceManager.h"
@@ -14,12 +15,17 @@
 
 #include "VShader.h"
 #include "PShader.h"
+#include "Texture2D.h"
 
-// ½¦ÀÌ´õ Á¤º¸¸¦ Á¤ÀÇÇÏ´Â Çì´õÀÔ´Ï´Ù
-// ¿©±â¼­ ½¦ÀÌ´õ Á¤º¸¸¦ ÇÏµåÄÚµùÇØ¾ßÇÕ´Ï´Ù.
+// ì‰ì´ë” ì •ë³´ë¥¼ ì •ì˜í•˜ëŠ” í—¤ë”ì…ë‹ˆë‹¤
+// ì—¬ê¸°ì„œ ì‰ì´ë” ì •ë³´ë¥¼ í•˜ë“œì½”ë”©í•´ì•¼í•©ë‹ˆë‹¤.
 namespace MMMEngine {
+	using PropertyValue = std::variant<
+		int, float, DirectX::SimpleMath::Vector3, DirectX::SimpleMath::Vector4, DirectX::SimpleMath::Matrix,
+		ResPtr<MMMEngine::Texture2D>
+	>;
 
-	// °³º°·Î Á¤ÀÇÇÒ ½¦ÀÌ´õ Å¸ÀÔ
+	// ê°œë³„ë¡œ ì •ì˜í•  ì‰ì´ë” íƒ€ì…
 	enum ShaderType : int {
 		S_PBR = 0,
 		S_TOON = 1,
@@ -27,10 +33,12 @@ namespace MMMEngine {
 		S_SKYBOX = 3,
 	};
 
-	// -- »ó¼ö Á¤º¸ ¸¸µé°í ½ºÅ¸Æ®¾÷, json¿¡ °°Àº¾ç½ÄÀ¸·Î µî·ÏÇÒ°Í!! --
+	// -- ìƒìˆ˜ ì •ë³´ ë§Œë“¤ê³  ìŠ¤íƒ€íŠ¸ì—…, jsonì— ê°™ì€ì–‘ì‹ìœ¼ë¡œ ë“±ë¡í• ê²ƒ!! --
 	struct Render_LightBuffer {
-		DirectX::SimpleMath::Vector4 mLightDir;
-		DirectX::SimpleMath::Vector4 mLightColor;
+		DirectX::SimpleMath::Vector3 mLightDir = { .0f, .0f, 1.0f };
+		float mLightPadding = 0.0f;
+		DirectX::SimpleMath::Vector3 mLightColor = { 1.0f, .0f, 1.0f };
+		float mIntensity = 1.0f;
 	};
 
 	struct Render_ShadowBuffer
@@ -43,8 +51,8 @@ namespace MMMEngine {
 	{
 		DirectX::SimpleMath::Color mBaseColorFactor;
 
-		float mMetalicFactor = 1.0f;
-		float mRoughnessFactor = 1.0f;
+		float mMetalicFactor = 0.0f;
+		float mRoughnessFactor = 0.0f;
 		float mAoFactor = 1.0f;
 		float mEmissiveFactor = 1.0f;
 	};
@@ -57,49 +65,57 @@ namespace MMMEngine {
 	};
 
 	struct TypeInfo {
-		ShaderType shaderType = ShaderType::S_PBR;		// ½¦ÀÌ´õÅ¸ÀÔ
-		RenderType renderType = RenderType::R_GEOMETRY;	// ·»´õÅ¸ÀÔ
-		Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;	// VSÅ¸ÀÔÀÏ¶§¸¸ Á¸Àç
+		ShaderType shaderType = ShaderType::S_PBR;		// ì‰ì´ë”íƒ€ì…
+		RenderType renderType = RenderType::R_GEOMETRY;	// ë Œë”íƒ€ì…
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;	// VSíƒ€ì…ì¼ë•Œë§Œ ì¡´ì¬
 	};
 
 	struct PropertyInfo {
 		PropertyType propertyType = PropertyType::Texture;
-		int bufferIndex = -1;	// ¹öÆÛ¹øÈ£
+		int bufferIndex = -1;	// ë²„í¼ë²ˆí˜¸
+
+		D3D_SHADER_VARIABLE_TYPE varType;
+		UINT rows;    // í–‰ ìˆ˜ (ì˜ˆ: float4 â†’ 1)
+		UINT columns; // ì—´ ìˆ˜ (ì˜ˆ: float4 â†’ 4)
 	};
 
 	struct CBPropertyInfo {
-		std::wstring bufferName;	// »ó¼ö¹öÆÛ ÀÌ¸§
-		UINT offset;	// »ó¼ö¹öÆÛ ³»¿¡¼­ ÇØ´ç º¯¼öÀÇ ½ÃÀÛ À§Ä¡(¹ÙÀÌÆ® ´ÜÀ§)
-		UINT size;		// º¯¼öÀÇ Å©±â(¹ÙÀÌÆ® ´ÜÀ§)
+		std::wstring bufferName;	// ìƒìˆ˜ë²„í¼ ì´ë¦„
+		UINT offset;	// ìƒìˆ˜ë²„í¼ ë‚´ì—ì„œ í•´ë‹¹ ë³€ìˆ˜ì˜ ì‹œì‘ ìœ„ì¹˜(ë°”ì´íŠ¸ ë‹¨ìœ„)
+		UINT size;		// ë³€ìˆ˜ì˜ í¬ê¸°(ë°”ì´íŠ¸ ë‹¨ìœ„)
 	};
 
+	struct BufferInfo {
+		std::wstring bufferName;
+		int registerIndex = -1;
+	};
+
+	class RenderManager;
 	class MMMENGINE_API ShaderInfo : public Utility::ExportSingleton<ShaderInfo>
 	{
+		friend class RenderManager;
 	private: 
-		// ±âº»°ª ½¦ÀÌ´õ
+		// ê¸°ë³¸ê°’ ì‰ì´ë”
 		ResPtr<VShader> m_pDefaultVShader;
 		ResPtr<PShader> m_pDefaultPShader;
 
-		// ½¦ÀÌ´õ Å¸ÀÔÁ¤º¸Á¤ÀÇ < ShaderPath, TypeInfo >
+		// ì‰ì´ë” íƒ€ì…ì •ë³´ì •ì˜ < ShaderPath, TypeInfo >
 		std::unordered_map<std::wstring, TypeInfo> m_typeInfoMap;
 
-		// ½¦ÀÌ´õÅ¸ÀÔº° ¸ŞÅ×¸®¾ó ÇÁ·ÎÆÛÆ¼ Á¤ÀÇ < ShaderType, <PropertyName, PropertyInfo>>
+		// ì‰ì´ë” íƒ€ì…ë³„ ì‚¬ìš©ë²„í¼ < ShaderType, < BufferName, RegisterIdx>>
+		std::unordered_map<ShaderType, std::vector<BufferInfo>> m_typeBufferMap;
+
+		// ì‰ì´ë”íƒ€ì…ë³„ ë©”í…Œë¦¬ì–¼ í”„ë¡œí¼í‹° ì •ì˜ < ShaderType, <PropertyName, PropertyInfo>>
 		std::unordered_map<ShaderType, std::unordered_map<std::wstring, PropertyInfo>> m_propertyInfoMap;
 
-		// »ó¼ö¹öÆÛ Å¸ÀÔÁ¤ÀÇ ¸Ê <ShaderType, <propertyName, CBPropertyInfo>
+		// ìƒìˆ˜ë²„í¼ íƒ€ì…ì •ì˜ ë§µ <ShaderType, <propertyName, CBPropertyInfo>
 		std::unordered_map<ShaderType, std::unordered_map<std::wstring, CBPropertyInfo>> m_CBPropertyMap;
 
-		// »ó¼ö¹öÆÛ ÀúÀå¿ë ¸Ê <constantBufferName, ID3D11Buffer>
+		// ìƒìˆ˜ë²„í¼ ì €ì¥ìš© ë§µ <constantBufferName, ID3D11Buffer>
 		std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<ID3D11Buffer>> m_CBBufferMap;
 
-		// ¶óÀÌÆ®
-
-		
-		//// ÅØ½ºÃÄ ¹öÆÛÀÎµ¦½º ÁÖ´Â ¸Ê <propertyName, index> (int == shader tN)
+		//// í…ìŠ¤ì³ ë²„í¼ì¸ë±ìŠ¤ ì£¼ëŠ” ë§µ <propertyName, index> (int == shader tN)
 		//std::unordered_map<ShaderType, std::unordered_map<std::wstring, int>> m_texPropertyMap;
-		//// »ó¼ö¹öÆÛ ÀÎµ¦½º ÁÖ´Â ¸Ê <constantBufferName, index> (int == shader bN)
-		//std::unordered_map<ShaderType, std::unordered_map<std::wstring, int>> m_CBIndexMap;
-
 		
 		
 		void CreatePShaderReflection(std::wstring&& _filePath);
@@ -123,16 +139,19 @@ namespace MMMEngine {
 			const ShaderType shaderType,
 			const std::wstring& propertyName,
 			const void* data);
+		void UpdateCBuffers(const ShaderType _type);
+
+		void ConvertMaterialType(const ShaderType _type, Material* _mat);
 	};
 
 	template<typename T>
 	Microsoft::WRL::ComPtr<ID3D11Buffer> MMMEngine::ShaderInfo::CreateConstantBuffer()
 	{
 		D3D11_BUFFER_DESC bd = {};
-		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = sizeof(T);						// ±¸Á¶Ã¼ Å©±â
-		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;		// »ó¼ö¹öÆÛ·Î ¹ÙÀÎµù
-		bd.CPUAccessFlags = 0;							// CPU Á¢±Ù ºÒÇÊ¿ä
+		bd.Usage = D3D11_USAGE_DYNAMIC;
+		bd.ByteWidth = sizeof(T);						// êµ¬ì¡°ì²´ í¬ê¸°
+		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;		// ìƒìˆ˜ë²„í¼ë¡œ ë°”ì¸ë”©
+		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;		// CPU ì ‘ê·¼ í•„ìš”
 
 		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
 		HR_T(RenderManager::Get().GetDevice()->CreateBuffer(&bd, nullptr, buffer.GetAddressOf()));

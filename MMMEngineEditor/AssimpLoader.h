@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef NOMINMAX
 	#define NOMINMAX 
 #endif // !NOMINMAX
@@ -21,6 +21,7 @@ namespace MMMEngine {
 
 	class StaticMesh;
 	class SkeletalMesh;
+	class Material;
 	class AssimpLoader : public Utility::Singleton<MMMEngine::AssimpLoader>
 	{
 	public:
@@ -61,7 +62,7 @@ namespace MMMEngine {
 			BaseColor, Normal, Metallic, Roughness, AO, Emissive, Opacity
 		};
 		struct TextureRef {
-			std::string path; // resolveµÈ °æ·Î(¶Ç´Â embedded Ç¥±â)
+			std::string path; // resolveëœ ê²½ë¡œ(ë˜ëŠ” embedded í‘œê¸°)
 			bool srgb = false;
 		};
 
@@ -115,10 +116,10 @@ namespace MMMEngine {
 			ModelType type = ModelType::Static;
 		};
 
-		// ¸ğµ¨ µî·ÏÇÏ±â (°æ·Î, Å¸ÀÔ)
+		// ëª¨ë¸ ë“±ë¡í•˜ê¸° (ê²½ë¡œ, íƒ€ì…)
 		void RegisterModel(const std::wstring path, ModelType type);
 
-		// Ãâ·Â °æ·Î (»ó´ë°æ·Î¸¸ ³Ö¾î¾ßÇÔ, Àı´ë°æ·Î º¯°æ½Ã ¹®ÀÇ)
+		// ì¶œë ¥ ê²½ë¡œ (ìƒëŒ€ê²½ë¡œë§Œ ë„£ì–´ì•¼í•¨, ì ˆëŒ€ê²½ë¡œ ë³€ê²½ì‹œ ë¬¸ì˜)
 		std::wstring m_exportPath = L"Assets/";
 	protected:
 		const aiScene* ImportScene(std::wstring path, ModelType type);
@@ -154,7 +155,7 @@ namespace MMMEngine {
 				aiProcess_Triangulate |
 				aiProcess_GenNormals |
 				aiProcess_CalcTangentSpace |
-				aiProcess_ConvertToLeftHanded |
+				aiProcess_FlipUVs | 
 				aiProcess_PreTransformVertices
 			};
 		}
@@ -165,7 +166,7 @@ namespace MMMEngine {
 				aiProcess_Triangulate |
 				aiProcess_GenNormals |
 				aiProcess_CalcTangentSpace |
-				aiProcess_ConvertToLeftHanded
+				aiProcess_FlipUVs
 			};
 		}
 		//std::unordered_map<std::string, ModelAsset>sModelCache;
