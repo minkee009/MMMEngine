@@ -13,7 +13,7 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<SFX3DComponent>();
-			});
+			}).method("Inject", &ObjPtr<SFX3DComponent>::Inject);
 }
 
 

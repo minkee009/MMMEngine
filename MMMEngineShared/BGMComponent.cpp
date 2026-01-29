@@ -12,7 +12,7 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<BGMComponent>();
-			});
+			}).method("Inject", &ObjPtr<BGMComponent>::Inject);
 }
 
 void MMMEngine::BGMComponent::PlayBGM(const std::string& id)

@@ -13,7 +13,7 @@ RTTR_REGISTRATION
 		.constructor<>(
 			[]() {
 				return Object::NewObject<ListenerComponent>();
-			});
+			}).method("Inject", &ObjPtr<ListenerComponent>::Inject);
 }
 void MMMEngine::ListenerComponent::Update()
 {
