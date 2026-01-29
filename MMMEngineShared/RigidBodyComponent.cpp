@@ -68,15 +68,14 @@ void MMMEngine::RigidBodyComponent::CreateActor(physx::PxPhysics* physics, Vecto
 		}
 	}
 
+
 	for (auto* t_collider : m_Colliders)
 	{
 		if (auto* shape = t_collider->GetPxShape())
 			m_Actor->attachShape(*shape);
 	}
 
-	if (auto* t_dynamic = m_Actor->is<physx::PxRigidDynamic>()) {
-		physx::PxRigidBodyExt::updateMassAndInertia(*t_dynamic, m_Desc.mass);
-	}
+	MarkMassDirty();
 
 	m_Actor->userData = this;
 }
@@ -145,28 +144,13 @@ void MMMEngine::RigidBodyComponent::AttachCollider(ColliderComponent* collider)
 	if (auto* shape = collider->GetPxShape())
 		m_Actor->attachShape(*shape);
 
-	if (auto* d = m_Actor->is<physx::PxRigidDynamic>())
-		physx::PxRigidBodyExt::updateMassAndInertia(*d, m_Desc.mass);
+	MarkMassDirty();
 }
 
 void MMMEngine::RigidBodyComponent::DetachCollider(ColliderComponent* collider)
 {
 	if (!collider) return;
-
-	// 붙어있는 목록에서 제거
-	auto it = std::find(m_Colliders.begin(), m_Colliders.end(), collider);
-	if (it != m_Colliders.end())
-		m_Colliders.erase(it);
-
-	// actor가 있으면 PhysX shape도 detach
-	if (m_Actor)
-	{
-		if (auto* shape = collider->GetPxShape())
-			m_Actor->detachShape(*shape);
-
-		if (auto* d = m_Actor->is<physx::PxRigidDynamic>())
-			physx::PxRigidBodyExt::updateMassAndInertia(*d, m_Desc.mass);
-	}
+	EraseOne(m_Colliders, collider);
 }
 
 void MMMEngine::RigidBodyComponent::DestroyActor()
@@ -544,6 +528,21 @@ float MMMEngine::RigidBodyComponent::Px_GetYaw() const
 {
 	Vector3 fwd = Px_GetForward();
 	return std::atan2(fwd.x, fwd.z);
+}
+
+void MMMEngine::RigidBodyComponent::MarkMassDirty()
+{
+	m_MassDirty = true;
+}
+
+bool MMMEngine::RigidBodyComponent::IsMassDirty() const
+{
+	return m_MassDirty;
+}
+
+void MMMEngine::RigidBodyComponent::ClearMassDirty()
+{
+	m_MassDirty = false;
 }
 
 

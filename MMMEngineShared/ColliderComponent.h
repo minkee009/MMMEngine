@@ -32,6 +32,7 @@ namespace MMMEngine
 		virtual void BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) = 0;
 
 		void Initialize() override;
+		void UnInitialize() override;
 
 		physx::PxShape* GetPxShape() const { return m_Shape; }
 		ShapeMode GetShapeMode() const { return m_Mode; }
@@ -85,7 +86,6 @@ namespace MMMEngine
 
 		//디버그 함수
 		virtual void PrintFilter() {};
-
 
 	protected:
 		// 파생 클래스가 shape 생성 후 반드시 호출

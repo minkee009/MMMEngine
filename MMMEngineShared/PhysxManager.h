@@ -89,6 +89,8 @@ namespace MMMEngine
 
 		std::vector<std::variant<CollisionInfo, TriggerInfo>> GetCallbackQue() { return Callback_Que; }
 
+		std::vector<ColliderComponent*> m_PendingDestroyCols;
+
 	private:
 		// 내부에서만 쓰는 헬퍼
 		void FlushCommands_PreStep();

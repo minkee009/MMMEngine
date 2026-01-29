@@ -1,9 +1,10 @@
-#include "PhysScene.h"
+﻿#include "PhysScene.h"
 #include "PhysXHelper.h"
 #include "PhysicsFilter.h"
 #include "Transform.h"
 #include "CollisionMatrix.h"
 #include "GameObject.h"
+#include "PhysX.h"
 
 bool MMMEngine::PhysScene::Create(const PhysSceneDesc& desc)
 {
@@ -318,26 +319,26 @@ void MMMEngine::PhysScene::AttachCollider(MMMEngine::RigidBodyComponent* rb, MMM
 
 void MMMEngine::PhysScene::DetachCollider(MMMEngine::RigidBodyComponent* rb, MMMEngine::ColliderComponent* col)
 {
-	if (!rb || !col) return;
+	if (!col) return;
 
 	// 소유자가 다르면 ownerByCollider 기준으로 정정
 	auto itOwner = m_ownerByCollider.find(col);
 	if (itOwner == m_ownerByCollider.end())
 		return; // attach 상태 아님
 
-	if (itOwner->second != rb)
-	{
-	#ifdef _DEBUG
-		OutputDebugStringA("[PhysScene] DetachCollider: non-owner rb passed. Using actual owner.\n");
-	#endif
-		rb = itOwner->second;
-	}
+	MMMEngine::RigidBodyComponent* ownerRb = itOwner->second;
 
-	// rb(actor)에서 detach
+	//ownerByCollider는 무조건 제거 actor에서 삭제책임은 collider가 하고있음
+	m_ownerByCollider.erase(itOwner);
+
+	//ownerRb가 없으면 끝내도 되는 작업
+	if (!ownerRb) return;
+
+	// rb가 nullptr이거나 owner가 다르면 실제 owner 사용
+	if (!rb || rb != ownerRb)
+		rb = ownerRb;;
+
 	rb->DetachCollider(col);
-
-	// 컨테이너 정리
-	m_ownerByCollider.erase(col);
 
 	auto itList = m_collidersByRigid.find(rb);
 	if (itList != m_collidersByRigid.end())
@@ -456,6 +457,22 @@ void MMMEngine::PhysScene::PushRigidsToPhysics()
 		if (!rb) continue;
 		if (!rb->GetGameObject().IsValid()) continue;
 		rb->PushToPhysics(); // 내부에서 PoseDirty/ForceQueue 처리
+
+		if (!rb->IsMassDirty()) continue;
+
+		auto* a = rb->GetPxActor();
+		if (!a) continue; // actor 없으면 다음 프레임에 다시 시도할 수 있게 dirty 유지
+
+		if (auto* d = a->is<physx::PxRigidDynamic>())
+		{
+			physx::PxRigidBodyExt::updateMassAndInertia(*d, rb->GetMass());
+			rb->ClearMassDirty();
+		}
+		else
+		{
+			// static이면 의미 없으니 지워도 됨
+			rb->ClearMassDirty();
+		}
 	}
 }
 

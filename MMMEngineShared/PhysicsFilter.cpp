@@ -1,4 +1,4 @@
-#include "PhysicsFilter.h"
+ï»¿#include "PhysicsFilter.h"
 
 physx::PxFilterFlags MMMEngine::CustomFilterShader(physx::PxFilterObjectAttributes attributes0, physx::PxFilterData filterData0, physx::PxFilterObjectAttributes attributes1, physx::PxFilterData filterData1, physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize)
 {
@@ -6,7 +6,7 @@ physx::PxFilterFlags MMMEngine::CustomFilterShader(physx::PxFilterObjectAttribut
     PX_UNUSED(constantBlock);
     PX_UNUSED(constantBlockSize);
 
-    //·¹ÀÌ¾î/¸¶½ºÅ© °Ë»ç (¾ç¹æÇâ Çã¿ëÀÌ¾î¾ß Åë°ú)
+    //ë ˆì´ì–´/ë§ˆìŠ¤í¬ ê²€ì‚¬ (ì–‘ë°©í–¥ í—ˆìš©ì´ì–´ì•¼ í†µê³¼)
     const bool allow =
         (filterData0.word0 & filterData1.word1) != 0 &&
         (filterData1.word0 & filterData0.word1) != 0;
@@ -14,7 +14,7 @@ physx::PxFilterFlags MMMEngine::CustomFilterShader(physx::PxFilterObjectAttribut
     if (!allow)
         return physx::PxFilterFlag::eSUPPRESS;
 
-    //Æ®¸®°Å / ÄÁÅÃ ºĞ±â
+    //íŠ¸ë¦¬ê±° / ì»¨íƒ ë¶„ê¸°
     const bool isTrigger =
         physx::PxFilterObjectIsTrigger(attributes0) ||
         physx::PxFilterObjectIsTrigger(attributes1);
@@ -30,7 +30,8 @@ physx::PxFilterFlags MMMEngine::CustomFilterShader(physx::PxFilterObjectAttribut
     pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
     pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
     pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_LOST;
-    pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS; // Äİ¹éÀÌ ¿øÇÏ¸é
+    pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_PERSISTS; // ì½œë°±ì´ ì›í•˜ë©´
+    pairFlags |= physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 
     return physx::PxFilterFlag::eDEFAULT;
 }

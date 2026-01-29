@@ -120,6 +120,11 @@ void MMMEngine::PhysxManager::NotifyColliderRemoved(ColliderComponent* col)
     if (!rbPtr.IsValid()) return; // 정책상 거의 없어야 하지만 방어
     auto* rb = (RigidBodyComponent*)rbPtr.GetRaw();
 
+    EraseCommandsForCollider(col);
+    m_DirtyColliders.erase(col);
+    m_FilterDirtyColliders.erase(col);
+    m_PendingDestroyCols.push_back(col);
+
     RequestDetachCollider(rb, col);
 }
 
@@ -295,6 +300,14 @@ void MMMEngine::PhysxManager::SetLayerCollision(uint32_t layerA, uint32_t layerB
 // actor생성 및 acotr를 추가하는 작업 / shape생성 밑 붙이는 작업 / shape 교체등을 여기서 한다
 void MMMEngine::PhysxManager::FlushCommands_PreStep()
 {
+    for (auto* col : m_PendingDestroyCols)
+    {
+        if (!col) continue;
+
+        // rb를 몰라도 PhysScene이 ownerByCollider로 찾아서 detach 가능하게 만들면 베스트
+        m_PhysScene.DetachCollider(nullptr, col);
+    }
+    m_PendingDestroyCols.clear();
     //ChangeRigidType 먼저 처리하도록
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
