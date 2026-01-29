@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <imgui.h>
 #include <string>
 #include "Singleton.hpp"
@@ -12,14 +12,14 @@ namespace MMMEngine::Editor
 
     private:
         // UI state
-        std::wstring m_selectedProjectFile; // project.json °æ·Î
-        std::wstring m_selectedProjectRoot; // »õ ÇÁ·ÎÁ§Æ® ·çÆ® Æú´õ
+        std::wstring m_selectedProjectFolder; // project.json ê²½ë¡œ
+        std::wstring m_selectedProjectRoot; // ìƒˆ í”„ë¡œì íŠ¸ ë£¨íŠ¸ í´ë”
 
         // error popup state
         bool m_openErrorPopup = false;
         std::string m_errorMsg;
 
-        std::wstring m_pendingCreateRoot; // ÅÛÇÃ¸´ ¼³Á¤ ÈÄ Àç½ÃµµÇÒ ·çÆ®
+        std::wstring m_pendingCreateRoot; // í…œí”Œë¦¿ ì„¤ì • í›„ ì¬ì‹œë„í•  ë£¨íŠ¸
 
         void ShowError(const char* msg);
         void RenderErrorPopup();

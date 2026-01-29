@@ -1,4 +1,4 @@
-#define NOMINMAX
+ï»¿#define NOMINMAX
 #include "StartUpProjectWindow.h"
 
 #include "ProjectManager.h"
@@ -25,9 +25,9 @@ namespace
         return s;
     }
 
-    static bool PickFileProjectJson(std::wstring& outFile)
+    static bool PickProjectFolder(std::wstring& outFolder)
     {
-        outFile.clear();
+        outFolder.clear();
 
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         bool didInit = SUCCEEDED(hr);
@@ -42,14 +42,7 @@ namespace
 
         DWORD opts = 0;
         dlg->GetOptions(&opts);
-        dlg->SetOptions(opts | FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST);
-
-        COMDLG_FILTERSPEC spec[] = {
-            { L"MMM Project (project.json)", L"project.json" },
-            { L"JSON (*.json)", L"*.json" },
-            { L"All Files (*.*)", L"*.*" }
-        };
-        dlg->SetFileTypes(_countof(spec), spec);
+        dlg->SetOptions(opts | FOS_FORCEFILESYSTEM | FOS_PICKFOLDERS);
 
         hr = dlg->Show(nullptr);
         if (SUCCEEDED(hr))
@@ -60,7 +53,7 @@ namespace
                 PWSTR path = nullptr;
                 if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path)))
                 {
-                    outFile = path;
+                    outFolder = path;
                     CoTaskMemFree(path);
                 }
                 item->Release();
@@ -69,7 +62,7 @@ namespace
 
         dlg->Release();
         if (didInit) CoUninitialize();
-        return !outFile.empty();
+        return !outFolder.empty();
     }
 
     static bool PickFolder(std::wstring& outFolder)
@@ -125,17 +118,17 @@ namespace MMMEngine::Editor
     {
         if (m_openMissingEngineDirPopup)
         {
-            ImGui::OpenPopup(u8"¿£Áø °æ·Î ¼³Á¤ ÇÊ¿ä");
+            ImGui::OpenPopup(u8"ì—”ì§„ ê²½ë¡œ ì„¤ì • í•„ìš”");
             m_openMissingEngineDirPopup = false;
         }
 
-        if (ImGui::BeginPopupModal(u8"¿£Áø °æ·Î ¼³Á¤ ÇÊ¿ä", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        if (ImGui::BeginPopupModal(u8"ì—”ì§„ ê²½ë¡œ ì„¤ì • í•„ìš”", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::TextWrapped(u8"ÇÁ·ÎÁ§Æ® »ı¼ºÀ» À§ÇØ ¿£Áø °æ·Î È¯°æº¯¼ö°¡ ÇÊ¿äÇÕ´Ï´Ù.\n"
-                u8"È¯°æ º¯¼ö¸¦ ¼³Á¤ÇÑ ÈÄ ¿¡µğÅÍ¸¦ Àç½ÃÀÛÇØÁÖ¼¼¿ä.");
+            ImGui::TextWrapped(u8"í”„ë¡œì íŠ¸ ìƒì„±ì„ ìœ„í•´ ì—”ì§„ ê²½ë¡œ í™˜ê²½ë³€ìˆ˜ê°€ í•„ìš”í•©ë‹ˆë‹¤.\n"
+                u8"í™˜ê²½ ë³€ìˆ˜ë¥¼ ì„¤ì •í•œ í›„ ì—ë””í„°ë¥¼ ì¬ì‹œì‘í•´ì£¼ì„¸ìš”.");
             ImGui::Separator();
 
-            ImGui::TextWrapped(u8"È¯°æ º¯¼ö ÀÌ¸§:");
+            ImGui::TextWrapped(u8"í™˜ê²½ ë³€ìˆ˜ ì´ë¦„:");
             {
                 char buf[256]{};
                 strncpy_s(buf, "MMMENGINE_DIR", _TRUNCATE);
@@ -143,12 +136,12 @@ namespace MMMEngine::Editor
                     ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
             }
             ImGui::SameLine();
-            if (ImGui::Button(u8"º¹»ç##envname"))
+            if (ImGui::Button(u8"ë³µì‚¬##envname"))
                 ImGui::SetClipboardText("MMMENGINE_DIR");
 
             ImGui::Spacing();
 
-            ImGui::TextWrapped(u8"¿¹½Ã °ª (¿£Áø ·çÆ® °æ·Î):");
+            ImGui::TextWrapped(u8"ì˜ˆì‹œ ê°’ (ì—”ì§„ ë£¨íŠ¸ ê²½ë¡œ):");
             {
                 char buf[256]{};
                 strncpy_s(buf, "D:/Dev/MMMEngine", _TRUNCATE);
@@ -156,11 +149,11 @@ namespace MMMEngine::Editor
                     ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
             }
             ImGui::SameLine();
-            if (ImGui::Button(u8"º¹»ç##envexample"))
+            if (ImGui::Button(u8"ë³µì‚¬##envexample"))
                 ImGui::SetClipboardText("D:/Dev/MMMEngine");
 
             ImGui::Spacing();
-            ImGui::TextDisabled(u8"Âü°í: EngineShared/Include, EngineShared/Lib/Win64°¡ ÀÖ´Â °æ·Î");
+            ImGui::TextDisabled(u8"ì°¸ê³ : EngineShared/Include, EngineShared/Lib/Win64ê°€ ìˆëŠ” ê²½ë¡œ");
 
             ImGui::Spacing();
 
@@ -168,7 +161,7 @@ namespace MMMEngine::Editor
 
             auto currentCursorX = ImGui::GetCursorPosX();
             ImGui::SetCursorPosX(currentCursorX + (hbuttonsize.x / 2));
-            if (ImGui::Button(u8"´İ±â", hbuttonsize))
+            if (ImGui::Button(u8"ë‹«ê¸°", hbuttonsize))
                 ImGui::CloseCurrentPopup();
 
             ImGui::EndPopup();
@@ -208,7 +201,7 @@ namespace MMMEngine::Editor
         ImGui::SetNextWindowClass(&wc);
 
         ImGui::SetNextWindowSize(ImVec2(510, 185), ImGuiCond_Once);
-        if (!ImGui::Begin(u8"ÇÁ·ÎÁ§Æ® ½ºÅ¸Æ®¾÷", nullptr,
+        if (!ImGui::Begin(u8"í”„ë¡œì íŠ¸ ìŠ¤íƒ€íŠ¸ì—…", nullptr,
             ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
         {
             ImGui::End();
@@ -217,26 +210,56 @@ namespace MMMEngine::Editor
 
         auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, ImGui::GetContentRegionAvail().y / 2 };
 
-        // ---- Open project.json ----
-        if (ImGui::Button(u8"ÇÁ·ÎÁ§Æ® ÆÄÀÏ Ã£±â\n  (project.json)##open", hbuttonsize))
+        // ---- Open existing project ----
+        if (ImGui::Button(u8"ê¸°ì¡´ í”„ë¡œì íŠ¸ í´ë” ì—´ê¸°##open", hbuttonsize))
         {
-            PickFileProjectJson(m_selectedProjectFile);
-            if (m_selectedProjectFile.empty())
+            PickProjectFolder(m_selectedProjectFolder);
+            if (m_selectedProjectFolder.empty())
             {
-                ShowError(u8"project.json ÆÄÀÏÀ» ¸ÕÀú ¼±ÅÃÇÏ¼¼¿ä.");
+                ShowError(u8"í”„ë¡œì íŠ¸ í´ë”ë¥¼ ì„ íƒí•˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             }
             else
             {
-                fs::path p = fs::path(m_selectedProjectFile);
+                fs::path projectRoot = fs::path(m_selectedProjectFolder);
+                fs::path projectSettingsDir = projectRoot / "ProjectSettings";
 
-                if (ProjectManager::Get().OpenProject(p))
+                // ProjectSettings í´ë” ì¡´ì¬ ì—¬ë¶€ í™•ì¸
+                if (!fs::exists(projectSettingsDir) || !fs::is_directory(projectSettingsDir))
                 {
-                    EditorRegistry::g_editor_project_loaded = true;
+                    ShowError(u8"ì„ íƒí•œ í´ë”ëŠ” ì˜¬ë°”ë¥¸ ì—ë””í„° í”„ë¡œì íŠ¸ í´ë”ê°€ ì•„ë‹™ë‹ˆë‹¤.\n"
+                        u8"ProjectSettings í´ë”ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
                 }
                 else
                 {
-                    ShowError(u8"ÇÁ·ÎÁ§Æ® ÆÄÀÏÀ» ÀĞÀ» ¼ö ¾ø½À´Ï´Ù.\n"
-                        "ÆÄÀÏÀÌ Á¸ÀçÇÏ´ÂÁö, JSON Çü½ÄÀÌ ¿Ã¹Ù¸¥Áö È®ÀÎÇÏ¼¼¿ä.");
+                    fs::path projectJsonPath = projectSettingsDir / "project.json";
+
+                    // project.json ì¡´ì¬ ì—¬ë¶€ì— ë”°ë¼ ì²˜ë¦¬
+                    if (fs::exists(projectJsonPath))
+                    {
+                        // ê¸°ì¡´ í”„ë¡œì íŠ¸ ì—´ê¸° (OpenProjectì—ì„œ rootPath ì—…ë°ì´íŠ¸)
+                        if (ProjectManager::Get().OpenProject(projectJsonPath))
+                        {
+                            EditorRegistry::g_editor_project_loaded = true;
+                        }
+                        else
+                        {
+                            ShowError(u8"í”„ë¡œì íŠ¸ íŒŒì¼ì„ ì½ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.\n"
+                                u8"project.json íŒŒì¼ì´ ì†ìƒë˜ì—ˆì„ ìˆ˜ ìˆìŠµë‹ˆë‹¤.");
+                        }
+                    }
+                    else
+                    {
+                        // project.json ìƒì„± í›„ í”„ë¡œì íŠ¸ ì—´ê¸°
+                        if (ProjectManager::Get().CreateNewProject(projectRoot))
+                        {
+                            EditorRegistry::g_editor_project_loaded = true;
+                        }
+                        else
+                        {
+                            ShowError(u8"í”„ë¡œì íŠ¸ íŒŒì¼ ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.\n"
+                                u8"í´ë” ê¶Œí•œì„ í™•ì¸í•˜ê³  ë‹¤ì‹œ ì‹œë„í•˜ì„¸ìš”.");
+                        }
+                    }
                 }
             }
         }
@@ -244,16 +267,16 @@ namespace MMMEngine::Editor
         ImGui::SameLine();
 
         // ---- Create new project ----
-        if (ImGui::Button(u8"ÁöÁ¤ °æ·Î¿¡ »õ ÇÁ·ÎÁ§Æ® »ı¼º##createbtn", hbuttonsize))
+        if (ImGui::Button(u8"ì§€ì • ê²½ë¡œì— ìƒˆ í”„ë¡œì íŠ¸ ìƒì„±##createbtn", hbuttonsize))
         {
             PickFolder(m_selectedProjectRoot);
             if (m_selectedProjectRoot.empty())
             {
-                ShowError(u8"ÇÁ·ÎÁ§Æ® ·çÆ® Æú´õ¸¦ ¸ÕÀú ¼±ÅÃÇÏ¼¼¿ä.");
+                ShowError(u8"í”„ë¡œì íŠ¸ ë£¨íŠ¸ í´ë”ë¥¼ ë¨¼ì € ì„ íƒí•˜ì„¸ìš”.");
             }
             else
             {
-                // È¯°æº¯¼ö Ã¼Å©
+                // í™˜ê²½ë³€ìˆ˜ ì²´í¬
                 if (!HasEngineDir())
                 {
                     m_openMissingEngineDirPopup = true;
@@ -267,16 +290,16 @@ namespace MMMEngine::Editor
                     }
                     else
                     {
-                        ShowError(u8"»õ ÇÁ·ÎÁ§Æ® »ı¼º¿¡ ½ÇÆĞÇß½À´Ï´Ù.\nÆú´õ ±ÇÇÑ/°æ·Î¸¦ È®ÀÎÇÏ°í ´Ù½Ã ½ÃµµÇÏ¼¼¿ä.");
+                        ShowError(u8"ìƒˆ í”„ë¡œì íŠ¸ ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.\ní´ë” ê¶Œí•œ/ê²½ë¡œë¥¼ í™•ì¸í•˜ê³  ë‹¤ì‹œ ì‹œë„í•˜ì„¸ìš”.");
                     }
                 }
             }
         }
 
         ImGui::Separator();
-        ImGui::TextDisabled(u8"ÇÁ·ÎÁ§Æ® ·Îµå ¼º°ø ½Ã ÀÚµ¿À¸·Î ¿¡µğÅÍ°¡ ÇÁ·ÎÁ§Æ® ¸ğµå·Î ÀüÈ¯µË´Ï´Ù.");
+        ImGui::TextDisabled(u8"í”„ë¡œì íŠ¸ ë¡œë“œ ì„±ê³µ ì‹œ ìë™ìœ¼ë¡œ ì—ë””í„°ê°€ í”„ë¡œì íŠ¸ ëª¨ë“œë¡œ ì „í™˜ë©ë‹ˆë‹¤.");
 
-        // ÆË¾÷Àº End Àü¿¡ È£Ãâ
+        // íŒì—…ì€ End ì „ì— í˜¸ì¶œ
         RenderErrorPopup();
         RenderMissingEngineDirPopup();
 

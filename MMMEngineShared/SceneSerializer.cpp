@@ -737,9 +737,36 @@ void MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene, SnapShot&
         goArray.push_back(goJson);
 
         // Directional Light 생성
-        //goJson.clear();
-        //compJson.clear();
-        //compArray.clear();
+        goJson.clear();
+        compJson.clear();
+        compArray.clear();
+
+		goJson["Name"] = "Directional Light";
+		goJson["MUID"] = Utility::MUID::NewMUID().ToString();
+		goJson["Layer"] = 0;
+		goJson["Tag"] = "";
+        goJson["Active"] = true;
+        
+        compJson["Type"] = "Transform";
+        compJson["Props"]["Rotation"]["x"] = -0.7071f;
+        compJson["Props"]["Rotation"]["y"] = 0.0f;
+        compJson["Props"]["Rotation"]["z"] = 0.0f;
+        compJson["Props"]["Rotation"]["w"] = 0.7071f;
+        compJson["Props"]["MUID"] = Utility::MUID::NewMUID().ToString();
+        compJson["Props"]["Parent"] = nullptr;
+        compArray.push_back(compJson);
+        compJson.clear();
+        compJson["Type"] = "Light";
+        compJson["Props"]["LightType"] = 1; // Directional
+        compJson["Props"]["Color"]["r"] = 1.0f;
+        compJson["Props"]["Color"]["g"] = 1.0f;
+        compJson["Props"]["Color"]["b"] = 1.0f;
+        compJson["Props"]["Intensity"] = 1.0f;
+        compJson["Props"]["Enabled"] = true;
+        compJson["Props"]["MUID"] = Utility::MUID::NewMUID().ToString();
+        compArray.push_back(compJson);
+        goJson["Components"] = compArray;
+		goArray.push_back(goJson);
     }
 
     snapshot["GameObjects"] = goArray;

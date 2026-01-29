@@ -28,6 +28,7 @@ namespace MMMEngine::Editor
 			{
 				m_hasChanges = false;
 				m_firstShowSceneName = true;
+				g_editor_window_sceneName = false;
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SetItemDefaultFocus();

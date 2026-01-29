@@ -648,7 +648,7 @@ RTTR_PLUGIN_REGISTRATION
 			[]() {
 				return Object::NewObject<)" << scriptName << R"(>();
 			})
-        .method("Inject", &ObjPtr<ExampleBehaviour>::Inject);
+        .method("Inject", &ObjPtr<)" << scriptName << R"()>::Inject);
 }
 
 void MMMEngine::)" << scriptName << R"(::Start()

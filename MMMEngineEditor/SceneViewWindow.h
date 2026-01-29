@@ -1,8 +1,11 @@
-#pragma once
+﻿#pragma once
 #include "Singleton.hpp"
 #include "EditorCamera.h"
 #include "EditorGridRenderer.h"
 #include "ImGuizmo.h"
+#include "DebugDraw.h"
+#include "Effects.h"
+#include "CommonStates.h"
 
 #include <memory>
 
@@ -37,6 +40,16 @@ namespace MMMEngine::Editor
 		int m_height;
 		int m_lastWidth;
 		int m_lastHeight;
+
+		using DefaultVertex = DirectX::VertexPositionColor;
+
+		std::unique_ptr<DirectX::CommonStates> m_states;
+		std::unique_ptr<DirectX::BasicEffect> m_effect;
+		std::unique_ptr<DirectX::PrimitiveBatch<DefaultVertex>> m_batch;
+		ComPtr<ID3D11InputLayout> m_pDebugDrawIL;
+
+		bool m_enableDebugDraw = true;
+		bool m_enableDebugDrawZbuffer = false;
 
 		bool m_isHovered = false;
 		bool m_isFocused = false;
