@@ -21,6 +21,9 @@
 /// 메시지 이름을 커스텀하여 등록. (빌드툴에서 인식용, C++에서는 빈 매크로)
 #define USCRIPT_MESSAGE_NAME(name)
 
+/// 생성자 안에서만 호출 가능. 실행 순서 설정 (생성기가 해당 라인 유지)
+#define USCRIPT_EXECUTION_ORDER(order) SetExecutionOrder(order)
+
 /// 인스펙터/리플렉션에 노출할 프로퍼티 표시 (빌드툴에서 gen.cpp 프로퍼티 등록용)
 #define USCRIPT_PROPERTY()
 

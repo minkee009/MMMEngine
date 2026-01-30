@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Export.h"
 #include <string>
 #include <vector>
 
@@ -16,5 +17,5 @@ namespace MMMEngine
 	};
 
 	/// 엔진에서 브로드캐스트하는 메시지 시그니처 목록 (빌드툴 하드코딩용).
-	std::vector<UserScriptMessageSignature> GetEngineMessageSignatures();
+	MMMENGINE_API std::vector<UserScriptMessageSignature> GetEngineMessageSignatures();
 }
