@@ -1,5 +1,5 @@
 {
-    "MUID": "d92d9994-c9e7-41cc-a0a2-7d3ba1b478d0",
+    "MUID": "54686641-fc4a-4c98-bbe9-87ff5ffe715e",
     "properties": {},
     "pshader": {
         "file": "Shader/SkyBox/SkyBoxPixelShader.hlsl"

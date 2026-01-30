@@ -23,7 +23,6 @@
 #include "PhysX.h"
 #include "ShaderInfo.h"
 #include "PhysicsSettings.h"
-#include "AssimpLoader.h"
 
 namespace fs = std::filesystem;
 using namespace MMMEngine;
@@ -62,14 +61,6 @@ void AfterProjectLoaded()
 
 	// 쉐이더 인포 시작하기
 	ShaderInfo::Get().StartUp();
-
-	AssimpLoader::Get().RegisterModel(L"Assets/DefaultMesh/Cube.fbx", ModelType::Static);
-	AssimpLoader::Get().RegisterModel(L"Assets/DefaultMesh/Cylinder.fbx", ModelType::Static);
-	AssimpLoader::Get().RegisterModel(L"Assets/DefaultMesh/Monkey.fbx", ModelType::Static);
-	AssimpLoader::Get().RegisterModel(L"Assets/DefaultMesh/Ring.fbx", ModelType::Static);
-	AssimpLoader::Get().RegisterModel(L"Assets/DefaultMesh/SkyBoxMesh.fbx", ModelType::Static);
-	AssimpLoader::Get().RegisterModel(L"Assets/DefaultMesh/Sphere.fbx", ModelType::Static);
-	//AssimpLoader::Get().RegisterModel(L"Shader/Resource/Default_Mesh/SkyBoxMesh.fbx", ModelType::Static);
 }
 
 void Initialize()
