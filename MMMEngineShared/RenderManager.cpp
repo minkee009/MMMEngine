@@ -728,7 +728,7 @@ namespace MMMEngine {
 		static uint32_t index = 0;
 
 		if (_renderer == nullptr)
-			return -1;
+			return UINT32_MAX;
 		
 		m_renderers.push_back(_renderer);
 		m_renInitQueue.push(_renderer);
