@@ -178,6 +178,18 @@ void MMMEngine::Editor::SceneViewWindow::Initialize(ID3D11Device* device, ID3D11
 
 void MMMEngine::Editor::SceneViewWindow::Render()
 {
+	if (ImGui::IsKeyPressed(ImGuiKey_F))
+	{
+		if (g_selectedGameObject.IsValid())
+		{
+			auto& tr = g_selectedGameObject->GetTransform();
+			// 오브젝트의 위치로 포커스 (거리는 5.0f로 설정하거나 바운딩 박스 크기에 비례하게 설정)
+			const float focusDistance = 7.0f;
+			m_pCam->FocusOn(tr->GetWorldPosition(), focusDistance);
+			m_viewGizmoDistance = focusDistance;
+		}
+	}
+
 	if (!g_editor_window_sceneView)
 		return;
 
@@ -227,18 +239,6 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 
 			if (ImGui::IsKeyPressed(ImGuiKey_R))
 				m_guizmoOperation = ImGuizmo::SCALE;
-		}
-
-		if (ImGui::IsKeyPressed(ImGuiKey_F))
-		{
-			if (g_selectedGameObject.IsValid())
-			{
-				auto& tr = g_selectedGameObject->GetTransform();
-				// 오브젝트의 위치로 포커스 (거리는 5.0f로 설정하거나 바운딩 박스 크기에 비례하게 설정)
-				const float focusDistance = 7.0f;
-				m_pCam->FocusOn(tr->GetWorldPosition(), focusDistance);
-				m_viewGizmoDistance = focusDistance;
-			}
 		}
 	}
 
@@ -483,8 +483,9 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 	bool viewGizmoUsing = false;
 	if (imageSize.x > 0.0f && imageSize.y > 0.0f)
 	{
-		const float gizmoSize = 64.0f;
-		const float gizmoPadding = 8.0f;
+		const float gizmoScale = 1.0f;
+		const float gizmoSize = 64.0f * gizmoScale;
+		const float gizmoPadding = 10.0f * gizmoScale;
 		const float axisLength = gizmoSize * 0.35f;
 		const float circleRadius = gizmoSize * 0.12f;
 		const float centerRadius = gizmoSize * 0.08f;
@@ -608,7 +609,7 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 			}
 			else
 			{
-				drawList->AddCircle(axis.endPos, circleRadius, circleColor, 0, 2.0f);
+				drawList->AddCircle(axis.endPos, circleRadius * 0.95f, circleColor, 0, 2.0f);
 			}
 
 			if (axis.label && axis.label[0] != '\0')
@@ -639,7 +640,7 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 		}
 
 		// center toggle (rounded rect) drawn after back axes so it stays visible
-		drawList->AddRectFilled(centerMin, centerMax, IM_COL32(245, 245, 245, 240), 2.5f);
+		drawList->AddRectFilled(centerMin, centerMax, IM_COL32(245, 245, 245, 240), 2.5f * gizmoScale);
 
 		// Front axes circles/labels above center toggle
 		for (int i = 0; i < axisCount; ++i)
@@ -951,6 +952,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	m_pCam->UpdateProjectionBlend();
 	if (m_isFocused && !m_blockCameraInput)
 		m_pCam->InputUpdate((int)m_guizmoOperation);
+	m_pCam->UpdateState();
 
 	auto view = m_pCam->GetViewMatrix();
 	auto proj = m_pCam->GetProjMatrix();

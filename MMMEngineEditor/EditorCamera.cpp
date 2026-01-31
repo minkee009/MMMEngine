@@ -154,11 +154,9 @@ void MMMEngine::Editor::EditorCamera::UpdateProjectionBlend()
     }
 }
 
-void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
+void MMMEngine::Editor::EditorCamera::UpdateState()
 {
     const float moveSpeed = 5.0f;
-    const float rotSpeed = 0.1f;
-    const float panSpeed = 0.01f; // 팬 이동 속도 (조절 필요)
 
     if (m_inputStateDirty)
     {
@@ -166,16 +164,9 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
         m_targetPitch = m_pitch = DirectX::XMConvertToDegrees(euler.x);
         m_targetYaw = m_yaw = DirectX::XMConvertToDegrees(euler.y);
         m_smoothedMovement = Vector3::Zero;
+        m_targetMovement = Vector3::Zero;
         m_inputStateDirty = false;
     }
-
-    auto mousePos = Input::GetMousePos();
-    float deltaX = mousePos.x - m_lastMouseX;
-    float deltaY = mousePos.y - m_lastMouseY;
-
-    Vector3 targetMovement = Vector3::Zero;
-
-    float wheel = Input::GetMouseScrollNotches();
 
     if (m_focusState.active)
     {
@@ -192,6 +183,7 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
             m_targetPitch = m_pitch = DirectX::XMConvertToDegrees(euler.x);
             m_targetYaw = m_yaw = DirectX::XMConvertToDegrees(euler.y);
             m_smoothedMovement = Vector3::Zero;
+            m_targetMovement = Vector3::Zero;
         }
         else
         {
@@ -199,11 +191,50 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
             SetPosition(Vector3::Lerp(m_focusState.startPos, m_focusState.targetPos, t));
 
             // [중요] 포커스 도중에도 마우스 좌표는 계속 업데이트해서 delta 튐 방지
+            auto mousePos = Input::GetMousePos();
             m_lastMouseX = mousePos.x;
             m_lastMouseY = mousePos.y;
+            m_hasInput = false;
             return;
         }
     }
+
+    if (!m_hasInput)
+    {
+        m_targetMovement = Vector3::Zero;
+    }
+
+    m_pitch = CameraMathf::Lerp(m_pitch, m_targetPitch, 12.0f * Time::GetUnscaledDeltaTime());
+    m_yaw = CameraMathf::Lerp(m_yaw, m_targetYaw, 12.0f * Time::GetUnscaledDeltaTime());
+    SetEulerRotation(Vector3(m_pitch, m_yaw, 0));
+
+    m_smoothedMovement = Vector3::Lerp(m_smoothedMovement, m_targetMovement, 6.0f * Time::GetUnscaledDeltaTime());
+    SetPosition(GetPosition() + m_smoothedMovement * moveSpeed * Time::GetUnscaledDeltaTime());
+
+    m_hasInput = false;
+}
+
+void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
+{
+    const float rotSpeed = 0.1f;
+    const float panSpeed = 0.01f; // 팬 이동 속도 (조절 필요)
+
+    if (m_focusState.active)
+    {
+        auto mousePos = Input::GetMousePos();
+        m_lastMouseX = mousePos.x;
+        m_lastMouseY = mousePos.y;
+        return;
+    }
+
+    auto mousePos = Input::GetMousePos();
+    float deltaX = mousePos.x - m_lastMouseX;
+    float deltaY = mousePos.y - m_lastMouseY;
+
+    m_hasInput = true;
+    m_targetMovement = Vector3::Zero;
+
+    float wheel = Input::GetMouseScrollNotches();
 
     if (Input::GetKey(KeyCode::MouseRight))
     {
@@ -235,15 +266,15 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
             (Input::GetKey(KeyCode::S) ? -1.0f : 0.0f) + (Input::GetKey(KeyCode::W) ? 1.0f : 0.0f)
         };
 
-        targetMovement += worldMat.Backward() * move.z;
-        targetMovement += worldMat.Right() * move.x;
-        targetMovement += worldMat.Up() * move.y;
+        m_targetMovement += worldMat.Backward() * move.z;
+        m_targetMovement += worldMat.Right() * move.x;
+        m_targetMovement += worldMat.Up() * move.y;
     }
     else if (wheel != 0.0f)
     {
         // 관성 제거: 휠로 움직일 때는 기존 movement 스무딩을 끊어줌
         m_smoothedMovement = Vector3::Zero;
-        targetMovement = Vector3::Zero;
+        m_targetMovement = Vector3::Zero;
 
         if (m_isOrthographic)
         {
@@ -274,17 +305,11 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
         if (Input::GetKeyUp(KeyCode::MouseRight)) m_firstMouseUpdate = true;
     }
 
-    m_pitch = CameraMathf::Lerp(m_pitch, m_targetPitch, 12.0f * Time::GetUnscaledDeltaTime());
-    m_yaw = CameraMathf::Lerp(m_yaw, m_targetYaw, 12.0f * Time::GetUnscaledDeltaTime());
-    SetEulerRotation(Vector3(m_pitch, m_yaw, 0));
-
-    if (targetMovement.LengthSquared() > 0.0f) targetMovement.Normalize();
-    if (Input::GetKey(KeyCode::LeftShift)) targetMovement *= 3.0f;
-
-    m_smoothedMovement = Vector3::Lerp(m_smoothedMovement, targetMovement, 6.0f * Time::GetUnscaledDeltaTime());
-    SetPosition(GetPosition() + m_smoothedMovement * moveSpeed * Time::GetUnscaledDeltaTime());
+    if (m_targetMovement.LengthSquared() > 0.0f) m_targetMovement.Normalize();
+    if (Input::GetKey(KeyCode::LeftShift)) m_targetMovement *= 3.0f;
 
     // 마우스 위치 업데이트 (포커스가 아닐 때도 공통 수행)
     m_lastMouseX = mousePos.x;
     m_lastMouseY = mousePos.y;
 }
+

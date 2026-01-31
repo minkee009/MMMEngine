@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #define NOMINMAX
 #include "SimpleMath.h"
 
@@ -38,7 +38,8 @@ namespace MMMEngine::Editor
 		float m_yaw = 0.0f;
 		bool m_inputStateDirty = true;
 		DirectX::SimpleMath::Vector3 m_smoothedMovement = DirectX::SimpleMath::Vector3::Zero;
-
+		DirectX::SimpleMath::Vector3 m_targetMovement = DirectX::SimpleMath::Vector3::Zero;
+		bool m_hasInput = false;
 		void UpdateProjMatrix();
 		void UpdateProjFrustum();
 	public:
@@ -109,6 +110,8 @@ namespace MMMEngine::Editor
 
 		void FocusOn(const DirectX::SimpleMath::Vector3& worldPosition, float distance = 5.0f);
 		void UpdateProjectionBlend();
+		void UpdateState();
 		void InputUpdate(int currentOp);
 	};
 }
+
