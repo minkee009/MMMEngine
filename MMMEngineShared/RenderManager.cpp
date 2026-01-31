@@ -668,7 +668,7 @@ namespace MMMEngine {
 		//}
 	}
 
-	void RenderManager::ShadowRender()
+	void RenderManager::ShadowRender(const DirectX::SimpleMath::Matrix& _camView)
 	{
 		bool flag = false;
 		for (auto& light : m_lights) {
@@ -700,7 +700,7 @@ namespace MMMEngine {
 		lightDir.Normalize();
 
 		// 라이트 정보
-		DirectX::XMMATRIX invView = XMMatrixInverse(nullptr, m_pMainCamera->GetViewMatrix());
+		DirectX::XMMATRIX invView = XMMatrixInverse(nullptr, _camView);
 		DirectX::XMVECTOR camPos = invView.r[3];
 		DirectX::SimpleMath::Vector3 target = camPos;
 		
@@ -728,17 +728,13 @@ namespace MMMEngine {
 				)
 			);
 
-		m_lightPos = lightPos;
-		m_lightView = shadowBuffer.ShadowView;
-		m_lightProj = shadowBuffer.ShadowProjection;
-
 		// -- 렌더 설정 --
 		// 캠버퍼 업데이트
 		Render_CamBuffer m_camMat;
-		m_camMat.mView = m_lightView;
-		m_camMat.mProjection = m_lightProj;
-		m_camMat.camPos = { m_lightPos.x, m_lightPos.y, m_lightPos.z , 1.0f };
-		m_camMat.mInvProjection = m_lightProj.Invert();
+		m_camMat.mView = shadowBuffer.ShadowView;
+		m_camMat.mProjection = shadowBuffer.ShadowProjection;
+		m_camMat.camPos = { lightPos.x, lightPos.y, lightPos.z , 1.0f };
+		m_camMat.mInvProjection = shadowBuffer.ShadowProjection.Invert();
 
 		// RTV는 nullptr, DSV만 설정
 		m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowDSV.Get());
@@ -808,6 +804,10 @@ namespace MMMEngine {
 				if (cmd.material.expired())
 					continue;
 
+				// CastShadow False Skip
+				if (!cmd.castShadow)
+					continue;
+
 				auto lMat = lastMaterial.lock();
 				auto cMat = cmd.material.lock();
 
@@ -875,12 +875,15 @@ namespace MMMEngine {
 		m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+		// 뷰 매트릭스 생성
+		auto view = XMMatrixTranspose(m_pMainCamera->GetViewMatrix());
+
 		// 그림자 렌더링
-		ShadowRender();
+		ShadowRender(view);
 
 		// 캠 버퍼 업데이트
 		Render_CamBuffer m_camMat = {};
-		m_camMat.mView = XMMatrixTranspose(m_pMainCamera->GetViewMatrix());
+		m_camMat.mView = view;
 		m_camMat.mProjection = XMMatrixTranspose(m_pMainCamera->GetProjMatrix());
 		m_camMat.camPos = XMMatrixInverse(nullptr, m_pMainCamera->GetViewMatrix()).r[3];
 		m_camMat.mInvProjection = XMMatrixTranspose(m_pMainCamera->GetProjMatrix().Invert());
@@ -960,10 +963,16 @@ namespace MMMEngine {
 
 	void RenderManager::RenderOnlyRenderer()
 	{
+		// 뷰 매트릭스 생성
+		auto view = XMMatrixTranspose(m_viewMatrix);
+
+		// 그림자 렌더링 ??왜 안댐
+		//ShadowRender(view);
+
 		// 캠 버퍼 업데이트
 		Render_CamBuffer m_camMat = {};
 		m_camMat.camPos = XMMatrixInverse(nullptr, m_viewMatrix).r[3];
-		m_camMat.mView = XMMatrixTranspose(m_viewMatrix);
+		m_camMat.mView = view;
 		m_camMat.mProjection = XMMatrixTranspose(m_projMatrix);
 		m_camMat.mInvProjection = XMMatrixTranspose(m_projMatrix.Invert());
 

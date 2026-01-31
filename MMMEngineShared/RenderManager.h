@@ -124,16 +124,11 @@ namespace MMMEngine
 		UINT m_shadowMapHeight = 4096;
 		D3D11_VIEWPORT m_shadowVP;
 
-		DirectX::SimpleMath::Vector3 m_lightPos;
-		DirectX::SimpleMath::Matrix m_lightView;
-		DirectX::SimpleMath::Matrix m_lightProj;
-
-
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1>          m_pShadowTexture;
 		ResPtr<Texture2D>  m_pShadowSRV;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	  m_pShadowDSV;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>			  m_pShadowBuffer;
-		void ShadowRender();	// 개별패스
+		void ShadowRender( const DirectX::SimpleMath::Matrix& _camView);	// 개별패스
 
 	public:
 		void StartUp(HWND _hwnd, UINT _ClientWidth, UINT _ClientHeight);
