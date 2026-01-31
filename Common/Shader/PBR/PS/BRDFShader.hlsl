@@ -52,38 +52,61 @@ float geometrySmith(float3 N, float3 V, float3 L, float roughness)
 
 float CalculateShadowPCF(float4 LightPos)
 {
-    float3 projCoords = LightPos.xyz / LightPos.w;
-    float2 texCoords;
-    texCoords.x = projCoords.x * 0.5f + 0.5f;
-    texCoords.y = -projCoords.y * 0.5f + 0.5f;
-    
-    if (texCoords.x < 0.0f || texCoords.x > 1.0f ||
-        texCoords.y < 0.0f || texCoords.y > 1.0f)
+    float currentShadowDepth = LightPos.z / LightPos.w; // 쉐도우맵 기준 NDC Z좌표
+    float2 shadowUV = LightPos.xy / LightPos.w;
+
+    shadowUV.y *= -1.0f;
+    shadowUV = (shadowUV * 0.5f) + 0.5f;
+
+    if (shadowUV.x < 0.0f || shadowUV.x > 1.0f ||
+    shadowUV.y < 0.0f || shadowUV.y > 1.0f)
         return 1.0f;
-    
-    float currentDepth = projCoords.z;
-    if (currentDepth < 0.0f || currentDepth > 1.0f)
+
+    if (currentShadowDepth < 0.0f || currentShadowDepth > 1.0f)
         return 1.0f;
-    
-    float bias = 0.005f;
-    currentDepth -= bias;
-    
-    // 3x3 PCF
+
+    float bias = 0.001f;
+    currentShadowDepth -= bias;
+
+// 3x3 PCF
     float shadow = 0.0f;
     float2 texelSize = 1.0f / 4096.0f; // Shadow Map 크기
-    
+
     for (int x = -1; x <= 1; ++x)
     {
         for (int y = -1; y <= 1; ++y)
         {
             float2 offset = float2(x, y) * texelSize;
-            shadow += _shadowmap.Sample(_sp0, texCoords + offset);
-            //shadow += _shadowmap.SampleCmpLevelZero(samShadow, texCoords + offset, currentDepth);
+            shadow += _shadowmap.SampleCmpLevelZero(_cmpsp0, shadowUV + offset, currentShadowDepth);
         }
     }
     shadow /= 9.0f;
-    
+
     return shadow;
+  
+    ////쉐도우맵 처리
+    //float currentShadowDepth = LightPos.z / LightPos.w; // 쉐도우맵 기준 NDC Z좌표
+    //float2 shadowUV = LightPos.xy / LightPos.w;
+
+    //shadowUV.y *= -1.0f;
+    //shadowUV = (shadowUV * 0.5f) + 0.5f;
+
+    //float shadowFactor = 1.0f;
+
+    //if (shadowUV.x >= 0.0f && shadowUV.x <= 1.0f && shadowUV.y >= 0.0f && shadowUV.y <= 1.0f)
+    //{
+    // Normal
+    //{
+    //        float sampleShadowDepth = _shadowmap.Sample(_sp0, shadowUV).r;
+    
+    //        if (currentShadowDepth > sampleShadowDepth + 0.001f)
+    //        {
+    //            shadowFactor = 0.0f;
+    //        }
+    //    }
+    //}
+    
+    //return shadowFactor;
 }
 
 float4 main(PS_INPUT input) : SV_TARGET
@@ -116,7 +139,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     float4 albedo = _albedo.Sample(_sp0, input.Tex);
     float metallic = _metallic.Sample(_sp0, input.Tex).r * mMetallic;
     float roughness = _roughness.Sample(_sp0, input.Tex).r * mRoughness;
-    float ao = _ambientOcclusion.Sample(_sp0, input.Tex).r;
+    float ao = 0.5f; //_ambientOcclusion.Sample(_sp0, input.Tex).r;
 
     // BRDF 계산
     // Cook-Torrance 모델

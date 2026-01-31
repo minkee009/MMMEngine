@@ -92,8 +92,9 @@ namespace MMMEngine
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;		// 깊이값 처리를 위한 뎊스스텐실 뷰
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1> m_pDepthStencilBuffer;			// 뎊스스텐실 텍스쳐버퍼
 
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pDafaultSampler;		// 샘플러 상태.
-		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pDefaultRS;			// 기본 RS
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pDafaultSampler;		// 기본 샘플러
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pCompareSampler;		// 비교 샘플러
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pDefaultRS;		// 기본 RS
 
 		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pDefaultBS;		// 기본 블랜드 스테이트
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_DefaultRS;	// 기본 레스터라이저 스테이트
@@ -119,8 +120,8 @@ namespace MMMEngine
 
 
 		// 쉐도우 버퍼
-		UINT m_shadowMapWidth = 1024;
-		UINT m_shadowMapHeight = 1024;
+		UINT m_shadowMapWidth = 4096;
+		UINT m_shadowMapHeight = 4096;
 		D3D11_VIEWPORT m_shadowVP;
 
 		DirectX::SimpleMath::Vector3 m_lightPos;
@@ -129,7 +130,7 @@ namespace MMMEngine
 
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1>          m_pShadowTexture;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> m_pShadowSRV;
+		ResPtr<Texture2D>  m_pShadowSRV;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	  m_pShadowDSV;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>			  m_pShadowBuffer;
 		void ShadowRender();	// 개별패스

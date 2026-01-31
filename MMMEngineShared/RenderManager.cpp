@@ -52,6 +52,8 @@ namespace MMMEngine {
 
 		// TODO::샘플러 ShaderInfo 사용해 자동등록화 시키기 (UpdateProperty 사용, 프로퍼티로 샘플러 관리하기)
 		_context->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+		_context->PSSetSamplers(1, 1, m_pCompareSampler.GetAddressOf());
+
 
 		// 메테리얼
 		for (auto& [prop, val] : _material->GetProperties()) {
@@ -332,7 +334,16 @@ namespace MMMEngine {
 		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pDafaultSampler.GetAddressOf()));
+		
+		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; // 비교 필터
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL; // 깊이 비교 함수
+		sampDesc.MinLOD = 0;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
+		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pCompareSampler.GetAddressOf()));
 
 		// === Scene 렌더타겟 초기화 ===
 		D3D11_TEXTURE2D_DESC1 sceneColorDesc = {};
@@ -424,13 +435,14 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateDepthStencilView(m_pShadowTexture.Get(), &dsvDesc, m_pShadowDSV.GetAddressOf()));
 
 		// ShaderResourceView
+		m_pShadowSRV = std::make_shared<Texture2D>();
 		D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc = {};
 		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
 
-		HR_T(m_pDevice->CreateShaderResourceView1(m_pShadowTexture.Get(), &srvDesc, m_pShadowSRV.GetAddressOf()));
+		HR_T(m_pDevice->CreateShaderResourceView1(m_pShadowTexture.Get(), &srvDesc, m_pShadowSRV->m_pSRV.GetAddressOf()));
 
 		// ShadwoViewport
 		m_shadowVP.TopLeftX = 0.0f;
@@ -439,8 +451,6 @@ namespace MMMEngine {
 		m_shadowVP.Height = (FLOAT)m_shadowMapHeight;
 		m_shadowVP.MinDepth = 0.0f;
 		m_shadowVP.MaxDepth = 1.0f;
-
-
 	}
 	void RenderManager::ShutDown()
 	{
@@ -660,6 +670,17 @@ namespace MMMEngine {
 
 	void RenderManager::ShadowRender()
 	{
+		bool flag = false;
+		for (auto& light : m_lights) {
+			if (light->IsActiveAndEnabled()) {
+				flag = true;
+				break;
+			}
+		}
+
+		if (!flag)
+			return;
+
 		// 버퍼데이터 생성
 		Render_ShadowBuffer shadowBuffer;
 
@@ -679,28 +700,45 @@ namespace MMMEngine {
 		lightDir.Normalize();
 
 		// 라이트 정보
-		DirectX::SimpleMath::Vector3 lightPos = XMMatrixInverse(nullptr, m_pMainCamera->GetViewMatrix()).r[3];
-		DirectX::SimpleMath::Vector3 target = DirectX::SimpleMath::Vector3::Zero;
-		DirectX::SimpleMath::Vector3 up = DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f);
-		lightPos += DirectX::SimpleMath::Vector3(0.0f, 50.0f, 0.0f);
+		DirectX::XMMATRIX invView = XMMatrixInverse(nullptr, m_pMainCamera->GetViewMatrix());
+		DirectX::XMVECTOR camPos = invView.r[3];
+		DirectX::SimpleMath::Vector3 target = camPos;
+		
+		DirectX::SimpleMath::Vector3 lightPos = camPos;
+		auto offset = (-lightDir * 500.0f);
+		lightPos += offset;
 
-		shadowBuffer.ShadowView = XMMatrixTranspose(DirectX::SimpleMath::Matrix::CreateLookAt(lightPos, target, up));
+		DirectX::SimpleMath::Vector3 up{ 0.0f, 1.0f, 0.0f };
+
+		shadowBuffer.ShadowView = XMMatrixTranspose(DirectX::XMMatrixLookAtLH(lightPos, target, up));
 
 		// 직교 투영 행렬 (쉐도우맵 범위 설정)
-		float orthoWidth = 5.0f;   // 그림자 범위 (씬 크기에 맞게 조정)
-		float orthoHeight = 5.0f;
+		float orthoWidth = 128.0f;   // 그림자 범위 (씬 크기에 맞게 조정)
+		float orthoHeight = 128.0f;
 		float nearZ = 0.1f;
-		float farZ = 500.0f;
+		float farZ = 1000.0f;
 
-		shadowBuffer.ShadowProjection = XMMatrixTranspose(DirectX::SimpleMath::Matrix::CreateOrthographic(orthoWidth, orthoHeight, nearZ, farZ));
+		shadowBuffer.ShadowProjection =
+			XMMatrixTranspose(
+				XMMatrixOrthographicLH(
+					orthoWidth,
+					orthoHeight,
+					nearZ,
+					farZ
+				)
+			);
 
 		m_lightPos = lightPos;
 		m_lightView = shadowBuffer.ShadowView;
 		m_lightProj = shadowBuffer.ShadowProjection;
 
 		// -- 렌더 설정 --
-		m_pDeviceContext->RSSetViewports(1, &m_shadowVP);
-		m_pDeviceContext->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+		// 캠버퍼 업데이트
+		Render_CamBuffer m_camMat;
+		m_camMat.mView = m_lightView;
+		m_camMat.mProjection = m_lightProj;
+		m_camMat.camPos = { m_lightPos.x, m_lightPos.y, m_lightPos.z , 1.0f };
+		m_camMat.mInvProjection = m_lightProj.Invert();
 
 		// RTV는 nullptr, DSV만 설정
 		m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowDSV.Get());
@@ -708,11 +746,24 @@ namespace MMMEngine {
 		// 깊이 버퍼 클리어
 		m_pDeviceContext->ClearDepthStencilView(m_pShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-		// shadowBuffer에 View/Projection 행렬 채워 넣은 뒤
-		m_pDeviceContext->UpdateSubresource(m_pShadowBuffer.Get(), 0, nullptr, &shadowBuffer, 0, 0);
+		// 기본 렌더셋팅
+		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		float blendFactor[4] = { 0,0,0,0 };
+		UINT sampleMask = 0xffffffff;
+		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
+
+		m_pDeviceContext->RSSetViewports(1, &m_shadowVP);
+		m_pDeviceContext->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
+
+		// 리소스 업데이트
+		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
+		m_pDeviceContext->UpdateSubresource1(m_pShadowBuffer.Get(), 0, nullptr, &shadowBuffer, 0, 0, D3D11_COPY_DISCARD);
 
 		// 셰이더에 바인딩
+		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 		m_pDeviceContext->VSSetConstantBuffers(4, 1, m_pShadowBuffer.GetAddressOf());
+		m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 
 		for (auto& [type, commands] : m_renderCommands)
 		{
@@ -803,6 +854,9 @@ namespace MMMEngine {
 				m_pDeviceContext->DrawIndexed(cmd.indiciesSize, 0, 0);
 			}
 		}
+		
+		// 글로벌 쉐도우맵 추가
+		ShaderInfo::Get().AddAllGlobalPropVal(L"_shadowmap", m_pShadowSRV);
 	}
 
 	void RenderManager::Render()
@@ -821,6 +875,9 @@ namespace MMMEngine {
 		m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+		// 그림자 렌더링
+		ShadowRender();
+
 		// 캠 버퍼 업데이트
 		Render_CamBuffer m_camMat = {};
 		m_camMat.mView = XMMatrixTranspose(m_pMainCamera->GetViewMatrix());
@@ -828,15 +885,8 @@ namespace MMMEngine {
 		m_camMat.camPos = XMMatrixInverse(nullptr, m_pMainCamera->GetViewMatrix()).r[3];
 		m_camMat.mInvProjection = XMMatrixTranspose(m_pMainCamera->GetProjMatrix().Invert());
 
-		//m_camMat.mView = m_lightView;
-		//m_camMat.mProjection = m_lightProj;
-		//m_camMat.camPos = { m_lightPos.x, m_lightPos.y, m_lightPos.z , 1.0f };
-
 		// 리소스 업데이트
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
-
-		// 그림자 렌더링
-		ShadowRender();
 
 		// 기본 렌더셋팅
 		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -859,8 +909,6 @@ namespace MMMEngine {
 
 		// (풀스크린 트라이앵글)
 		if (useBackBuffer) {
-			m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
-
 			auto& vs = ShaderInfo::Get().GetFullScreenVShader();
 			auto& ps = ShaderInfo::Get().GetFullScreenPShader();
 			m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -873,6 +921,7 @@ namespace MMMEngine {
 			ID3D11ShaderResourceView* sceneSRV = m_pSceneSRV.Get();
 			m_pDeviceContext->PSSetShaderResources(0, 1, &sceneSRV);
 			m_pDeviceContext->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+			m_pDeviceContext->PSSetSamplers(1, 1, m_pCompareSampler.GetAddressOf());
 
 			// 씬 뷰포트 설정
 			float sceneAspect = static_cast<float>(m_sceneWidth) / static_cast<float>(m_sceneHeight);
