@@ -17,7 +17,10 @@ RTTR_REGISTRATION
 
 	registration::class_<MeshRenderer>("MeshRenderer")
 		(rttr::metadata("wrapper_type_name", "ObjPtr<MeshRenderer>"))
-		.property("Mesh", &MeshRenderer::GetMesh, &MeshRenderer::SetMesh);
+		.property("Mesh", &MeshRenderer::GetMesh, &MeshRenderer::SetMesh)
+		//.property("Materials", &MeshRenderer::GetMaterial, &MeshRenderer::SetMaterial)
+		.property("CastShadow", &MeshRenderer::GetCastShadow, &MeshRenderer::SetCastShadow)
+		.property("ReceiveShadow", &MeshRenderer::GetReceiveShadow, &MeshRenderer::SetReceiveShadow);
 
 	registration::class_<ObjPtr<MeshRenderer>>("ObjPtr<MeshRenderer>")
 		.constructor<>(
@@ -32,6 +35,54 @@ void MMMEngine::MeshRenderer::SetMesh(ResPtr<StaticMesh>& _mesh)
 	mesh = _mesh;
 }
  
+bool MMMEngine::MeshRenderer::GetCastShadow()
+{
+	if (!mesh)
+		return false;
+
+	return mesh->castShadows;
+}
+
+void MMMEngine::MeshRenderer::SetCastShadow(bool _val)
+{
+	if (!mesh)
+		return;
+
+	mesh->castShadows = _val;
+}
+
+void MMMEngine::MeshRenderer::SetReceiveShadow(bool _val)
+{
+	if (!mesh)
+		return;
+
+	mesh->receiveShadows = _val;
+}
+
+bool MMMEngine::MeshRenderer::GetReceiveShadow()
+{
+	if (!mesh)
+		return false;
+
+	return mesh->receiveShadows;
+}
+
+//std::vector<MMMEngine::ResPtr<MMMEngine::Material>> MMMEngine::MeshRenderer::GetMaterial()
+//{
+//	if (!mesh)
+//		return {};
+//
+//	return mesh->materials;
+//}
+//
+//void MMMEngine::MeshRenderer::SetMaterial(std::vector<ResPtr<Material>> _materials)
+//{
+//	if (!mesh)
+//		return;
+//	
+//	mesh->materials = _materials;
+//}
+
 void MMMEngine::MeshRenderer::Initialize()
 {
 	renderIndex = RenderManager::Get().AddRenderer(this);
@@ -54,7 +105,13 @@ void MMMEngine::MeshRenderer::Render()
 		return;
 
 	for (auto& [matIdx, meshIndices] : mesh->meshGroupData) {
+		if (mesh->materials.empty())
+			continue;
+
 		auto& material = mesh->materials[matIdx];
+
+		if (!material)
+			continue;
 
 		for (const auto& idx : meshIndices) {
 			RenderCommand command;
@@ -67,6 +124,8 @@ void MMMEngine::MeshRenderer::Render()
 			command.worldMatIndex = RenderManager::Get().AddMatrix(GetTransform()->GetWorldMatrix());
 			command.indiciesSize = mesh->indexSizes[idx];
 			command.rendererID = renderIndex;
+			command.castShadow = mesh->castShadows;
+			command.receiveShadow = mesh->receiveShadows;
 
 			// TODO::CamDistance 보내줘야함!!
 			command.camDistance = 0.0f;

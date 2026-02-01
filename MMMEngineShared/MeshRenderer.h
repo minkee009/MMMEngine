@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 
 #include "Export.h"
 #include "ResourceManager.h"
@@ -7,11 +7,12 @@
 
 namespace MMMEngine {
 	class StaticMesh;
+	class Material;
 	class MMMENGINE_API MeshRenderer : public Renderer {
 		RTTR_ENABLE(Renderer)
 		RTTR_REGISTRATION_FRIEND
 	private:
-		// GPU πˆ∆€
+		// GPU Î≤ÑÌçº
 		ResPtr<StaticMesh> mesh = nullptr;
 
 		void Initialize() override;
@@ -21,6 +22,14 @@ namespace MMMEngine {
 	public:
 		ResPtr<StaticMesh>& GetMesh() { return mesh; }
 		void SetMesh(ResPtr<StaticMesh>& _mesh);
+
+		void SetCastShadow(bool _val);
+		bool GetCastShadow();
+		void SetReceiveShadow(bool _val);
+		bool GetReceiveShadow();
+
+		/*void SetMaterial(std::vector<ResPtr<Material>> _materials);
+		std::vector<ResPtr<Material>> GetMaterial();*/
 	};
 }
 

@@ -40,6 +40,15 @@ RTTR_REGISTRATION
 			return result;
 		}
 	);
+
+	//type::register_converter_func(
+	//	[](std::shared_ptr<Material> from, bool& ok) -> std::shared_ptr<Resource>
+	//	{
+	//		ok = true; // nullptr도 허용
+	//		return std::static_pointer_cast<Resource>(from);
+	//	}
+	//);
+
 }
 
 

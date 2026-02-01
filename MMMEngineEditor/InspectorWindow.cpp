@@ -16,6 +16,7 @@ using namespace DirectX;
 #include <rttr/variant_sequential_view.h>
 #include <optional>
 #include <iterator> 
+#include <Material.h>
 
 using namespace MMMEngine;
 using namespace MMMEngine::Editor;
@@ -59,6 +60,13 @@ static void ApplyRigidBodyFromTransformIfPlaying(const ObjPtr<GameObject>& go)
         rbPtr->Editor_changeTrans(tr->GetWorldPosition(), tr->GetWorldRotation());
 }
 
+static bool ConvertToType(rttr::variant& v, const rttr::type& target)
+{
+	// 오버로드 강제 선택: bool variant::convert(const rttr::type&)
+	auto fn = static_cast<bool (rttr::variant::*)(const rttr::type&)>(&rttr::variant::convert);
+	return (v.*fn)(target);
+}
+
 static bool DrawElementPOD(const char* label, rttr::variant& elem, rttr::type elemType, bool readOnly)
 {
     bool changed = false;
@@ -96,6 +104,109 @@ static bool DrawElementPOD(const char* label, rttr::variant& elem, rttr::type el
         if (readOnly) ImGui::EndDisabled();
         if (changed && !readOnly) elem = DirectX::SimpleMath::Vector3(d[0], d[1], d[2]);
     }
+	//else if (elemType.get_name().to_string().find("shared_ptr") != std::string::npos)
+	//{
+	//	// inner type 추출
+	//	auto args = elemType.get_template_arguments();
+	//	if (args.begin() != args.end())
+	//	{
+	//		rttr::type innerType = *args.begin();
+
+	//		// Resource 계열이면 파일 경로 버튼 + 드롭
+	//		if (innerType.is_derived_from(rttr::type::get<Resource>()) || innerType == rttr::type::get<Resource>())
+	//		{
+	//			// 현재 리소스 얻기 (shared_ptr<Resource>로 뽑아내기 시도)
+	//			std::shared_ptr<Resource> sharedRes;
+
+	//			// elem이 이미 shared_ptr<Resource>면 바로
+	//			if (elem.is_type<std::shared_ptr<Resource>>())
+	//			{
+	//				sharedRes = elem.get_value<std::shared_ptr<Resource>>();
+	//			}
+	//			else
+	//			{
+	//				// 예: shared_ptr<Material> -> shared_ptr<Resource>로 convert (RTTR converter 필요)
+	//				rttr::variant tmp = elem;
+	//				if (tmp.convert(rttr::type::get<std::shared_ptr<Resource>>()))
+	//					sharedRes = tmp.get_value<std::shared_ptr<Resource>>();
+	//			}
+
+	//			Resource* res = sharedRes ? sharedRes.get() : nullptr;
+
+	//			std::string displayPath = "None";
+	//			if (res)
+	//			{
+	//				std::filesystem::path fullPath = res->GetFilePath();
+ //                   fullPath = fullPath.filename();
+	//				if (!fullPath.empty())
+	//				{
+ //                       displayPath = fullPath.string();
+	//				}
+	//			}
+
+	//			ImGui::Text("%s:", label);
+	//			ImGui::SameLine();
+	//			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
+	//			ImGui::Button(displayPath.c_str(), ImVec2(-1, 0));
+	//			ImGui::PopStyleColor();
+
+	//			// 우클릭 메뉴: 참조 해제
+	//			if (ImGui::BeginPopupContextItem("ResPtrElemContext"))
+	//			{
+	//				if (!readOnly && ImGui::MenuItem(u8"참조 해제"))
+	//				{
+	//					// innerType(shared_ptr<Material> 등)에 맞는 nullptr variant 만들기
+	//					// 가장 단순: shared_ptr<Resource> nullptr 만들고 convert
+	//					std::shared_ptr<Resource> empty = nullptr;
+	//					rttr::variant nullVar(empty);
+	//					if (nullVar.can_convert(elemType) && ConvertToType(nullVar, elemType))
+	//					{
+	//						elem = nullVar;
+	//						changed = true;
+	//					}
+	//				}
+	//				ImGui::EndPopup();
+	//			}
+
+	//			// 드롭으로 할당
+	//			if (ImGui::BeginDragDropTarget())
+	//			{
+	//				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+	//				{
+	//					std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
+	//					std::string ext = std::filesystem::path(absolutePath).extension().string();
+	//					std::transform(ext.begin(), ext.end(), ext.begin(),
+	//						[](unsigned char c) { return (char)std::tolower(c); });
+
+	//					// Material이면 .material만 허용
+	//					if (innerType == rttr::type::get<Material>() && ext != ".material")
+	//					{
+	//						// 무시
+	//					}
+	//					else
+	//					{
+	//						std::string relativePath = ProjectManager::Get().ToProjectRelativePath(absolutePath);
+	//						std::wstring wRelativePath = StringHelper::StringToWString(relativePath);
+
+	//						rttr::variant loaded = ResourceManager::Get().Load(innerType, wRelativePath);
+	//						if (loaded.is_valid())
+	//						{
+	//							rttr::variant converted = loaded;
+	//							if (converted.can_convert(elemType) && ConvertToType(converted, elemType))
+	//							{
+	//								elem = converted;
+	//								changed = true;
+	//							}
+	//						}
+	//					}
+	//				}
+	//				ImGui::EndDragDropTarget();
+	//			}
+
+	//			return changed;
+	//		}
+	//	}
+	//}
     else
     {
         ImGui::TextDisabled("%s (unsupported: %s)", label, elemType.get_name().to_string().c_str());

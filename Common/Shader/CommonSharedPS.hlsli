@@ -6,6 +6,7 @@ Texture2D _shadowmap : register(t3);
 Texture2D _opacity : register(t4);
 
 SamplerState _sp0 : register(s0);
+SamplerComparisonState _cmpsp0 : register(s1);
 
 // 카메라버퍼
 cbuffer Cambuffer : register(b0)
@@ -13,6 +14,7 @@ cbuffer Cambuffer : register(b0)
     matrix mView;
     matrix mProjection;
     float4 mCamPos;
+    matrix mInvProjection;
 }
 
 // Directional Light 1~2

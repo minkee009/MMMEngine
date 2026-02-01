@@ -52,6 +52,8 @@ namespace MMMEngine {
 
 		// TODO::샘플러 ShaderInfo 사용해 자동등록화 시키기 (UpdateProperty 사용, 프로퍼티로 샘플러 관리하기)
 		_context->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+		_context->PSSetSamplers(1, 1, m_pCompareSampler.GetAddressOf());
+
 
 		// 메테리얼
 		for (auto& [prop, val] : _material->GetProperties()) {
@@ -139,7 +141,11 @@ namespace MMMEngine {
 				m_pDeviceContext->UpdateSubresource1(m_pTransbuffer.Get(), 0, nullptr, &transformBuffer, 0, 0, D3D11_COPY_DISCARD);
 				m_pDeviceContext->VSSetConstantBuffers(1, 1, m_pTransbuffer.GetAddressOf());
 
-				m_pDeviceContext->DrawIndexed(cmd.indiciesSize, 0, 0);
+
+				if (type == RenderType::R_SKYBOX)
+					m_pDeviceContext->Draw(3, 0);
+				else
+					m_pDeviceContext->DrawIndexed(cmd.indiciesSize, 0, 0);
 			}
 		}
 	}
@@ -256,7 +262,7 @@ namespace MMMEngine {
 		m_swapViewport.MinDepth = 0.0f;
 		m_swapViewport.MaxDepth = 1.0f;
 
-		// X스 텍스쳐 생성
+		// 뎊스 텍스쳐 생성
 		D3D11_TEXTURE2D_DESC1 depthDesc = {};
 		depthDesc.Width = m_clientWidth;
 		depthDesc.Height = m_clientHeight;
@@ -272,7 +278,7 @@ namespace MMMEngine {
 
 		HR_T(m_pDevice->CreateTexture2D1(&depthDesc, nullptr, m_pDepthStencilBuffer.GetAddressOf()));
 
-		// X스스탠실 뷰 생성
+		// 뎊스스탠실 뷰 생성
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsv = {};
 		dsv.Format = depthDesc.Format;
 		dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
@@ -328,7 +334,16 @@ namespace MMMEngine {
 		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pDafaultSampler.GetAddressOf()));
+		
+		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; // 비교 필터
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL; // 깊이 비교 함수
+		sampDesc.MinLOD = 0;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
+		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pCompareSampler.GetAddressOf()));
 
 		// === Scene 렌더타겟 초기화 ===
 		D3D11_TEXTURE2D_DESC1 sceneColorDesc = {};
@@ -391,6 +406,51 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pCambuffer.GetAddressOf()));
 		bd.ByteWidth = sizeof(Render_TransformBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pTransbuffer));
+		bd.ByteWidth = sizeof(Render_ShadowBuffer);
+		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pShadowBuffer));
+
+		// 그림자 버퍼용
+		D3D11_TEXTURE2D_DESC1 shadowDesc = {};
+		shadowDesc.Width = m_shadowMapWidth;
+		shadowDesc.Height = m_shadowMapHeight;
+		shadowDesc.MipLevels = 1;
+		shadowDesc.ArraySize = 1;
+		shadowDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+		shadowDesc.SampleDesc.Count = 1;
+		shadowDesc.SampleDesc.Quality = 0;
+		shadowDesc.Usage = D3D11_USAGE_DEFAULT;
+		shadowDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+		shadowDesc.CPUAccessFlags = 0;
+		shadowDesc.MiscFlags = 0;
+
+		// 텍스처 생성
+		HR_T(m_pDevice->CreateTexture2D1(&shadowDesc, nullptr, m_pShadowTexture.GetAddressOf()));
+
+		// DepthStencilView
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsvDesc.Texture2D.MipSlice = 0;
+
+		HR_T(m_pDevice->CreateDepthStencilView(m_pShadowTexture.Get(), &dsvDesc, m_pShadowDSV.GetAddressOf()));
+
+		// ShaderResourceView
+		m_pShadowSRV = std::make_shared<Texture2D>();
+		D3D11_SHADER_RESOURCE_VIEW_DESC1 srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+
+		HR_T(m_pDevice->CreateShaderResourceView1(m_pShadowTexture.Get(), &srvDesc, m_pShadowSRV->m_pSRV.GetAddressOf()));
+
+		// ShadwoViewport
+		m_shadowVP.TopLeftX = 0.0f;
+		m_shadowVP.TopLeftY = 0.0f;
+		m_shadowVP.Width = (FLOAT)m_shadowMapWidth;
+		m_shadowVP.Height = (FLOAT)m_shadowMapHeight;
+		m_shadowVP.MinDepth = 0.0f;
+		m_shadowVP.MaxDepth = 1.0f;
 	}
 	void RenderManager::ShutDown()
 	{
@@ -608,6 +668,197 @@ namespace MMMEngine {
 		//}
 	}
 
+	void RenderManager::ShadowRender(const DirectX::SimpleMath::Matrix& _camView)
+	{
+		bool flag = false;
+		for (auto& light : m_lights) {
+			if (light->IsActiveAndEnabled()) {
+				flag = true;
+				break;
+			}
+		}
+
+		if (!flag)
+			return;
+
+		// 버퍼데이터 생성
+		Render_ShadowBuffer shadowBuffer;
+
+		// 라이트 방향 (정규화)
+		DirectX::SimpleMath::Vector3 lightDir = DirectX::SimpleMath::Vector3::Zero;
+
+		// 글로벌 프로퍼티 찾기
+		for (int i = 0; i < static_cast<int>(ShaderType::S_END); ++i) {
+			ShaderType type = static_cast<ShaderType>(i);
+			auto& propval = ShaderInfo::Get().GetGlobalPropVal(type, L"mLightDir");
+
+			if (auto p = std::get_if<DirectX::SimpleMath::Vector3>(&propval)) {
+				lightDir = *p;
+				break;
+			}
+		}
+		lightDir.Normalize();
+
+		// 라이트 정보
+		DirectX::XMMATRIX invView = XMMatrixInverse(nullptr, _camView);
+		DirectX::XMVECTOR camPos = invView.r[3];
+		DirectX::SimpleMath::Vector3 target = camPos;
+		
+		DirectX::SimpleMath::Vector3 lightPos = camPos;
+		auto offset = (-lightDir * 500.0f);
+		lightPos += offset;
+
+		DirectX::SimpleMath::Vector3 up{ 0.0f, 1.0f, 0.0f };
+
+		shadowBuffer.ShadowView = XMMatrixTranspose(DirectX::XMMatrixLookAtLH(lightPos, target, up));
+
+		// 직교 투영 행렬 (쉐도우맵 범위 설정)
+		float orthoWidth = 64.0f;   // 그림자 범위 (씬 크기에 맞게 조정)
+		float orthoHeight = 64.0f;
+		float nearZ = 100.0f;
+		float farZ = 1000.0f;
+
+		shadowBuffer.ShadowProjection =
+			XMMatrixTranspose(
+				XMMatrixOrthographicLH(
+					orthoWidth,
+					orthoHeight,
+					nearZ,
+					farZ
+				)
+			);
+
+		// -- 렌더 설정 --
+		// 캠버퍼 업데이트
+		Render_CamBuffer m_camMat;
+		m_camMat.mView = shadowBuffer.ShadowView;
+		m_camMat.mProjection = shadowBuffer.ShadowProjection;
+		m_camMat.camPos = { lightPos.x, lightPos.y, lightPos.z , 1.0f };
+		m_camMat.mInvProjection = shadowBuffer.ShadowProjection.Invert();
+
+		// RTV는 nullptr, DSV만 설정
+		m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowDSV.Get());
+
+		// 깊이 버퍼 클리어
+		m_pDeviceContext->ClearDepthStencilView(m_pShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+		// 기본 렌더셋팅
+		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		float blendFactor[4] = { 0,0,0,0 };
+		UINT sampleMask = 0xffffffff;
+		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
+
+		m_pDeviceContext->RSSetViewports(1, &m_shadowVP);
+		m_pDeviceContext->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
+
+		// 리소스 업데이트
+		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
+		m_pDeviceContext->UpdateSubresource1(m_pShadowBuffer.Get(), 0, nullptr, &shadowBuffer, 0, 0, D3D11_COPY_DISCARD);
+
+		// 셰이더에 바인딩
+		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
+		m_pDeviceContext->VSSetConstantBuffers(4, 1, m_pShadowBuffer.GetAddressOf());
+		m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
+
+		for (auto& [type, commands] : m_renderCommands)
+		{
+			if (type == RenderType::R_SHADOWMAP ||
+				type == RenderType::R_PREDEPTH ||
+				type == RenderType::R_SKYBOX ||
+				type == RenderType::R_PARTICLE ||
+				type == RenderType::R_POSTPROCESS ||
+				type == RenderType::R_UI ||
+				type == RenderType::R_NONE ||
+				type == RenderType::R_END)
+			{
+				// 쉐도우 안그리는거는 스킵
+				continue;
+			}
+			
+			if (type == RenderType::R_TRANSCULANT)
+			{
+				// 투명 오브젝트: 카메라 거리 내림차순 정렬
+				std::sort(commands.begin(), commands.end(),
+					[](const RenderCommand& a, const RenderCommand& b)
+					{
+						return a.camDistance > b.camDistance;
+					});
+			}
+			else
+			{
+				// 불투명 오브젝트: 머티리얼 기준 정렬
+				std::sort(commands.begin(), commands.end(),
+					[](const RenderCommand& a, const RenderCommand& b)
+					{
+						if (a.material.expired() || b.material.expired())
+							return false;
+						return a.material.lock() < b.material.lock();
+					});
+			}
+
+			// 정렬된 커맨드 실행
+			std::weak_ptr<Material> lastMaterial;
+			for (auto& cmd : commands)
+			{
+				if (cmd.material.expired())
+					continue;
+
+				// CastShadow False Skip
+				if (!cmd.castShadow)
+					continue;
+
+				auto lMat = lastMaterial.lock();
+				auto cMat = cmd.material.lock();
+
+				if (cMat != lMat)
+				{
+					auto VS = cMat->m_pVShader;
+					auto PS = ShaderInfo::Get().GetShadowPShader();
+
+					m_pDeviceContext->VSSetShader(VS->m_pVShader.Get(), nullptr, 0);
+					m_pDeviceContext->PSSetShader(PS->m_pPShader.Get(), nullptr, 0);
+
+					// 자동등록 시키기
+					m_pDeviceContext->IASetInputLayout(VS->m_pInputLayout.Get());
+
+					// Albedo 등록
+					auto tex2D = std::get_if<ResPtr<Texture2D>>(&cMat->GetProperty(L"_albedo"));
+					if ((*tex2D)) {
+						ID3D11ShaderResourceView* albedo = (*tex2D)->m_pSRV.Get();
+						m_pDeviceContext->PSSetShaderResources(0, 1, &albedo);
+					}
+
+					lastMaterial = cmd.material;
+					lMat = cMat;
+				}
+
+				UINT stride = sizeof(Mesh_Vertex); // 실제 버텍스 구조체 크기
+				UINT offset = 0;
+				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
+				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+				if (cmd.boneMatIndex >= 0)
+				{
+					// 스킨드 메시라면 본 인덱스를 셰이더에 전달
+					// UpdateBoneIndexConstantBuffer(cmd.boneMatIndex);
+				}
+
+				// 월드매트릭스 버퍼집어넣기
+				Render_TransformBuffer transformBuffer;
+				transformBuffer.mWorld = XMMatrixTranspose(m_objWorldMatMap[cmd.worldMatIndex]);
+				transformBuffer.mNormalMatrix = XMMatrixInverse(nullptr, m_objWorldMatMap[cmd.worldMatIndex]);
+				m_pDeviceContext->UpdateSubresource1(m_pTransbuffer.Get(), 0, nullptr, &transformBuffer, 0, 0, D3D11_COPY_DISCARD);
+				m_pDeviceContext->VSSetConstantBuffers(1, 1, m_pTransbuffer.GetAddressOf());
+
+				m_pDeviceContext->DrawIndexed(cmd.indiciesSize, 0, 0);
+			}
+		}
+		
+		// 글로벌 쉐도우맵 추가
+		ShaderInfo::Get().AddAllGlobalPropVal(L"_shadowmap", m_pShadowSRV);
+	}
+
 	void RenderManager::Render()
 	{
 		if (!m_pMainCamera.IsValid())
@@ -624,11 +875,18 @@ namespace MMMEngine {
 		m_pDeviceContext->ClearRenderTargetView(m_pSceneRTV.Get(), m_backColor);
 		m_pDeviceContext->ClearDepthStencilView(m_pSceneDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
+		// 뷰 매트릭스 생성
+		auto view = XMMatrixTranspose(m_pMainCamera->GetViewMatrix());
+
+		// 그림자 렌더링
+		ShadowRender(view);
+
 		// 캠 버퍼 업데이트
 		Render_CamBuffer m_camMat = {};
-		m_camMat.mView = XMMatrixTranspose(m_pMainCamera->GetViewMatrix());
+		m_camMat.mView = view;
 		m_camMat.mProjection = XMMatrixTranspose(m_pMainCamera->GetProjMatrix());
 		m_camMat.camPos = XMMatrixInverse(nullptr, m_pMainCamera->GetViewMatrix()).r[3];
+		m_camMat.mInvProjection = XMMatrixTranspose(m_pMainCamera->GetProjMatrix().Invert());
 
 		// 리소스 업데이트
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
@@ -654,8 +912,6 @@ namespace MMMEngine {
 
 		// (풀스크린 트라이앵글)
 		if (useBackBuffer) {
-			m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
-
 			auto& vs = ShaderInfo::Get().GetFullScreenVShader();
 			auto& ps = ShaderInfo::Get().GetFullScreenPShader();
 			m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -668,6 +924,7 @@ namespace MMMEngine {
 			ID3D11ShaderResourceView* sceneSRV = m_pSceneSRV.Get();
 			m_pDeviceContext->PSSetShaderResources(0, 1, &sceneSRV);
 			m_pDeviceContext->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+			m_pDeviceContext->PSSetSamplers(1, 1, m_pCompareSampler.GetAddressOf());
 
 			// 씬 뷰포트 설정
 			float sceneAspect = static_cast<float>(m_sceneWidth) / static_cast<float>(m_sceneHeight);
@@ -706,11 +963,18 @@ namespace MMMEngine {
 
 	void RenderManager::RenderOnlyRenderer()
 	{
+		// 뷰 매트릭스 생성
+		auto view = XMMatrixTranspose(m_viewMatrix);
+
+		// 그림자 렌더링 ??왜 안댐
+		//ShadowRender(view);
+
 		// 캠 버퍼 업데이트
 		Render_CamBuffer m_camMat = {};
 		m_camMat.camPos = XMMatrixInverse(nullptr, m_viewMatrix).r[3];
-		m_camMat.mView = XMMatrixTranspose(m_viewMatrix);
+		m_camMat.mView = view;
 		m_camMat.mProjection = XMMatrixTranspose(m_projMatrix);
+		m_camMat.mInvProjection = XMMatrixTranspose(m_projMatrix.Invert());
 
 		// 리소스 업데이트
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
@@ -919,6 +1183,11 @@ namespace MMMEngine {
 			m_lights[_idx]->m_lightIndex = _idx;
 			m_lights.pop_back();
 		}
+	}
+
+	void RenderManager::SetShadowMapSize(UINT _size)
+	{
+
 	}
 
 	Renderer* RenderManager::GetRendererById(uint32_t id) const

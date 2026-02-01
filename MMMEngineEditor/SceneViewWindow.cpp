@@ -968,9 +968,11 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 
 	auto view = m_pCam->GetViewMatrix();
 	auto proj = m_pCam->GetProjMatrix();
+	auto ortho = m_pCam->IsOrthographic();
 
 	RenderManager::Get().SetViewMatrix(view);
 	RenderManager::Get().SetProjMatrix(proj);
+	RenderManager::Get().SetOrtho(ortho);
 
 	// ID 텍스쳐 렌더링
 	if (m_pPickingVS && m_pPickingPS && m_pPickingIdBuffer)

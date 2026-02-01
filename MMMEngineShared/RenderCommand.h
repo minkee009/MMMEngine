@@ -19,6 +19,9 @@ namespace MMMEngine {
 		int worldMatIndex = -1;		// 월드 매트릭스 인덱스 (-1이 나오면 절대안됨!!)
 		int boneMatIndex = -1;		// 본 매트릭스 인덱스 (-1은 스킨드메시아님)
 		uint32_t rendererID = UINT32_MAX;
+
+		bool castShadow = true;
+		bool receiveShadow = true;
 	};
 }
 

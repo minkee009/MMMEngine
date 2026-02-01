@@ -32,6 +32,7 @@ namespace MMMEngine {
 		DirectX::SimpleMath::Matrix mView = DirectX::SimpleMath::Matrix::Identity;			// 카메라좌표계 변환행렬
 		DirectX::SimpleMath::Matrix mProjection = DirectX::SimpleMath::Matrix::Identity;	// ndc좌표계 변환행렬
 		DirectX::SimpleMath::Vector4 camPos;
+		DirectX::SimpleMath::Matrix mInvProjection = DirectX::SimpleMath::Matrix::Identity;
 	};
 
 	struct Render_TransformBuffer
