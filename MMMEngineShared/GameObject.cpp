@@ -73,9 +73,14 @@ void MMMEngine::GameObject::Initialize()
 
 void MMMEngine::GameObject::UpdateActiveInHierarchy()
 {
-	if (auto parent = m_transform->GetParent())
+	// todo : 이벤트 발생 시키기
+
+
+	if (auto parent = m_transform->GetParent(); parent.IsValid())
 	{
-		m_activeInHierarchy = parent->GetGameObject()->IsActiveInHierarchy() && m_active;
+		if(parent->GetGameObject().IsValid() && 
+			!parent->GetGameObject()->IsDestroyed())
+			m_activeInHierarchy = parent->GetGameObject()->IsActiveInHierarchy() && m_active;
 	}
 	else
 	{
@@ -85,7 +90,9 @@ void MMMEngine::GameObject::UpdateActiveInHierarchy()
 	// 자식들의 활성화 상태 갱신
 	for (auto& child : m_transform->m_childs)
 	{
-		if(child.IsValid())
+		if(child.IsValid() && 
+			child->GetGameObject().IsValid() &&
+			!child->GetGameObject()->IsDestroyed())
 			child->GetGameObject()->UpdateActiveInHierarchy();
 	}
 }

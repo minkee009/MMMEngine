@@ -1243,9 +1243,9 @@ namespace MMMEngine {
 		m_sceneHeight = prevHeight;
 	}
 
-	void RenderManager::RenderPickingIds(ID3D11VertexShader* vs, ID3D11PixelShader* ps, ID3D11InputLayout* layout, ID3D11Buffer* idBuffer)
+	void RenderManager::RenderPickingIds(ID3D11PixelShader* ps, ID3D11Buffer* idBuffer)
 	{
-		if (!vs || !ps || !layout || !idBuffer)
+		if (!ps || !idBuffer)
 			return;
 
 		// 캠 버퍼 업데이트
@@ -1258,8 +1258,8 @@ namespace MMMEngine {
 
 		// 기본 렌더셋팅
 		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pDeviceContext->IASetInputLayout(layout);
-		m_pDeviceContext->VSSetShader(vs, nullptr, 0);
+		//m_pDeviceContext->IASetInputLayout(layout);
+		//m_pDeviceContext->VSSetShader(vs, nullptr, 0);
 		m_pDeviceContext->PSSetShader(ps, nullptr, 0);
 		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 		m_pDeviceContext->VSSetConstantBuffers(1, 1, m_pTransbuffer.GetAddressOf());
@@ -1283,6 +1283,9 @@ namespace MMMEngine {
 
 			for (auto& cmd : commands)
 			{
+				// 스켈레탈 메시는 픽킹용 ID 렌더링에서 제외
+				if (cmd.offsetBuffer != nullptr || cmd.animBuffer != nullptr)
+					continue;
 				if (cmd.rendererID == UINT32_MAX)
 					continue;
 
@@ -1290,6 +1293,10 @@ namespace MMMEngine {
 				UINT offset = 0;
 				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
 				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+				
+				auto& matVs = cmd.material->GetVShader();
+				m_pDeviceContext->VSSetShader(matVs->m_pVShader.Get(), nullptr, 0);
+				m_pDeviceContext->IASetInputLayout(matVs->m_pInputLayout.Get());
 
 				Render_TransformBuffer transformBuffer;
 				transformBuffer.mWorld = XMMatrixTranspose(m_objWorldMatMap[cmd.worldMatIndex]);
@@ -1304,9 +1311,9 @@ namespace MMMEngine {
 		}
 	}
 
-	void RenderManager::RenderSelectedMask(ID3D11VertexShader* vs, ID3D11PixelShader* ps, ID3D11InputLayout* layout, const uint32_t* ids, uint32_t count)
+	void RenderManager::RenderSelectedMask(ID3D11PixelShader* ps, const uint32_t* ids, uint32_t count)
 	{
-		if (!vs || !ps || !layout || !ids || count == 0)
+		if (!ps || !ids || count == 0)
 			return;
 
 		Render_CamBuffer m_camMat = {};
@@ -1317,8 +1324,6 @@ namespace MMMEngine {
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
 
 		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_pDeviceContext->IASetInputLayout(layout);
-		m_pDeviceContext->VSSetShader(vs, nullptr, 0);
 		m_pDeviceContext->PSSetShader(ps, nullptr, 0);
 		m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pCambuffer.GetAddressOf());
 		m_pDeviceContext->VSSetConstantBuffers(1, 1, m_pTransbuffer.GetAddressOf());
@@ -1341,6 +1346,9 @@ namespace MMMEngine {
 
 			for (auto& cmd : commands)
 			{
+				// 스켈레탈 메시는 마스크/아웃라인에서 제외
+				if (cmd.offsetBuffer != nullptr || cmd.animBuffer != nullptr)
+					continue;
 				if (cmd.rendererID == UINT32_MAX || !isSelected(cmd.rendererID))
 					continue;
 
@@ -1348,6 +1356,10 @@ namespace MMMEngine {
 				UINT offset = 0;
 				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
 				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+				auto& matVs = cmd.material->GetVShader();
+				m_pDeviceContext->VSSetShader(matVs->m_pVShader.Get(), nullptr, 0);
+				m_pDeviceContext->IASetInputLayout(matVs->m_pInputLayout.Get());
 
 				Render_TransformBuffer transformBuffer;
 				transformBuffer.mWorld = XMMatrixTranspose(m_objWorldMatMap[cmd.worldMatIndex]);

@@ -131,6 +131,7 @@
     </ClCompile>
     <ClCompile Include="Animator.cpp">
       <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Canvas.cpp">
       <Filter>소스 파일\Core\Render API\UI</Filter>
     </ClCompile>
@@ -163,6 +164,9 @@
     </ClCompile>
     <ClCompile Include="SerializableEvent.cpp">
       <Filter>소스 파일\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimatorController.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -427,6 +431,7 @@
     </ClInclude>
     <ClInclude Include="Animator.h">
       <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
     <ClInclude Include="Canvas.h">
       <Filter>헤더 파일\Core\Render API\UI</Filter>
     </ClInclude>
@@ -459,6 +464,9 @@
     </ClInclude>
     <ClInclude Include="SerializableEvent.h">
       <Filter>헤더 파일\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimatorController.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

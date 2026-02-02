@@ -212,6 +212,25 @@ namespace MMMEngine::Editor
         }
 
         m_project = proj;
+
+        const fs::path projectRootDir = fs::path(m_project->rootPath);
+        EnsureUserScriptsFolders(projectRootDir);
+
+        const fs::path vcxprojPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.vcxproj";
+        const fs::path slnPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.sln";
+        if (!fs::exists(vcxprojPath))
+        {
+            GenerateUserScriptsProject(projectRootDir);
+        }
+        else
+        {
+            if (!fs::exists(slnPath))
+            {
+                GenerateUserScriptsSolution(projectRootDir);
+            }
+            GenerateVSCodeSettings(projectRootDir);
+        }
+
         return true;
     }
 
@@ -521,6 +540,94 @@ void MMMEngine::ExampleBehaviour::Update()
         return true;
     }
 
+    bool ProjectManager::GenerateUserScriptsSolution(const fs::path& projectRootDir) const
+    {
+        const fs::path projDir = projectRootDir / "Source" / "UserScripts";
+        const fs::path slnPath = projDir / "UserScripts.sln";
+
+        const std::string projGuid = MakeDeterministicProjectGuid(projectRootDir);
+        const char* vcxprojTypeGuid = "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}";
+
+        std::ofstream out(slnPath, std::ios::binary);
+        if (!out) return false;
+
+        out <<
+            "Microsoft Visual Studio Solution File, Format Version 12.00\n"
+            "# Visual Studio Version 17\n"
+            "VisualStudioVersion = 17.0.31903.59\n"
+            "MinimumVisualStudioVersion = 10.0.40219.1\n"
+            "Project(\"" << vcxprojTypeGuid << "\") = \"UserScripts\", \"UserScripts.vcxproj\", \"" << projGuid << "\"\n"
+            "EndProject\n"
+            "Global\n"
+            "\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n"
+            "\t\tDebug|x64 = Debug|x64\n"
+            "\t\tRelease|x64 = Release|x64\n"
+            "\tEndGlobalSection\n"
+            "\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n"
+            "\t\t" << projGuid << ".Debug|x64.ActiveCfg = Debug|x64\n"
+            "\t\t" << projGuid << ".Debug|x64.Build.0 = Debug|x64\n"
+            "\t\t" << projGuid << ".Release|x64.ActiveCfg = Release|x64\n"
+            "\t\t" << projGuid << ".Release|x64.Build.0 = Release|x64\n"
+            "\tEndGlobalSection\n"
+            "EndGlobal\n";
+
+        return true;
+    }
+
+    bool ProjectManager::GenerateVSCodeSettings(const fs::path& projectRootDir) const
+    {
+        const fs::path vscodeDir = projectRootDir / ".vscode";
+        const fs::path propsPath = vscodeDir / "c_cpp_properties.json";
+
+        std::error_code ec;
+        fs::create_directories(vscodeDir, ec);
+        if (ec) return false;
+
+        json debugConfig;
+        debugConfig["name"] = "Win64-Debug";
+        debugConfig["includePath"] = json::array({
+            "${workspaceFolder}/Source/UserScripts",
+            "${workspaceFolder}/Source/UserScripts/Scripts",
+            "${workspaceFolder}/Source",
+            "${workspaceFolder}",
+            "${env:MMMENGINE_DIR}/MMMEngineShared",
+            "${env:MMMENGINE_DIR}/MMMEngineShared/dxtk",
+            "${env:MMMENGINE_DIR}/MMMEngineShared/dxtk/inc",
+            "${env:MMMENGINE_DIR}/MMMEngineShared/physx"
+        });
+        debugConfig["defines"] = json::array({
+            "WIN32",
+            "_WINDOWS",
+            "_DEBUG",
+            "RTTR_DLL",
+            "USERSCRIPTS_EXPORT"
+        });
+        debugConfig["compilerPath"] = "cl.exe";
+        debugConfig["cStandard"] = "c17";
+        debugConfig["cppStandard"] = "c++17";
+        debugConfig["intelliSenseMode"] = "windows-msvc-x64";
+
+        json releaseConfig = debugConfig;
+        releaseConfig["name"] = "Win64-Release";
+        releaseConfig["defines"] = json::array({
+            "WIN32",
+            "_WINDOWS",
+            "NDEBUG",
+            "RTTR_DLL",
+            "USERSCRIPTS_EXPORT"
+        });
+
+        json root;
+        root["configurations"] = json::array({ debugConfig, releaseConfig });
+        root["version"] = 4;
+
+        std::ofstream out(propsPath, std::ios::binary);
+        if (!out) return false;
+
+        out << root.dump(4);
+        return true;
+    }
+
     bool ProjectManager::GenerateUserScriptsProject(const fs::path& projectRootDir) const
     {
         EnsureUserScriptsFolders(projectRootDir);
@@ -530,7 +637,9 @@ void MMMEngine::ExampleBehaviour::Update()
 
         // filters는 실패해도 치명적이지 않음
         GenerateUserScriptsFilters(projectRootDir);
+        GenerateUserScriptsSolution(projectRootDir);
 
+        GenerateVSCodeSettings(projectRootDir);
         GenerateDefaultScriptIfEmpty(projectRootDir);
         return true;
     }
@@ -585,5 +694,29 @@ void MMMEngine::ExampleBehaviour::Update()
             return false;
 
         return OpenProject(lastProj);
+    }
+
+    void ProjectManager::RefreshUserScriptsIDEFiles()
+    {
+        if (!HasActiveProject())
+            return;
+
+        const fs::path projectRootDir = fs::path(GetActiveProject().rootPath);
+        EnsureUserScriptsFolders(projectRootDir);
+
+        const fs::path vcxprojPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.vcxproj";
+        const fs::path slnPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.sln";
+        if (!fs::exists(vcxprojPath))
+        {
+            GenerateUserScriptsProject(projectRootDir);
+            return;
+        }
+
+        if (!fs::exists(slnPath))
+        {
+            GenerateUserScriptsSolution(projectRootDir);
+        }
+
+        GenerateVSCodeSettings(projectRootDir);
     }
 }

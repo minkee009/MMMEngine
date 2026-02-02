@@ -1461,7 +1461,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 		!ResourceManager::Get().GetCurrentRootPath().empty())
 	{
 		if (!m_pPickingVS)
-			m_pPickingVS = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
+			m_pPickingVS = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/StaticVertexShader.hlsl");
 		if (!m_pPickingPS)
 			m_pPickingPS = ResourceManager::Get().Load<PShader>(L"Shader/Editor/PickingPS.hlsl");
 		if (!m_pMaskPS)
@@ -1507,9 +1507,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 		context->RSSetState(m_states->CullNone());
 
 		RenderManager::Get().RenderPickingIds(
-			m_pPickingVS->m_pVShader.Get(),
 			m_pPickingPS->m_pPShader.Get(),
-			m_pPickingVS->m_pInputLayout.Get(),
 			m_pPickingIdBuffer.Get());
 	}
 
@@ -1710,9 +1708,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 		if (!selectedIds.empty())
 		{
 			RenderManager::Get().RenderSelectedMask(
-				m_pPickingVS->m_pVShader.Get(),
 				m_pMaskPS->m_pPShader.Get(),
-				m_pPickingVS->m_pInputLayout.Get(),
 				selectedIds.data(),
 				static_cast<uint32_t>(selectedIds.size()));
 		}

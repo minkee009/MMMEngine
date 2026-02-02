@@ -172,6 +172,7 @@
   <ItemGroup>
     <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="Animator.h" />
+    <ClInclude Include="AnimatorController.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="Behaviour.h" />
     <ClInclude Include="BoxColliderComponent.h" />
@@ -265,6 +266,7 @@
   <ItemGroup>
     <ClCompile Include="AnimationClip.cpp" />
     <ClCompile Include="Animator.cpp" />
+    <ClCompile Include="AnimatorController.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Behaviour.cpp" />
     <ClCompile Include="BehaviourManager.cpp" />

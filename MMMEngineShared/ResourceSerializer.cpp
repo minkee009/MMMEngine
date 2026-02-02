@@ -757,7 +757,7 @@ std::filesystem::path MMMEngine::ResourceSerializer::Serialize_Animation(const A
 void MMMEngine::ResourceSerializer::DeSerialize_Animation(AnimationClip* _out, std::wstring _path)
 {
 	// wide string → narrow string 변환
-	std::string path(_path.begin(), _path.end());
+	std::string path(Utility::StringHelper::WStringToString(_path));
 
 	std::ifstream ifs(path);
 	if (!ifs.is_open())

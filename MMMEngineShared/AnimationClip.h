@@ -19,9 +19,6 @@ namespace MMMEngine {
 		float ticksPerSecond = 30.0f;
 		std::vector<Mesh_AnimTrack> mTracks;
 
-		NodeTreeAsset mNodeTree;
-
-		//TODO::역직렬화시키기
 		bool LoadFromFilePath(const std::wstring& filePath) override;
 	};
 }
