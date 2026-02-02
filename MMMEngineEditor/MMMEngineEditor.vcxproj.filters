@@ -171,6 +171,9 @@
     <ClInclude Include="AssimpLoader.h">
       <Filter>헤더 파일\Tools</Filter>
     </ClInclude>
+    <ClInclude Include="FontImporter.h">
+      <Filter>헤더 파일\Tools</Filter>
+    </ClInclude>
     <ClInclude Include="EditorCamera.h">
       <Filter>헤더 파일\EditorCamera</Filter>
     </ClInclude>
@@ -195,6 +198,9 @@
     <ClInclude Include="PlayerBuildWindow.h">
       <Filter>헤더 파일\EditorWindow\Popup</Filter>
     </ClInclude>
+    <ClInclude Include="PrefabMaker.h">
+      <Filter>헤더 파일\Helper</Filter>
+    </ClInclude>
     <ClInclude Include="SceneNameWindow.h">
       <Filter>헤더 파일\EditorWindow\Popup</Filter>
     </ClInclude>
@@ -205,6 +211,9 @@
       <Filter>헤더 파일\Helper</Filter>
     </ClInclude>
     <ClInclude Include="AssimpLoaderWindow.h">
+      <Filter>헤더 파일\EditorWindow\Popup</Filter>
+    </ClInclude>
+    <ClInclude Include="FontImporterWindow.h">
       <Filter>헤더 파일\EditorWindow\Popup</Filter>
     </ClInclude>
   </ItemGroup>
@@ -275,6 +284,9 @@
     <ClCompile Include="AssimpLoader.cpp">
       <Filter>소스 파일\Tools</Filter>
     </ClCompile>
+    <ClCompile Include="FontImporter.cpp">
+      <Filter>소스 파일\Tools</Filter>
+    </ClCompile>
     <ClCompile Include="EditorCamera.cpp">
       <Filter>소스 파일\EditorCamera</Filter>
     </ClCompile>
@@ -296,6 +308,9 @@
     <ClCompile Include="PlayerBuildWindow.cpp">
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
+    <ClCompile Include="PrefabMaker.cpp">
+      <Filter>소스 파일\Helper</Filter>
+    </ClCompile>
     <ClCompile Include="SceneNameWindow.cpp">
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
@@ -306,6 +321,9 @@
       <Filter>소스 파일\Helper</Filter>
     </ClCompile>
     <ClCompile Include="AssimpLoaderWindow.cpp">
+      <Filter>소스 파일\EditorWIndow\Popup</Filter>
+    </ClCompile>
+    <ClCompile Include="FontImporterWindow.cpp">
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
   </ItemGroup>

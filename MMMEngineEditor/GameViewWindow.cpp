@@ -1,6 +1,7 @@
-#include "GameViewWindow.h"
+癤�#include "GameViewWindow.h"
 #include "EditorRegistry.h"
 #include "RenderManager.h"
+#include "UIEventManager.h"
 
 using namespace MMMEngine::EditorRegistry;
 using namespace MMMEngine::Editor;
@@ -21,14 +22,13 @@ void MMMEngine::Editor::GameViewWindow::Render()
     style.WindowMenuButtonPosition = ImGuiDir_None;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    if (!ImGui::Begin(u8"\uf11b 게임", &g_editor_window_gameView))
+    if (!ImGui::Begin(u8"\uf11b 寃뚯엫", &g_editor_window_gameView))
     {
         ImGui::End();
         ImGui::PopStyleVar();
         return;
     }
 
-    // ---- 여기부터는 "절대 return 하지 말고" 조건부로만 처리 ----
     UINT resX = 0, resY = 0;
     RenderManager::Get().GetSceneSize(resX, resY);
 
@@ -58,17 +58,59 @@ void MMMEngine::Editor::GameViewWindow::Render()
         if (sceneSRV.Get())
         {
             ImGui::Image((ImTextureID)sceneSRV.Get(), displaySize);
+
+            ImVec2 itemMin = ImGui::GetItemRectMin();
+            ImVec2 itemMax = ImGui::GetItemRectMax();
+            ImVec2 mousePos = ImGui::GetMousePos();
+            bool hovered = ImGui::IsItemHovered();
+            bool mouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+
+            static bool capture = false;
+            if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                capture = true;
+            if (!mouseDown)
+                capture = false;
+
+            bool canInteract = EditorRegistry::g_editor_scene_playing;
+            bool active = canInteract && (hovered || capture);
+            if (active)
+            {
+                if (mousePos.x < itemMin.x) mousePos.x = itemMin.x;
+                if (mousePos.y < itemMin.y) mousePos.y = itemMin.y;
+                if (mousePos.x > itemMax.x) mousePos.x = itemMax.x;
+                if (mousePos.y > itemMax.y) mousePos.y = itemMax.y;
+
+                const float sizeX = itemMax.x - itemMin.x;
+                const float sizeY = itemMax.y - itemMin.y;
+                if (sizeX > 0.0f && sizeY > 0.0f)
+                {
+                    const float u = (mousePos.x - itemMin.x) / sizeX;
+                    const float v = (mousePos.y - itemMin.y) / sizeY;
+                    DirectX::SimpleMath::Vector2 scenePos{ u * resX, v * resY };
+                    UIEventManager::Get().UpdateFromScenePointer(scenePos, mouseDown, true);
+                }
+                else
+                {
+                    UIEventManager::Get().UpdateFromScenePointer({}, false, false);
+                }
+            }
+            else
+            {
+                UIEventManager::Get().UpdateFromScenePointer({}, false, false);
+            }
         }
         else
         {
             ImGui::TextUnformatted("Scene SRV is null.");
+            UIEventManager::Get().UpdateFromScenePointer({}, false, false);
         }
     }
     else
     {
         ImGui::TextUnformatted("Invalid scene size or content region.");
+        UIEventManager::Get().UpdateFromScenePointer({}, false, false);
     }
-
     ImGui::End();
     ImGui::PopStyleVar();
 }
+

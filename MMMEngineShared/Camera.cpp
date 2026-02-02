@@ -68,6 +68,83 @@ const DirectX::SimpleMath::Matrix& MMMEngine::Camera::GetProjMatrix()
 	return m_cachedProjMatrix;
 }
 
+DirectX::SimpleMath::Vector2 MMMEngine::Camera::WorldToScreenPoint(
+	const DirectX::SimpleMath::Vector3& worldPos,
+	float screenWidth,
+	float screenHeight)
+{
+	using namespace DirectX::SimpleMath;
+	if (screenWidth <= 0.0f || screenHeight <= 0.0f)
+		return Vector2::Zero;
+
+	const Matrix viewProj = GetViewMatrix() * GetProjMatrix();
+	const Vector4 clip = Vector4::Transform(Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f), viewProj);
+	if (std::abs(clip.w) < 1e-6f)
+		return Vector2::Zero;
+
+	const float invW = 1.0f / clip.w;
+	const float ndcX = clip.x * invW;
+	const float ndcY = clip.y * invW;
+
+	const float screenX = (ndcX * 0.5f + 0.5f) * screenWidth;
+	const float screenY = (1.0f - (ndcY * 0.5f + 0.5f)) * screenHeight;
+	return { screenX, screenY };
+}
+
+DirectX::SimpleMath::Vector2 MMMEngine::Camera::WorldToScreenPoint(
+	const DirectX::SimpleMath::Vector3& worldPos)
+{
+	UINT w = 0, h = 0;
+	RenderManager::Get().GetSceneSize(w, h);
+	return WorldToScreenPoint(worldPos, static_cast<float>(w), static_cast<float>(h));
+}
+
+DirectX::SimpleMath::Vector3 MMMEngine::Camera::ScreenToWorldPoint(
+	const DirectX::SimpleMath::Vector2& screenPos,
+	float screenWidth,
+	float screenHeight,
+	float viewDepth)
+{
+	using namespace DirectX::SimpleMath;
+	if (screenWidth <= 0.0f || screenHeight <= 0.0f)
+		return Vector3::Zero;
+
+	const float ndcX = (screenPos.x / screenWidth) * 2.0f - 1.0f;
+	const float ndcY = 1.0f - (screenPos.y / screenHeight) * 2.0f;
+
+	const Matrix proj = GetProjMatrix();
+	float ndcZ = 0.0f;
+	if (std::abs(proj._44) < 1e-6f)
+	{
+		// Perspective
+		if (std::abs(viewDepth) < 1e-6f)
+			return Vector3::Zero;
+		ndcZ = proj._33 + proj._43 / viewDepth;
+	}
+	else
+	{
+		// Orthographic
+		ndcZ = viewDepth * proj._33 + proj._43;
+	}
+
+	const Matrix viewProj = GetViewMatrix() * proj;
+	const Matrix invViewProj = viewProj.Invert();
+	const Vector4 world = Vector4::Transform(Vector4(ndcX, ndcY, ndcZ, 1.0f), invViewProj);
+	if (std::abs(world.w) < 1e-6f)
+		return Vector3::Zero;
+	const float invW = 1.0f / world.w;
+	return Vector3(world.x * invW, world.y * invW, world.z * invW);
+}
+
+DirectX::SimpleMath::Vector3 MMMEngine::Camera::ScreenToWorldPoint(
+	const DirectX::SimpleMath::Vector2& screenPos,
+	float viewDepth)
+{
+	UINT w = 0, h = 0;
+	RenderManager::Get().GetSceneSize(w, h);
+	return ScreenToWorldPoint(screenPos, static_cast<float>(w), static_cast<float>(h), viewDepth);
+}
+
 void MMMEngine::Camera::UpdateProjMatrix()
 {
 	XMStoreFloat4x4(&m_cachedProjMatrix, DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(m_fov), m_aspect, m_near, m_far));

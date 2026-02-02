@@ -30,6 +30,7 @@ using namespace MMMEngine::Utility;
 #include "SceneNameWindow.h"
 #include "SceneChangeWindow.h"
 #include "AssimpLoaderWindow.h"
+#include "FontImporterWindow.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -409,6 +410,11 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
                     g_editor_window_assimpLoader = true;
                     p_open = false;
                 }
+                if (ImGui::MenuItem(u8"Font 임포터"))
+                {
+                    g_editor_window_fontImporter = true;
+                    p_open = false;
+                }
                 ImGui::EndMenu();
             }
 
@@ -736,6 +742,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     PhysicsSettingsWindow::Get().Render();
     PlayerBuildWindow::Get().Render();
     AssimpLoaderWindow::Get().Render();
+    FontImporterWindow::Get().Render();
 }
 
 void MMMEngine::Editor::ImGuiEditorContext::EndFrame()

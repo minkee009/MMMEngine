@@ -46,3 +46,37 @@ bool MMMEngine::Behaviour::IsActiveAndEnabled()
 {
 	return m_enabled && GetGameObject().IsValid() && GetGameObject()->IsActiveInHierarchy();
 }
+
+void MMMEngine::Behaviour::GetVoidMessageNames(std::vector<std::string>& outNames) const
+{
+	outNames.clear();
+	outNames.reserve(m_messages.size());
+
+	for (const auto& entry : m_messages)
+	{
+		if (!entry.second)
+			continue;
+
+		if (entry.second->GetArgCount() == 0)
+			outNames.push_back(entry.first);
+	}
+}
+
+void MMMEngine::Behaviour::GetFloatMessageNames(std::vector<std::string>& outNames) const
+{
+	outNames.clear();
+	outNames.reserve(m_messages.size());
+
+	for (const auto& entry : m_messages)
+	{
+		if (!entry.second)
+			continue;
+
+		if (entry.second->GetArgCount() != 1)
+			continue;
+
+		const std::type_info* argType = entry.second->GetArgType(0);
+		if (argType && (*argType == typeid(float)))
+			outNames.push_back(entry.first);
+	}
+}

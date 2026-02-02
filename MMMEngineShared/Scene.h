@@ -5,6 +5,7 @@
 #include "rttr/type"
 #include "rttr/registration_friend.h"
 #include "json/json.hpp"
+#include <vector>
 
 namespace MMMEngine
 {
@@ -23,7 +24,7 @@ namespace MMMEngine
 		std::vector<ObjPtr<GameObject>> m_gameObjects;
 		SnapShot m_snapshot;
 		void SetMUID(const Utility::MUID& muid);
-		void SetSnapShot(SnapShot&& snapshot) noexcept;  //È£Ãâ½Ã ¹Ýµå½Ã ÀÎÀÚ¿¡ std::move()·Î ¿Å±æ°Í, ¿¹) loadedScene.SetSnapShot(std::move(snapshot));
+		void SetSnapShot(SnapShot&& snapshot) noexcept;  //È£ï¿½ï¿½ï¿½ ï¿½Ýµï¿½ï¿½ ï¿½ï¿½ï¿½Ú¿ï¿½ std::move()ï¿½ï¿½ ï¿½Å±ï¿½ï¿½, ï¿½ï¿½) loadedScene.SetSnapShot(std::move(snapshot));
 		const SnapShot& GetSnapShot() const;
 		void Initialize();
 		void Clear();
@@ -37,5 +38,6 @@ namespace MMMEngine
 		const Utility::MUID& GetMUID() const;
 
 		void SetName(const std::string& name);
+
 	};
 }

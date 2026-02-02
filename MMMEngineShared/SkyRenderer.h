@@ -36,7 +36,6 @@ namespace MMMEngine {
 		ResPtr<Texture2D> m_pSkyBrdf;
 
 		std::shared_ptr<Material> m_pSkyMaterial;
-		ResPtr<StaticMesh> m_pMesh;
 
 		void UpdateSRVs();
 	};

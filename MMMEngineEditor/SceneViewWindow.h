@@ -83,6 +83,13 @@ namespace MMMEngine::Editor
 		bool m_isHovered = false;
 		bool m_isFocused = false;
 		bool m_blockCameraInput = false;
+		bool m_ui2DMode = false;
+		bool m_hasSaved2DState = false;
+		DirectX::SimpleMath::Vector3 m_savedCamPos = DirectX::SimpleMath::Vector3::Zero;
+		DirectX::SimpleMath::Quaternion m_savedCamRot = DirectX::SimpleMath::Quaternion::Identity;
+		float m_savedOrthoSize = 10.0f;
+		bool m_savedOrthoTarget = false;
+		float m_ui2DCameraDistance = 10.0f;
 
 		ImGuizmo::OPERATION m_guizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
 		ImGuizmo::MODE m_guizmoMode = ImGuizmo::MODE::LOCAL;

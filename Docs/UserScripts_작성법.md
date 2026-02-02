@@ -113,7 +113,9 @@ void HandleCustomEvent(int value);
 | 매크로 | 용도 |
 |--------|------|
 | `USCRIPT_PROPERTY()` | 인스펙터에 노출 + gen.cpp 에서 RTTR `.property(...)` 자동 등록 |
-| `USCRIPT_PROPERTY_HIDDEN()` | 프로퍼티이지만 **자동 등록 제외** (gen.cpp 에 넣지 않음) |
+| `USCRIPT_PROPERTY_HIDDEN()` | RTTR 등록은 유지하되 **인스펙터에서 숨김** (`INSPECTOR=HIDDEN` 메타데이터 부여) |
+
+- 인스펙터에도 저장에도 필요 없는 멤버는 **아예 매크로를 붙이지 않습니다.**
 
 ```cpp
 USCRIPT_PROPERTY()
@@ -211,7 +213,7 @@ void MMMEngine::MyScript::Update()
 - [ ] 생성자 본문은 **비워 두기** (REGISTER_BEHAVIOUR_MESSAGE 는 생성기가 주입)
 - [ ] 엔진 제공 메시지(Start, Update 등)는 매크로 없이 선언 가능
 - [ ] **커스텀 메시지**는 반드시 `USCRIPT_MESSAGE()` 또는 `USCRIPT_MESSAGE_NAME("이름")` 사용
-- [ ] 인스펙터에 넣을 멤버는 `USCRIPT_PROPERTY()`, 제외할 멤버는 `USCRIPT_PROPERTY_HIDDEN()`
+- [ ] 인스펙터에 노출할 멤버는 `USCRIPT_PROPERTY()`, 숨길 멤버는 `USCRIPT_PROPERTY_HIDDEN()`
 - [ ] RTTR을 gen.cpp 에 맡기면 `.cpp` 에는 구현만 두고, RTTR 블록은 적지 않기
 - [ ] `UserScripts.gen.cpp` 는 수동 편집하지 않기
 

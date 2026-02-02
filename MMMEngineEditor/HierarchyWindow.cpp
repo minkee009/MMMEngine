@@ -3,9 +3,15 @@
 #include "Transform.h"
 #include "DragAndDrop.h"
 #include "EditorRegistry.h"
+#include "Prefab.h"
+#include "ProjectManager.h"
+#include "ResourceManager.h"
+#include "StringHelper.h"
 using namespace MMMEngine::EditorRegistry;
 
 #include <optional>
+#include <algorithm>
+#include <filesystem>
 
 using namespace MMMEngine;
 using namespace MMMEngine::Utility;
@@ -187,6 +193,31 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 		{
 			if (go->GetTransform()->GetParent() == nullptr) DrawHierarchyMember(go, false);
 		}
+	}
+
+	// Prefab 파일 드롭 처리
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+		{
+			std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
+			std::filesystem::path droppedPath(absolutePath);
+			std::string ext = droppedPath.extension().string();
+			std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+			if (ext == ".prefab")
+			{
+				std::string relativePath = MMMEngine::Editor::ProjectManager::Get().ToProjectRelativePath(absolutePath);
+				std::wstring wRelativePath = MMMEngine::Utility::StringHelper::StringToWString(relativePath);
+
+				auto prefab = MMMEngine::ResourceManager::Get().Load<MMMEngine::Prefab>(wRelativePath);
+				if (prefab)
+				{
+					MMMEngine::Object::Instantiate(prefab);
+				}
+			}
+		}
+		ImGui::EndDragDropTarget();
 	}
 
 	// 마우스 버튼을 뗐을 때 처리 (ImGui::End() 전에 체크해야 함)

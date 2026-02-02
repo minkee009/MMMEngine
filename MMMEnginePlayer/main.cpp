@@ -1,4 +1,4 @@
-﻿#define NOMINMAX
+#define NOMINMAX
 #include <iostream>
 
 #include "GlobalRegistry.h"
@@ -6,6 +6,7 @@
 #include "App.h"
 
 #include "InputManager.h"
+#include "UIEventManager.h"
 #include "ResourceManager.h"
 #include "TimeManager.h"
 #include "RenderManager.h"
@@ -74,6 +75,8 @@ void Update()
 {
 	TimeManager::Get().BeginFrame();
 	InputManager::Get().Update();
+	UIEventManager::Get().UpdateFromClientPointer(InputManager::Get().GetMousePos(),
+		InputManager::Get().GetKey(KeyCode::MouseLeft));
 
 	float dt = TimeManager::Get().GetDeltaTime();
 	if (SceneManager::Get().CheckSceneIsChanged())
@@ -178,3 +181,4 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	app.OnRelease.AddListener<&Release>();
 	app.Run();
 }
+

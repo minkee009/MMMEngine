@@ -4,8 +4,11 @@
 #include "StringHelper.h"
 #include "rttr/type"
 #include "Transform.h"
+#include "RectTransform.h"
 #include "ResourceManager.h"
 #include "MissingScriptBehaviour.h"
+#include "SerializableEvent.h"
+#include "ObjectManager.h"
 
 #include <fstream>
 #include <filesystem>
@@ -19,22 +22,6 @@ using namespace MMMEngine;
 using namespace rttr;
 
 std::unordered_map<std::string, rttr::variant> g_objectTable;
-
-static bool TryDecodeMsgPackToJson(const std::vector<uint8_t>& data, nlohmann::json& out)
-{
-    if (data.empty())
-        return false;
-
-    try
-    {
-        out = nlohmann::json::from_msgpack(data);
-        return true;
-    }
-    catch (...)
-    {
-        return false;
-    }
-}
 
 json SerializeVariant(const rttr::variant& var);
 json SerializeObject(const rttr::instance& obj)
@@ -137,6 +124,28 @@ json SerializeVariant(const rttr::variant& var)
             return obj->GetMUID().ToString();
         }
         return nullptr;
+    }
+
+    // SerializableEvent / SerializableEventT<float> -> 배열 { TargetMUID, MessageName }
+    if (t == type::get<MMMEngine::SerializableEvent>())
+    {
+        json arr = json::array();
+        const auto& ev = var.get_value<MMMEngine::SerializableEvent>();
+        for (const auto& call : ev.GetCalls())
+        {
+            arr.push_back({ {"TargetMUID", call.targetMUID}, {"MessageName", call.messageName} });
+        }
+        return arr;
+    }
+    if (t == type::get<MMMEngine::SerializableEventT<float>>())
+    {
+        json arr = json::array();
+        const auto& ev = var.get_value<MMMEngine::SerializableEventT<float>>();
+        for (const auto& call : ev.GetCalls())
+        {
+            arr.push_back({ {"TargetMUID", call.targetMUID}, {"MessageName", call.messageName} });
+        }
+        return arr;
     }
 
     if (t.is_associative_container())
@@ -329,13 +338,52 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
     if (target_type == type::get<MMMEngine::Utility::MUID>())
     {
         std::string muidStr = j.get<std::string>();
-        target = MMMEngine::Utility::MUID::Parse(muidStr);
+        if (auto parsed = MMMEngine::Utility::MUID::Parse(muidStr); parsed.has_value())
+            target = parsed.value();
+        else
+            target = MMMEngine::Utility::MUID::Empty();
         return;
     }
 
     if (target_type == type::get<std::string>())
     {
         target = j.get<std::string>();
+        return;
+    }
+
+    // SerializableEvent / SerializableEventT<float> <- 배열 { TargetMUID, MessageName }
+    if (target_type == type::get<MMMEngine::SerializableEvent>())
+    {
+        std::vector<MMMEngine::PersistentCall> calls;
+        if (j.is_array())
+        {
+            for (const auto& item : j)
+            {
+                std::string muid = item.contains("TargetMUID") ? item["TargetMUID"].get<std::string>() : "";
+                std::string name = item.contains("MessageName") ? item["MessageName"].get<std::string>() : "";
+                calls.emplace_back(std::move(muid), std::move(name));
+            }
+        }
+        MMMEngine::SerializableEvent ev;
+        ev.SetCalls(std::move(calls));
+        target = ev;
+        return;
+    }
+    if (target_type == type::get<MMMEngine::SerializableEventT<float>>())
+    {
+        std::vector<MMMEngine::PersistentCall> calls;
+        if (j.is_array())
+        {
+            for (const auto& item : j)
+            {
+                std::string muid = item.contains("TargetMUID") ? item["TargetMUID"].get<std::string>() : "";
+                std::string name = item.contains("MessageName") ? item["MessageName"].get<std::string>() : "";
+                calls.emplace_back(std::move(muid), std::move(name));
+            }
+        }
+        MMMEngine::SerializableEventT<float> ev;
+        ev.SetCalls(std::move(calls));
+        target = ev;
         return;
     }
 
@@ -543,10 +591,8 @@ ObjPtr<Component> CreateComponentForDeserialize(const json& compJson, ObjPtr<Gam
     return comp;
 }
 
-void DeserializeTransform(Transform& tr, const json& j)
+void DeserializeTransform(Transform& tr, const json& j, const type& t)
 {
-    type t = type::get<Transform>();
-
     for (auto& prop : t.get_properties(
         rttr::filter_item::instance_item |
         rttr::filter_item::public_access |
@@ -568,15 +614,41 @@ void DeserializeTransform(Transform& tr, const json& j)
     }
 }
 
-static const json* FindTransformComp(const json& components)
+struct TransformCompInfo
 {
+    const json* comp = nullptr;
+    bool isRect = false;
+};
+
+static TransformCompInfo FindTransformComp(const json& components)
+{
+    TransformCompInfo info;
+
     for (const auto& c : components)
     {
         if (!c.contains("Type")) continue;
         std::string t = c["Type"].get<std::string>();
-        if (t == "Transform") return &c;
+        if (t == "RectTransform")
+        {
+            info.comp = &c;
+            info.isRect = true;
+            return info;
+        }
     }
-    return nullptr;
+
+    for (const auto& c : components)
+    {
+        if (!c.contains("Type")) continue;
+        std::string t = c["Type"].get<std::string>();
+        if (t == "Transform")
+        {
+            info.comp = &c;
+            info.isRect = false;
+            return info;
+        }
+    }
+
+    return info;
 }
 
 void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snapshot)
@@ -621,11 +693,14 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         // todo : 여기서 RectTransform도 같이 찾기 -> 분기 생성
         // Transform json 찾기
         const json& components = goJson["Components"];
-        const json* trComp = FindTransformComp(components);
-        if (!trComp || !trComp->contains("Props"))
+        TransformCompInfo trCompInfo = FindTransformComp(components);
+        if (!trCompInfo.comp || !trCompInfo.comp->contains("Props"))
             continue; // 또는 throw
 
-        const json& trProps = (*trComp)["Props"];
+        const json& trProps = (*trCompInfo.comp)["Props"];
+
+        if (trCompInfo.isRect)
+            go->EnsureRectTransform();
 
         // 기존 Transform 가져오기
         auto tr = go->GetTransform();
@@ -638,7 +713,8 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         g_objectTable[trMUID] = ObjPtr<Object>(tr);
 
         // Transform 값 복원 (Parent/MUID는 스킵)
-        DeserializeTransform(*tr, trProps);
+        auto trType = trCompInfo.isRect ? type::get<RectTransform>() : type::get<Transform>();
+        DeserializeTransform(*tr, trProps, trType);
 
         // Parent는 나중에
         if (trProps.contains("Parent") && !trProps["Parent"].is_null())
@@ -690,7 +766,7 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
                 continue;
 
             std::string typeName = compJson["Type"].get<std::string>();
-            if (typeName == "Transform" || typeName == "RigidBodyComponent")
+            if (typeName == "Transform" || typeName == "RectTransform" || typeName == "RigidBodyComponent")
                 continue;
 
             bool isMissing = false;
@@ -733,6 +809,10 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         auto parentTr = itParent->second.get_value<ObjPtr<Transform>>();
         childTr->SetParent(parentTr, false);
     }
+
+    // SerializableEvent 리졸버는 ObjectManager의 MUID 테이블을 사용한다.
+    SerializableEvent::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
+    SerializableEventT<float>::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
 
     g_objectTable.clear();
 }

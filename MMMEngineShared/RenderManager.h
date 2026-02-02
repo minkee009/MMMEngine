@@ -15,10 +15,13 @@
 #include <dxgi1_4.h>
 #include <wrl/client.h>
 #include <SimpleMath.h>
+#include <SpriteBatch.h>
+#include <SpriteFont.h>
 
 #include <Object.h>
 #include <RenderCommand.h>
 #include <Light.h>
+#include <ResourceManager.h>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "dxgi.lib")
@@ -28,6 +31,12 @@ namespace MMMEngine
 	class Material;
 	class Camera;
 	class Renderer;
+	class Canvas;
+	class Font;
+	enum class TextAlignment;
+	class VShader;
+	class PShader;
+	class Texture2D;
 	class MMMENGINE_API RenderManager : public Utility::ExportSingleton<RenderManager>
 	{
 		friend class Utility::ExportSingleton<RenderManager>;
@@ -48,6 +57,17 @@ namespace MMMEngine
 		std::queue<Renderer*> m_renInitQueue;
 		unsigned int m_rObjIdx = 0;
 		uint32_t m_nextRendererId = 1;
+
+		// UI
+		std::vector<Canvas*> m_canvases;
+		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pUIBlendState;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pUIDepthState;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pUIBuffer = nullptr;
+		ResPtr<VShader> m_pUIVShader;
+		ResPtr<PShader> m_pUIPShader;
+		std::unique_ptr<DirectX::SpriteBatch> m_uiSpriteBatch;
+		std::unordered_map<std::wstring, std::unique_ptr<DirectX::SpriteFont>> m_uiSpriteFontCache;
+		bool isOrtho = false;
 		
 		// 라이트 저장
 		std::vector<Light*> m_lights;
@@ -62,6 +82,10 @@ namespace MMMEngine
 		void InitRenderers();
 		void UpdateRenderers();
 		void UpdateLights();
+		void RenderUI();
+		void EnsureUIShaders();
+		void EnsureUISpriteBatch();
+		DirectX::SpriteFont* GetSpriteFont(const ResPtr<Font>& font);
 
 		void InitD3D();
 		void Start();
@@ -92,7 +116,8 @@ namespace MMMEngine
 
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pDafaultSampler;		// 샘플러 상태.
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pDefaultRS;			// 기본 RS
-
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pUIRS;				// UI RS (cull none)
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pCompareSampler;		// 비교 샘플러
 		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pDefaultBS;		// 기본 블랜드 스테이트
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_DefaultRS;	// 기본 레스터라이저 스테이트
 		D3D11_VIEWPORT m_swapViewport;							// 기본 뷰포트
@@ -115,7 +140,27 @@ namespace MMMEngine
 		ObjPtr<Camera> m_pMainCamera;	// 메인 카메라 참조
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCambuffer = nullptr;		// 캠 버퍼
 
+
+		// 쉐도우 버퍼
+		UINT m_shadowMapWidth = 4096;
+		UINT m_shadowMapHeight = 4096;
+		D3D11_VIEWPORT m_shadowVP;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D1>          m_pShadowTexture;
+		ResPtr<Texture2D>  m_pShadowSRV;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	  m_pShadowDSV;
+		Microsoft::WRL::ComPtr<ID3D11Buffer>			  m_pShadowBuffer;
+		void ShadowRender( const DirectX::SimpleMath::Matrix& _camView);	// 개별패스
+
 	public:
+		struct SceneViewportRect
+		{
+			float x = 0.0f;
+			float y = 0.0f;
+			float width = 0.0f;
+			float height = 0.0f;
+		};
+
 		void StartUp(HWND _hwnd, UINT _ClientWidth, UINT _ClientHeight);
 		void ShutDown();
 
@@ -123,6 +168,7 @@ namespace MMMEngine
 		void SetWorldMatrix(DirectX::SimpleMath::Matrix& _world);
 		void SetViewMatrix(DirectX::SimpleMath::Matrix& _view);
 		void SetProjMatrix(DirectX::SimpleMath::Matrix& _proj);
+		void SetOrtho(bool _val) { isOrtho = _val; }
 
 		void ResizeSwapChainSize(int width, int height);
 		void ResizeSceneSize(int _sceneWidth, int _sceneHeight);
@@ -135,6 +181,8 @@ namespace MMMEngine
 			outWidth = m_sceneWidth; 
 			outHeight = m_sceneHeight; 
 		}
+		bool GetSceneDisplayRect(SceneViewportRect& outRect) const;
+		const std::vector<Canvas*>& GetCanvases() const { return m_canvases; }
 
 		void AddCommand(RenderType _type, RenderCommand&& _command);	// 렌더커맨드 추가
 		int AddMatrix(const DirectX::SimpleMath::Matrix& _worldMatrix);		// 월드매트릭스 추가
@@ -144,6 +192,7 @@ namespace MMMEngine
 		void BeginFrame();
 		void Render();
 		void RenderOnlyRenderer();
+		void RenderUIWithSize(UINT width, UINT height);
 		void RenderPickingIds(ID3D11VertexShader* vs, ID3D11PixelShader* ps, ID3D11InputLayout* layout, ID3D11Buffer* idBuffer);
 		void RenderSelectedMask(ID3D11VertexShader* vs, ID3D11PixelShader* ps, ID3D11InputLayout* layout, const uint32_t* ids, uint32_t count);
 		void EndFrame();
@@ -159,9 +208,30 @@ namespace MMMEngine
 		UINT GetSceneWidth() { return m_sceneWidth; }
 		UINT GetSceneHeight() { return m_sceneHeight; }
 
+		void SetShadowMapSize(UINT _size);
+
 		const Microsoft::WRL::ComPtr<ID3D11Device5> GetDevice() const { return m_pDevice; }
 		const Microsoft::WRL::ComPtr<ID3D11DeviceContext4> GetContext() const { return m_pDeviceContext; }
 
 		Renderer* GetRendererById(uint32_t id) const;
+
+		void RegisterCanvas(Canvas* canvas);
+		void UnRegisterCanvas(Canvas* canvas);
+		void BeginCanvas(Canvas* canvas);
+		void EndCanvas();
+		void DrawUIElement(const DirectX::SimpleMath::Vector4& rect,
+			const DirectX::SimpleMath::Vector4& uvRect,
+			const DirectX::SimpleMath::Color& color,
+			const ResPtr<Texture2D>& texture,
+			const DirectX::SimpleMath::Vector2& pivot,
+			const DirectX::SimpleMath::Vector2& rightDir,
+			const DirectX::SimpleMath::Vector2& upDir);
+		void DrawUIText(const DirectX::SimpleMath::Vector4& rect,
+			const std::wstring& text,
+			const ResPtr<Font>& font,
+			const DirectX::SimpleMath::Color& color,
+			TextAlignment alignment,
+			float rotationRad,
+			const DirectX::SimpleMath::Vector2& pivotScene);
 	};
 }

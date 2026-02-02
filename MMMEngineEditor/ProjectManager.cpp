@@ -1,4 +1,4 @@
-// ProjectManager.cpp
+﻿// ProjectManager.cpp
 #include "ProjectManager.h"
 
 #include <fstream>
@@ -250,7 +250,8 @@ namespace MMMEngine::Editor
 
         // NOTE: gen.cpp가 RTTR 등록. USCRIPT_MESSAGE / USCRIPT_PROPERTY 로 생성기가 인식.
         out <<
-            R"(#include "rttr/type"
+			R"(#pragma once
+#include "rttr/type"
 #include "ScriptBehaviour.h"
 #include "UserScriptsCommon.h"
 #include <string>

@@ -14,8 +14,8 @@ RTTR_REGISTRATION{
 
 	registration::enumeration<LightType>("LightType")
 		(
-			rttr::value("Directional", LightType::Directional),
-			rttr::value("Point", LightType::Point)
+			rttr::value("Directional", LightType::Directional)
+			//, rttr::value("Point", LightType::Point)
 			);
 
 	registration::class_<Light>("Light")

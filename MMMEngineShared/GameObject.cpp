@@ -1,11 +1,14 @@
 ﻿#include "GameObject.h"
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
+#include "rttr/type"
 #include "Component.h"
 #include "Transform.h"
+#include "RectTransform.h"
 #include "ObjectManager.h"
 #include "SceneManager.h"
 #include <cmath>
+#include <algorithm>
 
 uint64_t MMMEngine::GameObject::s_go_instanceID = 0;
 
@@ -85,6 +88,57 @@ void MMMEngine::GameObject::UpdateActiveInHierarchy()
 		if(child.IsValid())
 			child->GetGameObject()->UpdateActiveInHierarchy();
 	}
+}
+
+void MMMEngine::GameObject::EnsureRectTransform()
+{
+	if (!m_transform.IsValid() || m_transform->IsDestroyed())
+		return;
+
+	if (m_transform.Cast<RectTransform>())
+		return;
+
+	auto oldTransform = m_transform;
+	auto oldParent = oldTransform->m_parent;
+	auto oldChildren = oldTransform->m_childs;
+
+	const auto oldLocalPos = oldTransform->GetLocalPosition();
+	const auto oldLocalRot = oldTransform->GetLocalRotation();
+	const auto oldLocalScale = oldTransform->GetLocalScale();
+
+	if (oldParent)
+		oldTransform->SetParent(nullptr, false);
+
+	auto rectTransform = Object::NewObject<RectTransform>();
+	rectTransform->SetGameObject(SelfPtr(this));
+	rectTransform->SetLocalPosition(oldLocalPos);
+	rectTransform->SetLocalRotation(oldLocalRot);
+	rectTransform->SetLocalScale(oldLocalScale);
+
+	// Keep MUID if possible (used by serialization/ObjPtr binding).
+	auto muidProp = rttr::type::get<Object>().get_property("MUID");
+	if (muidProp.is_valid())
+		muidProp.set_value(*rectTransform, oldTransform->GetMUID());
+
+	auto it = std::find(m_components.begin(), m_components.end(), oldTransform);
+	if (it != m_components.end())
+		*it = rectTransform;
+	else
+		m_components.push_back(rectTransform);
+
+	m_transform = rectTransform;
+
+	if (oldParent)
+		rectTransform->SetParent(oldParent, false);
+
+	for (auto& child : oldChildren)
+	{
+		if (child.IsValid() && !child->IsDestroyed())
+			child->SetParent(rectTransform, false);
+	}
+
+	oldTransform->SetGameObject(nullptr);
+	ObjectManager::Get().Destroy(oldTransform);
 }
 
 MMMEngine::GameObject::GameObject() 
@@ -213,6 +267,13 @@ MMMEngine::ObjPtr<MMMEngine::Component> MMMEngine::GameObject::AddComponent(rttr
 
 	comp->m_gameObject = SelfPtr(this);
 	RegisterComponent(comp);
+
+	if (comp->RequiresRectTransform())
+	{
+		EnsureRectTransform();
+		UpdateActiveInHierarchy();
+	}
+
 	comp->Initialize();
 	return comp;
 }

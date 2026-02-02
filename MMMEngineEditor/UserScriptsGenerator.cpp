@@ -24,6 +24,7 @@ namespace MMMEngine::Editor
         {
             std::string name;
             std::string type;
+            bool inspectorHidden = false;
         };
 
         struct ScriptInfo
@@ -275,6 +276,21 @@ namespace MMMEngine::Editor
                     info.properties.push_back(std::move(pi));
                 }
             }
+
+            // 5) USCRIPT_PROPERTY_HIDDEN() type name; -> RTTR 등록하되 인스펙터에서 숨김
+            {
+                std::regex re(R"re(USCRIPT_PROPERTY_HIDDEN\s*\(\s*\)\s+([^;=]+)\s+(\w+)\s*[;=])re");
+                std::sregex_iterator it(classBody.begin(), classBody.end(), re);
+                std::sregex_iterator end;
+                for (; it != end; ++it)
+                {
+                    PropertyInfo pi;
+                    pi.type = NormalizeType((*it)[1].str());
+                    pi.name = (*it)[2].str();
+                    pi.inspectorHidden = true;
+                    info.properties.push_back(std::move(pi));
+                }
+            }
         }
 
         static std::vector<ScriptInfo> ParseHeaderFile(
@@ -368,7 +384,11 @@ namespace MMMEngine::Editor
                 out << "\tregistration::class_<" << s->className << ">(\"" << s->className << "\")\n";
                 out << "\t\t(rttr::metadata(\"wrapper_type_name\", \"ObjPtr<" << s->className << ">\"))";
                 for (const auto& p : s->properties)
+                {
                     out << "\n\t\t.property(\"" << p.name << "\", &" << s->className << "::" << p.name << ")";
+                    if (p.inspectorHidden)
+                        out << "(rttr::metadata(\"INSPECTOR\", \"HIDDEN\"))";
+                }
                 out << ";\n\n";
 
                 out << "\tregistration::class_<ObjPtr<" << s->className << ">>(\"ObjPtr<" << s->className << ">\")\n";
