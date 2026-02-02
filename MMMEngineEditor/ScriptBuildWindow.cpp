@@ -43,6 +43,7 @@ namespace MMMEngine::Editor
             InspectorWindow::Get().ClearCache();
 
             RenderManager::Get().ClearAllCommands();
+			// todo : 위의 코드 렌더러작업자가 변경한다고 함, CearAllCommands() -> InitCache()로 바꾸기
 
             SceneManager::Get().ShutDown();
             ObjectManager::Get().ShutDown();

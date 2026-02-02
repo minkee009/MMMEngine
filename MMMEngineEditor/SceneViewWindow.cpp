@@ -17,6 +17,7 @@
 #include "Canvas.h"
 #include "Graphic.h"
 #include "RectTransform.h"
+#include "MMMTime.h"
 #include <memory>
 #include <algorithm>
 #include <cmath>
@@ -173,6 +174,12 @@ namespace
 		const float localV = localY / rectScene.w + pivot.y;
 		return localU >= 0.0f && localU <= 1.0f && localV >= 0.0f && localV <= 1.0f;
 	}
+
+	float SmoothStep01(float t)
+	{
+		t = std::clamp(t, 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	}
 }
 
 void MMMEngine::Editor::SceneViewWindow::Initialize(ID3D11Device* device, ID3D11DeviceContext* context, int initWidth, int initHeight)
@@ -319,11 +326,66 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 			const float focusDistance = 7.0f;
 			m_pCam->FocusOn(tr->GetWorldPosition(), focusDistance);
 			m_viewGizmoDistance = focusDistance;
+			m_viewGizmoPivot = tr->GetWorldPosition();
+			m_hasViewGizmoPivot = true;
+		}
+	}
+
+	if (g_selectedGameObject.IsValid())
+	{
+		auto tr = g_selectedGameObject->GetTransform();
+		if (tr.IsValid() && !tr->IsDestroyed())
+		{
+			m_viewGizmoPivot = tr->GetWorldPosition();
+			m_hasViewGizmoPivot = true;
+		}
+	}
+
+	if (!m_hasViewGizmoPivot && m_pCam)
+	{
+		Matrix camWorld = m_pCam->GetTransformMatrix();
+		Vector3 forward = camWorld.Forward();
+		const float initDistance = std::max(0.1f, m_viewGizmoDistance);
+		m_viewGizmoPivot = m_pCam->GetPosition() + forward * initDistance;
+		m_hasViewGizmoPivot = true;
+	}
+
+	if (m_hasViewGizmoPivot && m_pCam)
+	{
+		float dist = (m_pCam->GetPosition() - m_viewGizmoPivot).Length();
+		if (dist < 0.1f)
+			dist = 0.1f;
+		m_viewGizmoDistance = dist;
+	}
+
+	if (m_viewGizmoTransition.active && m_pCam)
+	{
+		m_pCam->SkipUpdateRotateState(true);
+		m_viewGizmoTransition.elapsed += Time::GetUnscaledDeltaTime();
+		float t = m_viewGizmoTransition.duration <= 1e-5f
+			? 1.0f
+			: (m_viewGizmoTransition.elapsed / m_viewGizmoTransition.duration);
+		t = SmoothStep01(t);
+		m_pCam->SetPosition(Vector3::Lerp(m_viewGizmoTransition.startPos, m_viewGizmoTransition.targetPos, t));
+		m_pCam->SetRotation(Quaternion::Slerp(m_viewGizmoTransition.startRot, m_viewGizmoTransition.targetRot, t));
+		m_pCam->SyncInputState();
+
+		if (m_viewGizmoTransition.elapsed >= m_viewGizmoTransition.duration)
+		{
+			//m_pCam->SkipUpdateRotateState(false);
+			///*m_pCam->SetPosition(m_viewGizmoTransition.targetPos);
+			m_pCam->SetRotation(m_viewGizmoTransition.targetRot);
+			//
+			//m_pCam->SyncInputState();*/
+			m_pCam->BeginLookControl();
+			m_viewGizmoTransition.active = false;
 		}
 	}
 
 	if (!g_editor_window_sceneView)
 		return;
+
+	m_blockCameraInput = m_viewGizmoTransition.active;
 
 	ResizeRenderTarget(m_cachedDevice, m_lastWidth, m_lastHeight);
 	RenderSceneToTexture(m_cachedContext);
@@ -1077,11 +1139,19 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 			{
 				Vector3 axisDir = axes[hoveredAxis].axisWorld;
 
-				Matrix camWorld = m_pCam->GetTransformMatrix();
-				Vector3 target = m_pCam->GetPosition() + camWorld.Forward() * (m_viewGizmoDistance < 0.1f ? 0.1f : m_viewGizmoDistance);
+				if (!m_hasViewGizmoPivot)
+				{
+					Matrix camWorld = m_pCam->GetTransformMatrix();
+					Vector3 forward = camWorld.Forward();
+					const float initDistance = std::max(0.1f, m_viewGizmoDistance);
+					m_viewGizmoPivot = m_pCam->GetPosition() + forward * initDistance;
+					m_hasViewGizmoPivot = true;
+				}
 
-				const float viewDistance = m_viewGizmoDistance < 0.1f ? 0.1f : m_viewGizmoDistance;
-				Vector3 eye = target + axisDir * viewDistance;
+				const Vector3 pivot = m_viewGizmoPivot;
+				const Vector3 target = pivot;
+				const float viewDistance = std::max(0.1f, m_viewGizmoDistance);
+				Vector3 eye = pivot + axisDir * viewDistance;
 
 				Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
 				if (std::abs(axisDir.y) > 0.9f)
@@ -1096,9 +1166,12 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 				Matrix newView;
 				DirectX::XMStoreFloat4x4(&newView, DirectX::XMMatrixLookAtLH(eyeV, targetV, upV));
 				Matrix invView = newView.Invert();
-				m_pCam->SetPosition(invView.Translation());
-				m_pCam->SetRotation(Quaternion::CreateFromRotationMatrix(invView));
-				m_pCam->SyncInputState();
+				m_viewGizmoTransition.active = true;
+				m_viewGizmoTransition.elapsed = 0.0f;
+				m_viewGizmoTransition.startPos = m_pCam->GetPosition();
+				m_viewGizmoTransition.startRot = m_pCam->GetRotation();
+				m_viewGizmoTransition.targetPos = invView.Translation();
+				m_viewGizmoTransition.targetRot = Quaternion::CreateFromRotationMatrix(invView);
 			}
 		}
 
@@ -1211,7 +1284,7 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 			}
 		}
 	}
-	m_blockCameraInput = viewGizmoUsing;
+	m_blockCameraInput = viewGizmoUsing || m_viewGizmoTransition.active;
 	ImGui::End();
 	ImGui::PopStyleVar();
 }

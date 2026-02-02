@@ -13,6 +13,55 @@ namespace MMMEngine::Editor
 {
     namespace
     {
+        static std::string StripUtf8Bom(std::string text)
+        {
+            if (text.size() >= 3 &&
+                static_cast<unsigned char>(text[0]) == 0xEF &&
+                static_cast<unsigned char>(text[1]) == 0xBB &&
+                static_cast<unsigned char>(text[2]) == 0xBF)
+            {
+                text.erase(0, 3);
+            }
+            return text;
+        }
+
+        static std::string NormalizeToCrlf(std::string text)
+        {
+            text = StripUtf8Bom(std::move(text));
+            std::string out;
+            out.reserve(text.size() + text.size() / 16);
+            for (size_t i = 0; i < text.size(); ++i)
+            {
+                char c = text[i];
+                if (c == '\r')
+                {
+                    if (i + 1 < text.size() && text[i + 1] == '\n')
+                        ++i;
+                    out += "\r\n";
+                }
+                else if (c == '\n')
+                {
+                    out += "\r\n";
+                }
+                else
+                {
+                    out += c;
+                }
+            }
+            return out;
+        }
+
+        static bool WriteUtf8BomFile(const fs::path& path, const std::string& text)
+        {
+            std::ofstream out(path, std::ios::binary);
+            if (!out)
+                return false;
+            static const unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
+            out.write(reinterpret_cast<const char*>(bom), sizeof(bom));
+            const std::string normalized = NormalizeToCrlf(text);
+            out.write(normalized.data(), static_cast<std::streamsize>(normalized.size()));
+            return static_cast<bool>(out);
+        }
         struct MessageInfo
         {
             std::string messageName;  // BroadCast 시 사용할 이름
@@ -25,6 +74,7 @@ namespace MMMEngine::Editor
             std::string name;
             std::string type;
             bool inspectorHidden = false;
+            std::string inspectorChain;
         };
 
         struct ScriptInfo
@@ -277,7 +327,22 @@ namespace MMMEngine::Editor
                 }
             }
 
-            // 5) USCRIPT_PROPERTY_HIDDEN() type name; -> RTTR 등록하되 인스펙터에서 숨김
+            // 5) USCRIPT_PROPERTY_CHAIN("...") type name; -> INSPECTOR_CHAIN 메타데이터 등록
+            {
+                std::regex re(R"re(USCRIPT_PROPERTY_CHAIN\s*\(\s*"([^"]*)"\s*\)\s+([^;=]+)\s+(\w+)\s*[;=])re");
+                std::sregex_iterator it(classBody.begin(), classBody.end(), re);
+                std::sregex_iterator end;
+                for (; it != end; ++it)
+                {
+                    PropertyInfo pi;
+                    pi.inspectorChain = (*it)[1].str();
+                    pi.type = NormalizeType((*it)[2].str());
+                    pi.name = (*it)[3].str();
+                    info.properties.push_back(std::move(pi));
+                }
+            }
+
+            // 6) USCRIPT_PROPERTY_HIDDEN() type name; -> RTTR 등록하되 인스펙터에서 숨김
             {
                 std::regex re(R"re(USCRIPT_PROPERTY_HIDDEN\s*\(\s*\)\s+([^;=]+)\s+(\w+)\s*[;=])re");
                 std::sregex_iterator it(classBody.begin(), classBody.end(), re);
@@ -358,45 +423,44 @@ namespace MMMEngine::Editor
             }
 
             fs::path genPath = scriptsDir / "UserScripts.gen.cpp";
-            std::ofstream out(genPath, std::ios::binary);
-            if (!out)
-                return false;
-
-            out << "// Auto-generated. Do not edit.\n";
-            out << "#include \"Export.h\"\n";
-            out << "#include \"ScriptBehaviour.h\"\n";
-            out << "#include \"UserScriptsCommon.h\"\n";
-            out << "#include \"Object.h\"\n";
-            out << "#include \"rttr/registration\"\n";
-            out << "#include \"rttr/detail/policies/ctor_policies.h\"\n\n";
+            std::ostringstream os;
+            os << "// Auto-generated. Do not edit.\n";
+            os << "#include \"Export.h\"\n";
+            os << "#include \"ScriptBehaviour.h\"\n";
+            os << "#include \"UserScriptsCommon.h\"\n";
+            os << "#include \"Object.h\"\n";
+            os << "#include \"rttr/registration\"\n";
+            os << "#include \"rttr/detail/policies/ctor_policies.h\"\n\n";
 
             for (const auto* s : toGen)
             {
                 // gen.cpp 가 Scripts/ 안에 있으므로, 같은 폴더 기준 상대 경로만 사용 (Scripts/ 접두어 없음)
                 std::string incPath = s->headerPath.generic_string();
                 std::replace(incPath.begin(), incPath.end(), '\\', '/');
-                out << "#include \"" << incPath << "\"\n";
+                os << "#include \"" << incPath << "\"\n";
             }
-            out << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
+            os << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
 
             for (const auto* s : toGen)
             {
-                out << "\tregistration::class_<" << s->className << ">(\"" << s->className << "\")\n";
-                out << "\t\t(rttr::metadata(\"wrapper_type_name\", \"ObjPtr<" << s->className << ">\"))";
+                os << "\tregistration::class_<" << s->className << ">(\"" << s->className << "\")\n";
+                os << "\t\t(rttr::metadata(\"wrapper_type_name\", \"ObjPtr<" << s->className << ">\"))";
                 for (const auto& p : s->properties)
                 {
-                    out << "\n\t\t.property(\"" << p.name << "\", &" << s->className << "::" << p.name << ")";
+                    os << "\n\t\t.property(\"" << p.name << "\", &" << s->className << "::" << p.name << ")";
                     if (p.inspectorHidden)
-                        out << "(rttr::metadata(\"INSPECTOR\", \"HIDDEN\"))";
+                        os << "(rttr::metadata(\"INSPECTOR\", \"HIDDEN\"))";
+                if (!p.inspectorChain.empty())
+                    os << "(rttr::metadata(\"INSPECTOR_CHAIN\", \"" << p.inspectorChain << "\"))";
                 }
-                out << ";\n\n";
+                os << ";\n\n";
 
-                out << "\tregistration::class_<ObjPtr<" << s->className << ">>(\"ObjPtr<" << s->className << ">\")\n";
-                out << "\t\t.constructor([]() { return Object::NewObject<" << s->className << ">(); })\n";
-                out << "\t\t.method(\"Inject\", &ObjPtr<" << s->className << ">::Inject);\n\n";
+                os << "\tregistration::class_<ObjPtr<" << s->className << ">>(\"ObjPtr<" << s->className << ">\")\n";
+                os << "\t\t.constructor([]() { return Object::NewObject<" << s->className << ">(); })\n";
+                os << "\t\t.method(\"Inject\", &ObjPtr<" << s->className << ">::Inject);\n\n";
             }
-            out << "}\n";
-            return true;
+            os << "}\n";
+            return WriteUtf8BomFile(genPath, os.str());
         }
 
         // 생성자 본문에서 REGISTER_BEHAVIOUR_MESSAGE 제외한 라인들 유지
@@ -523,14 +587,11 @@ namespace MMMEngine::Editor
                 fs::remove(backupPath, ec);
             fs::rename(headerPath, backupPath, ec);
 
-            std::ofstream out(headerPath, std::ios::binary);
-            if (!out)
+            if (!WriteUtf8BomFile(headerPath, newText))
             {
                 fs::rename(backupPath, headerPath, ec);
                 continue;
             }
-            out.write(newText.data(), static_cast<std::streamsize>(newText.size()));
-            out.close();
             fs::remove(backupPath, ec);
         }
 

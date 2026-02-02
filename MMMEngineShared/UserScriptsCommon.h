@@ -27,6 +27,10 @@
 /// 인스펙터/리플렉션에 노출할 프로퍼티 표시 (빌드툴에서 gen.cpp 프로퍼티 등록용)
 #define USCRIPT_PROPERTY()
 
+/// 인스펙터 체이닝 규칙 지정 (빌드툴에서 INSPECTOR_CHAIN 메타데이터 등록용)
+/// 예: USCRIPT_PROPERTY_CHAIN("true=AdvancedOption;false=BasicOption")
+#define USCRIPT_PROPERTY_CHAIN(chain)
+
 /// 프로퍼티이지만 자동 등록 대상에서 제외 (빌드툴 스킵용)
 #define USCRIPT_PROPERTY_HIDDEN()
 

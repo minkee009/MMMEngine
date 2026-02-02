@@ -22,6 +22,8 @@ using namespace DirectX;
 #include <algorithm>
 #include <optional>
 #include <iterator>
+#include <unordered_set>
+#include <cctype>
 
 using namespace MMMEngine;
 using namespace MMMEngine::Editor;
@@ -47,6 +49,239 @@ static void ApplyRigidBodyFromTransformIfPlaying(const ObjPtr<GameObject>& go)
         rbPtr->SetKinematicTarget(tr->GetWorldPosition(), tr->GetWorldRotation());
     else
         rbPtr->Editor_changeTrans(tr->GetWorldPosition(), tr->GetWorldRotation());
+}
+
+namespace
+{
+    static std::string TrimCopy(const std::string& s)
+    {
+        size_t start = 0;
+        while (start < s.size() && std::isspace(static_cast<unsigned char>(s[start])))
+            ++start;
+        size_t end = s.size();
+        while (end > start && std::isspace(static_cast<unsigned char>(s[end - 1])))
+            --end;
+        return s.substr(start, end - start);
+    }
+
+    static std::string ToLowerCopy(std::string s)
+    {
+        std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return s;
+    }
+
+    static std::vector<std::string> Split(const std::string& s, char delim)
+    {
+        std::vector<std::string> out;
+        std::string current;
+        for (char c : s)
+        {
+            if (c == delim)
+            {
+                out.push_back(current);
+                current.clear();
+            }
+            else
+            {
+                current.push_back(c);
+            }
+        }
+        out.push_back(current);
+        return out;
+    }
+
+    static std::string NormalizeBoolKey(const std::string& key)
+    {
+        std::string k = ToLowerCopy(TrimCopy(key));
+        if (k == "true" || k == "1" || k == "yes" || k == "on")
+            return "true";
+        if (k == "false" || k == "0" || k == "no" || k == "off")
+            return "false";
+        if (k == "*")
+            return "*";
+        return k;
+    }
+
+    struct InspectorChainMapping
+    {
+        std::unordered_map<std::string, std::vector<std::string>> valueToTargets;
+        std::unordered_set<std::string> allTargets;
+    };
+
+    static InspectorChainMapping ParseInspectorChainMapping(const std::string& raw, const std::string& defaultKey, bool normalizeBoolKeys)
+    {
+        InspectorChainMapping mapping;
+        for (const auto& entryRaw : Split(raw, ';'))
+        {
+            std::string entry = TrimCopy(entryRaw);
+            if (entry.empty())
+                continue;
+
+            std::string key;
+            std::string rhs;
+            size_t eqPos = entry.find('=');
+            if (eqPos == std::string::npos)
+            {
+                key = defaultKey;
+                rhs = entry;
+            }
+            else
+            {
+                key = TrimCopy(entry.substr(0, eqPos));
+                rhs = TrimCopy(entry.substr(eqPos + 1));
+            }
+
+            if (normalizeBoolKeys)
+                key = NormalizeBoolKey(key);
+
+            if (key.empty() || rhs.empty())
+                continue;
+
+            auto& targets = mapping.valueToTargets[key];
+            for (const auto& propRaw : Split(rhs, ','))
+            {
+                std::string propName = TrimCopy(propRaw);
+                if (propName.empty())
+                    continue;
+                targets.push_back(propName);
+                mapping.allTargets.insert(propName);
+            }
+        }
+        return mapping;
+    }
+
+    static std::unordered_set<std::string> BuildAllowedTargets(const InspectorChainMapping& mapping, const std::vector<std::string>& keys)
+    {
+        std::unordered_set<std::string> allowed;
+        auto addTargets = [&](const std::string& key)
+        {
+            auto it = mapping.valueToTargets.find(key);
+            if (it == mapping.valueToTargets.end())
+                return;
+            for (const auto& name : it->second)
+                allowed.insert(name);
+        };
+
+        addTargets("*");
+        for (const auto& key : keys)
+            addTargets(key);
+        return allowed;
+    }
+
+    static bool TryGetVariantInt64(const rttr::variant& var, int64_t& out)
+    {
+        if (!var.is_valid())
+            return false;
+        if (var.can_convert<int>())
+        {
+            out = static_cast<int64_t>(var.to_int());
+            return true;
+        }
+        if (var.can_convert<int64_t>())
+        {
+            out = var.get_value<int64_t>();
+            return true;
+        }
+        return false;
+    }
+
+    static bool IsNumericString(const std::string& s)
+    {
+        if (s.empty())
+            return false;
+        size_t i = 0;
+        if (s[0] == '-' || s[0] == '+')
+            i = 1;
+        if (i >= s.size())
+            return false;
+        for (; i < s.size(); ++i)
+        {
+            if (!std::isdigit(static_cast<unsigned char>(s[i])))
+                return false;
+        }
+        return true;
+    }
+
+    static std::unordered_map<std::string, bool> BuildInspectorChainVisibility(rttr::instance inst, const rttr::type& t)
+    {
+        std::unordered_map<std::string, bool> visibility;
+
+        for (auto& prop : t.get_properties())
+        {
+            rttr::variant md = prop.get_metadata("INSPECTOR_CHAIN");
+            if (!md.is_valid() || !md.is_type<std::string>())
+                continue;
+
+            const std::string raw = md.get_value<std::string>();
+            if (raw.empty())
+                continue;
+
+            rttr::variant controllerVar = prop.get_value(inst);
+            if (!controllerVar.is_valid())
+                continue;
+
+            const std::string controllerName = prop.get_name().to_string();
+            rttr::type controllerType = prop.get_type();
+            std::unordered_set<std::string> allowed;
+            InspectorChainMapping mapping;
+
+            if (controllerType == rttr::type::get<bool>())
+            {
+                mapping = ParseInspectorChainMapping(raw, "true", true);
+                const std::string key = controllerVar.to_bool() ? "true" : "false";
+                allowed = BuildAllowedTargets(mapping, { key });
+            }
+            else if (controllerType.is_enumeration())
+            {
+                mapping = ParseInspectorChainMapping(raw, "*", false);
+                rttr::enumeration enumType = controllerType.get_enumeration();
+                std::string currentName = enumType.value_to_name(controllerVar).to_string();
+                std::string currentLower = ToLowerCopy(currentName);
+
+                std::vector<std::string> matchedKeys;
+                for (const auto& entry : mapping.valueToTargets)
+                {
+                    const std::string& key = entry.first;
+                    if (key == "*")
+                        continue;
+                    if (key == currentName || ToLowerCopy(key) == currentLower)
+                    {
+                        matchedKeys.push_back(key);
+                        continue;
+                    }
+                    if (IsNumericString(key))
+                    {
+                        int64_t currentValue = 0;
+                        if (TryGetVariantInt64(controllerVar, currentValue))
+                        {
+                            if (std::stoll(key) == currentValue)
+                                matchedKeys.push_back(key);
+                        }
+                    }
+                }
+                allowed = BuildAllowedTargets(mapping, matchedKeys);
+            }
+            else
+            {
+                continue;
+            }
+
+            for (const auto& target : mapping.allTargets)
+            {
+                if (target == controllerName)
+                    continue;
+
+                bool allow = allowed.find(target) != allowed.end();
+                auto it = visibility.find(target);
+                if (it == visibility.end())
+                    visibility[target] = allow;
+                else
+                    it->second = it->second && allow;
+            }
+        }
+
+        return visibility;
+    }
 }
 
 /// 단순 타입(Vector2/3/4, float, int, bool, Color, enum) 그리기 및 편집. var를 갱신하고, 처리한 타입이면 true.
@@ -615,6 +850,8 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
         lockRefResolution = canvasPtr->GetScaleMode() == CanvasScaleMode::ConstantPixelSize ? true : false;
     }
 
+    const std::unordered_map<std::string, bool> chainVisibility = BuildInspectorChainVisibility(inst, t);
+
     int propIndex = 0;
     for (auto& prop : t.get_properties())
     {
@@ -627,6 +864,9 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
             continue;
 
         const std::string name = prop.get_name().to_string();
+        auto chainIt = chainVisibility.find(name);
+        if (chainIt != chainVisibility.end() && !chainIt->second)
+            continue;
         bool readOnly = prop.is_readonly();
         rttr::type propType = prop.get_type();
 

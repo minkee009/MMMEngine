@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Singleton.hpp"
 #include "EditorCamera.h"
 #include "EditorGridRenderer.h"
@@ -94,6 +94,18 @@ namespace MMMEngine::Editor
 		ImGuizmo::OPERATION m_guizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
 		ImGuizmo::MODE m_guizmoMode = ImGuizmo::MODE::LOCAL;
 		float m_viewGizmoDistance = 10.0f;
+		DirectX::SimpleMath::Vector3 m_viewGizmoPivot = DirectX::SimpleMath::Vector3::Zero;
+		bool m_hasViewGizmoPivot = false;
+		struct ViewGizmoTransition
+		{
+			bool active = false;
+			float duration = 0.25f;
+			float elapsed = 0.0f;
+			DirectX::SimpleMath::Vector3 startPos = DirectX::SimpleMath::Vector3::Zero;
+			DirectX::SimpleMath::Quaternion startRot = DirectX::SimpleMath::Quaternion::Identity;
+			DirectX::SimpleMath::Vector3 targetPos = DirectX::SimpleMath::Vector3::Zero;
+			DirectX::SimpleMath::Quaternion targetRot = DirectX::SimpleMath::Quaternion::Identity;
+		} m_viewGizmoTransition;
 
 		bool CreateRenderTargets(ID3D11Device* device, int width, int height);
 		void ResizeRenderTarget(ID3D11Device* device, int width, int height);

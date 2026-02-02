@@ -5,6 +5,7 @@
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
 #include <ImGuizmo.h>
+#include <algorithm>
 
 #include "SceneManager.h"
 #include "SceneSerializer.h"
@@ -12,6 +13,7 @@
 #include "PhysxManager.h"
 #include "EditorRegistry.h"
 #include "StringHelper.h"
+#include "MMMTime.h"
 
 using namespace MMMEngine::EditorRegistry;
 using namespace MMMEngine::Utility;
@@ -298,6 +300,35 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     // 5. DockSpace 생성
     ImGuiIO& io = ImGui::GetIO();
 
+    static float g_saveBlockedTimer = 0.0f;
+    static float g_saveSuccessTimer = 0.0f;
+    const float saveBlockedDuration = 2.5f;
+    const float saveSuccessDuration = 1.8f;
+    auto RequestSceneSave = [&]()
+    {
+        if (g_editor_scene_playing)
+        {
+            g_saveBlockedTimer = saveBlockedDuration;
+            return;
+        }
+
+        auto sceneRef = SceneManager::Get().GetCurrentScene();
+        auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
+
+        SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" + StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
+        SceneManager::Get().ReloadSnapShotCurrentScene();
+        SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
+        g_saveSuccessTimer = saveSuccessDuration;
+    };
+
+    const bool ctrlSavePressed = io.KeyCtrl && !io.KeyAlt && !io.KeyShift
+        && ImGui::IsKeyPressed(ImGuiKey_S)
+        && !io.WantTextInput;
+    if (ctrlSavePressed)
+    {
+        RequestSceneSave();
+    }
+
     ImGui::PopStyleColor(1);
 
     // 메뉴바 렌더링 흰색으로
@@ -357,12 +388,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
                 }
                 if (ImGui::MenuItem(u8"씬 저장"))
                 {
-                    auto sceneRef = SceneManager::Get().GetCurrentScene();
-                    auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
-
-                    SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" + StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
-                    SceneManager::Get().ReloadSnapShotCurrentScene();
-                    SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
+                    RequestSceneSave();
                     p_open = false;
                 }
                 if (ImGui::MenuItem(u8"씬 이름 변경"))
@@ -720,6 +746,50 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
     }
     ImGui::End(); // MyMainDockSpaceWindow 종료
+
+    if (g_saveBlockedTimer > 0.0f)
+    {
+        g_saveBlockedTimer -= MMMEngine::Time::GetUnscaledDeltaTime();
+        const float t = std::clamp(g_saveBlockedTimer / saveBlockedDuration, 0.0f, 1.0f);
+
+        ImGui::SetNextWindowPos(
+            ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.5f, viewport->WorkPos.y + 36.0f),
+            ImGuiCond_Always,
+            ImVec2(0.5f, 0.0f));
+        ImGui::SetNextWindowBgAlpha(0.85f * t);
+
+        ImGuiWindowFlags toastFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize
+            | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav
+            | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDocking;
+
+        if (ImGui::Begin("##SceneSaveBlockedToast", nullptr, toastFlags))
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, t), u8"플레이 중에는 씬을 저장할 수 없습니다.");
+            ImGui::End();
+        }
+    }
+
+    if (g_saveSuccessTimer > 0.0f)
+    {
+        g_saveSuccessTimer -= MMMEngine::Time::GetUnscaledDeltaTime();
+        const float t = std::clamp(g_saveSuccessTimer / saveSuccessDuration, 0.0f, 1.0f);
+
+        ImGui::SetNextWindowPos(
+            ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.5f, viewport->WorkPos.y + 36.0f),
+            ImGuiCond_Always,
+            ImVec2(0.5f, 0.0f));
+        ImGui::SetNextWindowBgAlpha(0.75f * t);
+
+        ImGuiWindowFlags toastFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize
+            | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav
+            | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDocking;
+
+        if (ImGui::Begin("##SceneSaveSuccessToast", nullptr, toastFlags))
+        {
+            ImGui::TextColored(ImVec4(0.6f, 1.0f, 0.6f, t), u8"씬 저장 완료");
+            ImGui::End();
+        }
+    }
 
     auto& style = ImGui::GetStyle();
 

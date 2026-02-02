@@ -1,4 +1,4 @@
-﻿// ProjectManager.cpp
+// ProjectManager.cpp
 #include "ProjectManager.h"
 
 #include <fstream>
@@ -348,38 +348,22 @@ void MMMEngine::ExampleBehaviour::Update()
 
         const std::string guid = MakeDeterministicProjectGuid(projectRootDir);
 
-        // EngineShared 경로: MMMENGINE_DIR 환경변수 우선
-        // MMMENGINE_DIR = 엔진 루트 (예: D:\MMMEngine)
-        const char* engineDirEnv = std::getenv("MMMENGINE_DIR");
-        std::string engineDir = engineDirEnv ? std::string(engineDirEnv) : "";
-
-        // fallback
-        std::string engineSharedInclude = R"($(ProjectDir)..\..\..\MMMEngineShared)";
-        std::string engineSharedIncludeDXTk = R"($(ProjectDir)..\..\..\MMMEngineShared\dxtk)";
-        std::string engineSharedIncludeDXTkInc = R"($(ProjectDir)..\..\..\MMMEngineShared\dxtk\inc)";
-        std::string engineSharedIncludePhysXInc = R"($(ProjectDir)..\..\..\MMMEngineShared\physx)";
-        std::string engineSharedDebugLibDir = R"($(ProjectDir)..\..\..\X64\Debug)";
-        std::string engineSharedReleaseLibDir = R"($(ProjectDir)..\..\..\X64\Release)";
-        std::string engineSharedCommonDebugLibDir = R"($(ProjectDir)..\..\..\Common\Lib\Debug)";
-        std::string engineSharedCommonReleaseLibDir = R"($(ProjectDir)..\..\..\Common\Lib\Release)";
+        // EngineShared 경로: MSBuild 매크로 사용 (MMMENGINE_DIR)
+        // MMMENGINE_DIR가 없으면 상대경로로 fallback 하도록 .vcxproj에 기본값 지정
+        std::string engineSharedInclude = R"($(MMMENGINE_DIR)\MMMEngineShared)";
+        std::string engineSharedIncludeDXTk = R"($(MMMENGINE_DIR)\MMMEngineShared\dxtk)";
+        std::string engineSharedIncludeDXTkInc = R"($(MMMENGINE_DIR)\MMMEngineShared\dxtk\inc)";
+        std::string engineSharedIncludePhysXInc = R"($(MMMENGINE_DIR)\MMMEngineShared\physx)";
+        std::string engineSharedDebugLibDir = R"($(MMMENGINE_DIR)\X64\Debug)";
+        std::string engineSharedReleaseLibDir = R"($(MMMENGINE_DIR)\X64\Release)";
+        std::string engineSharedCommonDebugLibDir = R"($(MMMENGINE_DIR)\Common\Lib\Debug)";
+        std::string engineSharedCommonReleaseLibDir = R"($(MMMENGINE_DIR)\Common\Lib\Release)";
         std::string engineSharedLibName = "MMMEngineShared.lib";
         std::string DirectXLibName = "DirectXTK.lib;DirectXTex.lib";
         std::string rttrDebugLibName = "rttr_core_d.lib";
         std::string rttrReleaseLibName = "rttr_core.lib";
         std::string physXLibsName = "PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib";
         std::string renderResourceLibs = "assimp-vc143-mt.lib;pugixml.lib;minizip.lib;zlib.lib;kubazip.lib;poly2tri.lib;draco.lib";
-
-        if (!engineDir.empty())
-        {
-            engineSharedInclude = engineDir + R"(\MMMEngineShared\)";
-            engineSharedIncludeDXTk = engineDir + R"(\MMMEngineShared\dxtk)";
-            engineSharedIncludeDXTkInc = engineDir + R"(\MMMEngineShared\dxtk\inc)";
-            engineSharedIncludePhysXInc = engineDir + R"(\MMMEngineShared\physx)";
-            engineSharedDebugLibDir = engineDir + R"(\X64\Debug)";
-            engineSharedReleaseLibDir = engineDir + R"(\X64\Release)";
-            engineSharedCommonDebugLibDir = engineDir + R"(\Common\Lib\Debug)";
-            engineSharedCommonReleaseLibDir = engineDir + R"(\Common\Lib\Release)";
-        }
 
         std::ofstream out(vcxprojPath, std::ios::binary);
         if (!out) return false;
@@ -445,6 +429,11 @@ void MMMEngine::ExampleBehaviour::Update()
   </ImportGroup>
 
   <PropertyGroup Label="UserMacros" />
+
+  <!-- MMMENGINE_DIR 기본값 (없으면 프로젝트 기준 상대경로) -->
+  <PropertyGroup>
+    <MMMENGINE_DIR Condition="'$(MMMENGINE_DIR)'==''">$(ProjectDir)..\..\..</MMMENGINE_DIR>
+  </PropertyGroup>
 
   <!--출력 고정: ProjectRoot/Binaries/Win64/UserScripts.dll-->
   <PropertyGroup>
