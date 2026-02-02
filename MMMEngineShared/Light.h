@@ -10,7 +10,7 @@ namespace MMMEngine {
 	// 라이트 타입
 	enum LightType {
 		Directional = 0,
-		Point = 1,
+		//Point = 1,
 	};
 
 	class RenderManager;

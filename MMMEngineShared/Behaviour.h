@@ -7,23 +7,27 @@
 #include <memory>
 #include <stdexcept>
 #include <any>
+#include <typeinfo>
+#include <vector>
 
 #pragma warning(push)
-#pragma warning(disable: 4251)  // STL 경고 억제
+#pragma warning(disable: 4251)  // STL ??? ????
 
 #define REGISTER_BEHAVIOUR_MESSAGE(func) RegisterMessage(#func, &std::remove_reference_t<decltype(*this)>::func);
 
 namespace MMMEngine
 {
-	// 전방 선언
+	// ???? ????
 	class Behaviour;
 
-	// === 메시지 베이스 ===
+	// === ????? ????? ===
 	struct MMMENGINE_API BehaviourMessageBase
 	{
 		virtual ~BehaviourMessageBase() = default;
 		virtual void InvokeRaw(void** args) = 0;
 		virtual void InvokeVoid() = 0;
+		virtual size_t GetArgCount() const = 0;
+		virtual const std::type_info* GetArgType(size_t index) const = 0;
 	};
 
 	template<typename T>
@@ -47,6 +51,16 @@ namespace MMMEngine
 		{
 			return;
 			//throw std::runtime_error("This message does not accept parameters.");
+		}
+
+		size_t GetArgCount() const override
+		{
+			return 0;
+		}
+
+		const std::type_info* GetArgType(size_t) const override
+		{
+			return nullptr;
 		}
 	};
 
@@ -73,7 +87,26 @@ namespace MMMEngine
 			//throw std::runtime_error("This message requires parameters.");
 		}
 
+		size_t GetArgCount() const override
+		{
+			return sizeof...(Args);
+		}
+
+		const std::type_info* GetArgType(size_t index) const override
+		{
+			return GetArgTypeImpl(index, std::index_sequence_for<Args...>{});
+		}
+
 	private:
+		template<std::size_t... I>
+		const std::type_info* GetArgTypeImpl(size_t index, std::index_sequence<I...>) const
+		{
+			const std::type_info* types[] = { &typeid(Args)... };
+			if (index >= sizeof...(Args))
+				return nullptr;
+			return types[index];
+		}
+
 		template<std::size_t... I>
 		void InvokeImpl(void** args, std::index_sequence<I...>)
 		{
@@ -82,7 +115,7 @@ namespace MMMEngine
 	};
 
 
-	//루프 제어에 영향받는 컴포넌트입니다.
+	//???? ???? ?????? ???????????.
 	class MMMENGINE_API Behaviour : public Component
 	{
 	private:
@@ -93,34 +126,13 @@ namespace MMMEngine
 
 		std::unordered_map<std::string, std::unique_ptr<BehaviourMessageBase>> m_messages;
 
-		// 호출 - 매개변수 없음
-		void CallMessage(const std::string& name)
-		{
-			auto it = m_messages.find(name);
-			if (it == m_messages.end())
-				return;
-			it->second->InvokeVoid();
-		}
-
-		// 호출 - 매개변수 있음 (void* 배열로 전달)
-		template<typename... Args>
-		void CallMessage(const std::string& name, Args&&... args)
-		{
-			void* argArray[] = { (void*)&args... };
-
-			auto it = m_messages.find(name);
-			if (it == m_messages.end())
-				return;
-			it->second->InvokeRaw(argArray);
-		}
-
 	protected:
 		Behaviour();
 		virtual void Initialize() override;
 		virtual void UnInitialize() override;
 
 		bool m_enabled;
-		int m_executionOrder = 0; // 실행 순서를 나타내는 변수
+		int m_executionOrder = 0; // ???? ?????? ??????? ????
 
 		void SetExecutionOrder(int order) { m_executionOrder = order; }
 	
@@ -144,5 +156,28 @@ namespace MMMEngine
 		void SetEnabled(bool value);
 
 		bool IsActiveAndEnabled();
+
+		/// ??? ??? ???? ?? (?? ??). SerializableEvent ??? ??.
+		void CallMessage(const std::string& name)
+		{
+			auto it = m_messages.find(name);
+			if (it == m_messages.end())
+				return;
+			it->second->InvokeVoid();
+		}
+
+		/// ??? ??? ???? ?? (?? ??). SerializableEvent ??? ??.
+		template<typename... Args>
+		void CallMessage(const std::string& name, Args&&... args)
+		{
+			void* argArray[] = { (void*)&args... };
+			auto it = m_messages.find(name);
+			if (it == m_messages.end())
+				return;
+			it->second->InvokeRaw(argArray);
+		}
+
+		void GetVoidMessageNames(std::vector<std::string>& outNames) const;
+		void GetFloatMessageNames(std::vector<std::string>& outNames) const;
 	};
 }

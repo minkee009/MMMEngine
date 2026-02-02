@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #define NOMINMAX
 #include "ExportSingleton.hpp"
 #include <unordered_map>
@@ -104,6 +104,9 @@ namespace MMMEngine {
 		ResPtr<VShader> m_pFullScreenVS;
 		ResPtr<PShader> m_pFullScreenPS;
 
+		// 그림자 쉐이더
+		ResPtr<PShader> m_pShadowPS;
+
 		// 쉐이더 타입정보정의 < ShaderPath, TypeInfo >
 		std::unordered_map<std::wstring, TypeInfo> m_typeInfoMap;
 
@@ -142,6 +145,7 @@ namespace MMMEngine {
 		ResPtr<PShader> GetDefaultPShader();
 		ResPtr<VShader> GetFullScreenVShader();
 		ResPtr<PShader> GetFullScreenPShader();
+		ResPtr<PShader> GetShadowPShader();
 
 		const RenderType GetRenderType(const std::wstring& _shaderPath);
 		const ShaderType GetShaderType(const std::wstring& _shaderPath);
@@ -153,6 +157,8 @@ namespace MMMEngine {
 		void UpdateCBuffers(const ShaderType _type);
 
 		void ConvertMaterialType(const ShaderType _type, Material* _mat);
+
+		const PropertyValue& GetGlobalPropVal(const ShaderType _type, const std::wstring _propName);
 
 		void AddGlobalPropVal(const ShaderType _type, const std::wstring _propName, const PropertyValue& _value);
 		void AddAllGlobalPropVal(const std::wstring _propName, const PropertyValue& _value);

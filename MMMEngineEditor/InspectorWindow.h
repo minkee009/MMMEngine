@@ -25,7 +25,7 @@ namespace MMMEngine::Editor
 		std::vector<rttr::type> m_componentTypes;
 		std::unordered_map<std::string, std::string> m_stringEditCache;
 
-		void RenderProperties(rttr::instance inst);
+		void RenderProperties(rttr::instance inst, ObjPtr<Object> objPtr);
 		void RefreshComponentTypes();
 	public:
 		void Render();

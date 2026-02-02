@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Object.h"
 #include "rttr/type"
 #include <vector>
@@ -17,6 +17,7 @@ namespace MMMEngine
 		friend class Object;
 		friend class Scene;
 		friend class SceneSerializer;
+		friend class ObjectSerializer;
 		friend class Component;
 		friend class Transform;
 
@@ -36,6 +37,7 @@ namespace MMMEngine
 		void RegisterComponent(const ObjPtr<Component>& comp);
 		void UnRegisterComponent(const ObjPtr<Component>& comp);
 		void UpdateActiveInHierarchy();
+		void EnsureRectTransform();
 		void Initialize();
 		std::vector<ObjPtr<Component>> GetComponentsCopy() { return m_components; }
 		void SetScene(const SceneRef& scene) { m_scene = scene; }
@@ -72,11 +74,11 @@ namespace MMMEngine
 			newComponent->m_gameObject = SelfPtr(this);
 			RegisterComponent(newComponent);
 
-			//if constexpr (std::is_same<T, Canvas>::value || std::is_base_of<Graphic, T>::value)
-			//{
-			//	EnsureRectTransform();
-			//	UpdateActiveInHierarchy();
-			//}
+			if (newComponent->RequiresRectTransform())
+			{
+				EnsureRectTransform();
+				UpdateActiveInHierarchy();
+			}
 
 			newComponent.Cast<Component>()->Initialize();
 

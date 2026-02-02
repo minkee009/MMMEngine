@@ -1,6 +1,7 @@
 ﻿#include "SceneManager.h"
 #include "SceneSerializer.h"
 #include "StringHelper.h"
+#include "ObjectManager.h"
 
 #include "json/json.hpp"
 #include <fstream>
@@ -8,6 +9,7 @@
 #include <iostream>
 
 #include "Camera.h"
+#include "Component.h"
 
 DEFINE_SINGLETON(MMMEngine::SceneManager)
 
@@ -321,13 +323,29 @@ bool MMMEngine::SceneManager::CheckSceneIsChanged()
 
 MMMEngine::ObjPtr<MMMEngine::GameObject> MMMEngine::SceneManager::FindWithMUID(const SceneRef& ref, Utility::MUID muid)
 {
-	auto scene = m_scenes[ref.id].get();
+	if (muid.IsEmpty())
+		return nullptr;
 
-	const auto& objs = scene->GetGameObjects();
-	for (auto& go : objs)
+	if (auto obj = ObjectManager::Get().GetObjectByMUID(muid); obj.IsValid())
 	{
-		if (go->GetMUID() == muid)
-			return go;
+		if (auto go = obj.Cast<GameObject>(); go.IsValid())
+		{
+			const SceneRef& goScene = go->GetScene();
+			if (goScene.id == ref.id && goScene.id_DDOL == ref.id_DDOL)
+				return go;
+			return nullptr;
+		}
+
+		if (auto comp = obj.Cast<Component>(); comp.IsValid())
+		{
+			auto owner = comp->GetGameObject();
+			if (!owner.IsValid())
+				return nullptr;
+
+			const SceneRef& ownerScene = owner->GetScene();
+			if (ownerScene.id == ref.id && ownerScene.id_DDOL == ref.id_DDOL)
+				return owner;
+		}
 	}
 
 	return nullptr;
@@ -346,12 +364,16 @@ MMMEngine::ObjPtr<MMMEngine::GameObject> MMMEngine::SceneManager::FindFromAllSce
 			}
 		}
 	}
-	const auto& ddol_gameobjs_cache = m_dontDestroyOnLoadScene->GetGameObjects();
-	for (auto& ddol_go : ddol_gameobjs_cache)
+
+	if (m_dontDestroyOnLoadScene)
 	{
-		if (ddol_go->GetName() == name)
+		const auto& ddol_gameobjs_cache = m_dontDestroyOnLoadScene->GetGameObjects();
+		for (auto& ddol_go : ddol_gameobjs_cache)
 		{
-			return ddol_go;
+			if (ddol_go->GetName() == name)
+			{
+				return ddol_go;
+			}
 		}
 	}
 

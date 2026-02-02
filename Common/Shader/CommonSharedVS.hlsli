@@ -4,6 +4,7 @@ cbuffer Cambuffer : register(b0)
     matrix mView;
     matrix mProjection;
     float4 mCamPos;
+    matrix mInvProjection;
 }
 
 // 메시 트랜스폼 버퍼 1~4

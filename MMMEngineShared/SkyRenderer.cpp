@@ -3,6 +3,8 @@
 #include "Texture2D.h"
 #include "Material.h"
 #include "StaticMesh.h"
+#include "Camera.h"
+#include "Transform.h"
 
 #include "rttr/registration"
 #include "RenderManager.h"
@@ -79,17 +81,18 @@ void MMMEngine::SkyRenderer::SetSkyBrdf(MMMEngine::ResPtr<MMMEngine::Texture2D>&
 
 void MMMEngine::SkyRenderer::Initialize()
 {
+	auto invMat = RenderManager::Get().GetCamera()->GetViewMatrix().Invert();
+	auto camDir = invMat.Forward();
+
 	m_pSkyMaterial = std::make_shared<Material>();
 	m_pSkyMaterial->AddProperty(L"_specular", m_pSkySpecular);
 	m_pSkyMaterial->AddProperty(L"_irradiance", m_pSkyIrr);
 	m_pSkyMaterial->AddProperty(L"_brdflut", m_pSkyBrdf);
 	m_pSkyMaterial->AddProperty(L"_cubemap", m_pSkyTexture);
+	m_pSkyMaterial->AddProperty(L"mIsOrtho", false);
 
 	m_pSkyMaterial->SetVShader(ResourceManager::Get().Load<VShader>(L"Shader/SkyBox/SkyBoxVertexShader.hlsl"));
 	m_pSkyMaterial->SetPShader(ResourceManager::Get().Load<PShader>(L"Shader/SkyBox/SkyBoxPixelShader.hlsl"));
-
-	m_pMesh = ResourceManager::Get()
-		.Load<StaticMesh>(L"Shader/Resource/Default_Mesh/SkyBoxMesh_StaticMesh.staticmesh");
 
 	renderIndex = RenderManager::Get().AddRenderer(this);
 }
@@ -106,34 +109,24 @@ void MMMEngine::SkyRenderer::UnInitialize()
 
 void MMMEngine::SkyRenderer::Render()
 {
-	// 유효성 확인
-	if (!m_pMesh)
+	if (!m_pSkyMaterial)
 		return;
 
 	// ShaderInfo 공용리소스 업데이트
-	for (auto& [prop, val] : m_pSkyMaterial->GetProperties())
+	for (auto& [prop, val] : m_pSkyMaterial->GetProperties()) {
 		ShaderInfo::Get().AddAllGlobalPropVal(prop, val);
-
-	for (auto& [matIdx, meshIndices] : m_pMesh->meshGroupData) {
-
-		for (const auto& idx : meshIndices) {
-			RenderCommand command;
-			auto& meshBuffer = m_pMesh->gpuBuffer.vertexBuffers[idx];
-			auto& indicesBuffer = m_pMesh->gpuBuffer.indexBuffers[idx];
-
-			command.vertexBuffer = meshBuffer.Get();
-			command.indexBuffer = indicesBuffer.Get();
-			command.material = m_pSkyMaterial;
-			command.worldMatIndex = RenderManager::Get().AddMatrix(DirectX::SimpleMath::Matrix::Identity);
-			command.indiciesSize = m_pMesh->indexSizes[idx];
-			command.camDistance = 0.0f;
-
-			std::wstring shaderPath = m_pSkyMaterial->GetPShader()->GetFilePath();
-			RenderType type = ShaderInfo::Get().GetRenderType(shaderPath);
-
-			RenderManager::Get().AddCommand(type, std::move(command));
-		}
 	}
+
+	RenderCommand command;
+	command.material = m_pSkyMaterial;
+	command.worldMatIndex = RenderManager::Get().AddMatrix(DirectX::SimpleMath::Matrix::Identity);
+	command.camDistance = 0.0f;
+	command.indiciesSize = 3;
+
+	std::wstring shaderPath = m_pSkyMaterial->GetPShader()->GetFilePath();
+	RenderType type = ShaderInfo::Get().GetRenderType(shaderPath);
+
+	RenderManager::Get().AddCommand(type, std::move(command));
 }
 
 void MMMEngine::SkyRenderer::UpdateSRVs()

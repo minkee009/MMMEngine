@@ -1,9 +1,10 @@
-#include "Scene.h"
+ï»¿#include "Scene.h"
 #include "SceneManager.h"
 #include "GameObject.h"
 #include "SceneSerializer.h"
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
+#include "Component.h"
 
 RTTR_REGISTRATION
 {
@@ -72,7 +73,7 @@ void MMMEngine::Scene::UnRegisterGameObject(ObjPtr<GameObject> go)
 {
     auto it = std::find(m_gameObjects.begin(), m_gameObjects.end(), go);
     if (it != m_gameObjects.end()) {
-        *it = std::move(m_gameObjects.back()); // ¸¶Áö¸· ¿ø¼Ò¸¦ µ¤¾î¾¸
+        *it = std::move(m_gameObjects.back()); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ò¸ï¿½ ï¿½ï¿½ï¿½î¾¸
         m_gameObjects.pop_back();
     }
 }
@@ -91,3 +92,4 @@ void MMMEngine::Scene::SetName(const std::string& name)
 {
     m_name = name;
 }
+

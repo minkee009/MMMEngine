@@ -13,7 +13,6 @@ VS_OUTPUT main(VS_INPUT input)
         0, 0, 1, 0,
         0, 0, 0, 1
     };
-    float3 normal = normalize(input.Norm);
     
     #ifdef VERTEX_SKINNING
         Matrix tempMat[4] =
