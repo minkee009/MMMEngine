@@ -94,6 +94,11 @@ void MMMEngine::ColliderComponent::SetRigidOffsetPose(const physx::PxTransform& 
     ApplyLocalPose();
 }
 
+void MMMEngine::ColliderComponent::SetCompoundCollider(ObjPtr<Transform> parent)
+{
+    NoticeCompoundCollider(parent);
+}
+
 void MMMEngine::ColliderComponent::ApplyLocalPose()
 {
     if (!m_Shape) return;

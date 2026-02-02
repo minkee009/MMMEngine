@@ -111,6 +111,11 @@ namespace MMMEngine
 
 		void SetRigidOffsetPose(const physx::PxTransform& pose);
 
+		void SetCompoundCollider(ObjPtr<Transform> parent);
+		ObjPtr<Transform> GetCompoundCollider() { return m_parent; }
+
+		ObjPtr<Transform> m_parent;
+
 	protected:
 		// 파생 클래스가 shape 생성 후 반드시 호출
 		void SetShape(physx::PxShape* shape, bool owned = true);

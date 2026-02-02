@@ -78,6 +78,19 @@ void MMMEngine::PhysxManager::SyncRigidsFromTransforms()
 void MMMEngine::PhysxManager::NotifyRigidAdded(RigidBodyComponent* rb)
 {
     if (!rb) return;
+
+    auto go = rb->GetGameObject();
+    if (!go.IsValid()) return;
+
+    // 부모 체인에 rigid가 있으면 자기 actor는 등록하지 않음
+    auto parent = go->GetTransform()->GetParent();
+    if (parent.IsValid())
+    {
+        auto parentRoot = FindHighestRigid(parent->GetGameObject()); // or nearest 정책
+        if (parentRoot && parentRoot != rb)
+            return;
+    }
+
     RequestRegisterRigid(rb);
 
 }
@@ -114,13 +127,30 @@ void MMMEngine::PhysxManager::NotifyColliderAdded(ColliderComponent* col)
     if (!go.IsValid()) return;
 
     auto rbPtr = go->GetComponent<RigidBodyComponent>();
-    RigidBodyComponent* rb = rbPtr.IsValid() ? (RigidBodyComponent*)rbPtr.GetRaw()
-        : GetOrCreateRigid(go);
+    RigidBodyComponent* selfRb = rbPtr.IsValid() ? static_cast<RigidBodyComponent*>(rbPtr.GetRaw()) : GetOrCreateRigid(go);
 
-    if (!rb) return;
+    if (!selfRb) return;
 
-    RequestRegisterRigid(rb);
-    RequestAttachCollider(rb, col);
+    // 부모 root rigid 찾기
+    RigidBodyComponent* parentRoot = nullptr;
+    auto parent = go->GetTransform()->GetParent();
+    if (parent.IsValid())
+        parentRoot = FindHighestRigid(parent->GetGameObject()); // or nearest 정책
+
+    if (parentRoot && parentRoot != selfRb)
+    {
+        // 부모에 붙임 (self는 actor 등록 안 함)
+        RequestRegisterRigid(parentRoot); // parent actor 보장
+        m_Commands.push_back({ CmdType::TransferCol, parentRoot, col, selfRb });
+
+        // 혹시 self가 등록돼있었다면 정리
+        RequestUnregisterRigid(selfRb);
+        return;
+    }
+
+    // 부모 없으면 기존대로
+    RequestRegisterRigid(selfRb);
+    RequestAttachCollider(selfRb, col);
 }
 
 void MMMEngine::PhysxManager::NotifyColliderRemoved(ColliderComponent* col)
@@ -130,14 +160,9 @@ void MMMEngine::PhysxManager::NotifyColliderRemoved(ColliderComponent* col)
     auto go = col->GetGameObject();
     if (!go.IsValid()) return;
 
-    auto rbPtr = go->GetComponent<RigidBodyComponent>();
-    if (!rbPtr.IsValid()) return; // 정책상 거의 없어야 하지만 방어
-    auto* rb = (RigidBodyComponent*)rbPtr.GetRaw();
-
     EraseCommandsForCollider(col);
     m_DirtyColliders.erase(col);
     m_FilterDirtyColliders.erase(col);
-    m_PendingDestroyCols.push_back(col);
 
     m_PhysScene.ForgetCollider(col);
 }
@@ -385,14 +410,6 @@ void MMMEngine::PhysxManager::CollectCollidersInSubtree(ObjPtr<GameObject> root,
 // actor생성 및 acotr를 추가하는 작업 / shape생성 밑 붙이는 작업 / shape 교체등을 여기서 한다
 void MMMEngine::PhysxManager::FlushCommands_PreStep()
 {
-    for (auto* col : m_PendingDestroyCols)
-    {
-        if (!col) continue;
-
-        // rb를 몰라도 PhysScene이 ownerByCollider로 찾아서 detach 가능하게 만들면 베스트
-        m_PhysScene.DetachCollider(nullptr, col);
-    }
-    m_PendingDestroyCols.clear();
     //ChangeRigidType 먼저 처리하도록
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
@@ -576,7 +593,8 @@ void MMMEngine::PhysxManager::EraseCommandsForCollider(MMMEngine::ColliderCompon
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         if (it->col == col &&
-            (it->type == CmdType::AttachCol || it->type == CmdType::DetachCol || it->type == CmdType::RebuildCol))
+            (it->type == CmdType::AttachCol || it->type == CmdType::DetachCol || it->type == CmdType::RebuildCol ||
+                it->type == CmdType::TransferCol))
             it = m_Commands.erase(it);
         else
             ++it;
