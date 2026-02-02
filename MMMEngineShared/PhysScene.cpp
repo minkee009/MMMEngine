@@ -370,7 +370,7 @@ void MMMEngine::PhysScene::DetachCollider(MMMEngine::RigidBodyComponent* rb, MMM
 		rb = ownerRb;;
 
 	rb->DetachCollider(col);
-	col->SetChildValue(false);
+	//col->SetChildValue(false);
 
 	auto itList = m_collidersByRigid.find(rb);
 	if (itList != m_collidersByRigid.end())
@@ -487,7 +487,8 @@ void MMMEngine::PhysScene::PushRigidsToPhysics()
 	for (auto& [col, rb] : m_ownerByCollider)
 	{
 		if (col == nullptr) continue;
-		if (!col->GetChildValue()) continue;
+		if (!col->GetGameObject().IsValid()) continue;
+		/*if (!col->GetChildValue()) continue;*/
 		col->SetLocalShape();
 	}
 

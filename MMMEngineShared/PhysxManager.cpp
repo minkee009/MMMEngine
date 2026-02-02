@@ -315,32 +315,40 @@ void MMMEngine::PhysxManager::NotifyCompoundColliderAdded(ObjPtr<GameObject> nex
 {
     if (!child.IsValid()) return;
 
-    // 자기 Rigidbody (없을 수 있으면 방어)
     auto selfRbPtr = child->GetComponent<RigidBodyComponent>();
-    RigidBodyComponent* selfRb = selfRbPtr.IsValid() ? static_cast<RigidBodyComponent*>(selfRbPtr.GetRaw())
+    RigidBodyComponent* selfRb = selfRbPtr.IsValid()
+        ? static_cast<RigidBodyComponent*>(selfRbPtr.GetRaw())
         : nullptr;
 
-    // old/new 루트 (너의 정책: 최상위 rigid)
+    if (!selfRb)
+        selfRb = GetOrCreateRigid(child);
+    if (!selfRb) return;
+
     RigidBodyComponent* oldRoot = curParent.IsValid() ? FindHighestRigid(curParent) : selfRb;
     RigidBodyComponent* newRoot = nextParent.IsValid() ? FindHighestRigid(nextParent) : selfRb;
+    if (!newRoot) newRoot = selfRb;
 
-    if (!newRoot)
-    {
-        if (!selfRb) selfRb = GetOrCreateRigid(child);
-        newRoot = selfRb;
-    }
     if (oldRoot == newRoot) return;
 
-    // 서브트리 콜라이더 수집
+    const bool toCompound = (newRoot != selfRb); // 자식으로 들어감
+    const bool toRoot = (newRoot == selfRb);     // 자식에서 빠져나옴
+
+    // 나올 때는 먼저 actor 생성/등록 (TransferCol 전에 있어야 함)
+    if (toRoot)
+        RequestRegisterRigid(selfRb);
+
     std::vector<ColliderComponent*> cols;
     CollectCollidersInSubtree(child, cols);
 
-    // per-collider 커맨드 적재
     for (auto* col : cols)
     {
         if (!col) continue;
         m_Commands.push_back({ CmdType::TransferCol, newRoot, col, oldRoot });
     }
+
+    // 들어갈 때는 child actor 제거 (TransferCol 뒤에)
+    if (toCompound)
+        RequestUnregisterRigid(selfRb);
 }
 
 void MMMEngine::PhysxManager::CollectCollidersInSubtree(ObjPtr<GameObject> root, std::vector<ColliderComponent*>& out)
