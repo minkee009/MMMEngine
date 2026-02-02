@@ -17,8 +17,7 @@ RTTR_REGISTRATION
 
 	registration::class_<StaticMesh>("StaticMesh")
 		.constructor<>()(policy::ctor::as_std_shared_ptr)
-		.property("castShadows", &StaticMesh::castShadows)
-		.property("receiveShadows", &StaticMesh::receiveShadows);
+		.property("materials", &StaticMesh::materials);
 
 	type::register_converter_func(
 		[](std::shared_ptr<Resource> from, bool& ok) -> std::shared_ptr<StaticMesh>
@@ -34,7 +33,7 @@ RTTR_REGISTRATION
 	);
 }
 
-Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<MMMEngine::Mesh_Vertex>& _vertices)
+Microsoft::WRL::ComPtr<ID3D11Buffer> MMMEngine::StaticMesh::CreateVertexBuffer(const std::vector<MMMEngine::Mesh_Vertex>& _vertices)
 {
 	// 예외 확인
 	if (_vertices.empty())
@@ -62,7 +61,7 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<MMMEng
 	return buffer;
 }
 
-Microsoft::WRL::ComPtr<ID3D11Buffer> CreateIndexBuffer(const std::vector<UINT>& _indices)
+Microsoft::WRL::ComPtr<ID3D11Buffer> MMMEngine::StaticMesh::CreateIndexBuffer(const std::vector<UINT>& _indices)
 {
 	// 출력할 버퍼 생성
 	Microsoft::WRL::ComPtr<ID3D11Buffer> buffer;
@@ -94,8 +93,10 @@ Microsoft::WRL::ComPtr<ID3D11Buffer> CreateIndexBuffer(const std::vector<UINT>& 
 bool MMMEngine::StaticMesh::LoadFromFilePath(const std::wstring& filePath)
 {
 	std::filesystem::path fPath(filePath);
-	if (!std::filesystem::exists(fPath))
-		throw std::runtime_error("StaticMesh::File does not exist!!");
+	if (!std::filesystem::exists(fPath)) {
+		std::cout << "StaticMesh::File does not exist!!" << std::endl;
+		return false;
+	}
 
 	// 역직렬화
 	ResourceSerializer::Get().DeSerialize_StaticMesh(this, filePath);

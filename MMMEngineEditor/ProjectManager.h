@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Singleton.hpp"
 #include "Project.h"
@@ -25,6 +25,9 @@ namespace MMMEngine::Editor
         // 저장 경로: projectRoot/ProjectSettings/project.json
         std::optional<std::filesystem::path> SaveActiveProject();
 
+        // IDE 설정(VCXPROJ/VSCode) 갱신
+        void RefreshUserScriptsIDEFiles();
+
 
         std::string ToProjectRelativePath(const std::string& absolutePath);
 
@@ -41,6 +44,8 @@ namespace MMMEngine::Editor
         void EnsureUserScriptsFolders(const std::filesystem::path& projectRootDir) const;
         bool GenerateUserScriptsVcxproj(const std::filesystem::path& projectRootDir) const;
         bool GenerateUserScriptsFilters(const std::filesystem::path& projectRootDir) const; // 선택(있으면 VS에서 보기 좋음)
+        bool GenerateUserScriptsSolution(const std::filesystem::path& projectRootDir) const;
+        bool GenerateVSCodeSettings(const std::filesystem::path& projectRootDir) const;
         void GenerateDefaultScriptIfEmpty(const std::filesystem::path& projectRootDir) const;
 
     };

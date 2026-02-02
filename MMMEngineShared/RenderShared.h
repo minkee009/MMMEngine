@@ -61,6 +61,46 @@ namespace MMMEngine {
 		}
 	};
 
+	struct Mesh_NodeData {
+		std::string name;
+		int parentIndex = -1;
+		std::vector<int> children;
+		DirectX::SimpleMath::Matrix bindLocal;
+	};
+
+	struct Mesh_VecKey
+	{
+		float timeSec = 0.f;
+		DirectX::SimpleMath::Vector3 value{};
+	};
+
+	struct Mesh_QuatKey
+	{
+		float timeSec = 0.f;
+		DirectX::SimpleMath::Quaternion value{};
+	};
+
+	struct Mesh_AnimTrack
+	{
+		int nodeIndex = -1;
+		std::vector<Mesh_VecKey> posKeys;
+		std::vector<Mesh_QuatKey> rotKeys;
+		std::vector<Mesh_VecKey> scaleKeys;
+	};
+
+	struct NodeData {
+		std::string name;
+		int parentIndex = -1;
+		std::vector<int> children;
+		DirectX::SimpleMath::Matrix bindLocal;
+	};
+
+	struct NodeTreeAsset {
+		std::vector<NodeData> nodes;
+		std::unordered_map<std::string, int> nodeIndexByName;
+		int rootIndex = -1;
+	};
+
 	struct MeshData {
 		std::vector<std::vector<Mesh_Vertex>> vertices;
 		std::vector<std::vector<UINT>> indices;

@@ -14,13 +14,15 @@
 #include "ResourceManager.h"
 
 namespace MMMEngine {
-	enum class ModelType {
-		Static,
-		Animated
+	enum class ModelType : int {
+		Static = 0,
+		Skinned = 1,
+		Animation = 2
 	};
 
 	class StaticMesh;
 	class SkeletalMesh;
+	class AnimationClip;
 	class Material;
 	class AssimpLoader : public Utility::Singleton<MMMEngine::AssimpLoader>
 	{
@@ -28,19 +30,6 @@ namespace MMMEngine {
 		struct ImportOptions {
 			ModelType type;
 			unsigned int assimpFlags;
-		};
-
-		struct NodeData {
-			std::string name;
-			int parentIndex = -1;
-			std::vector<int> children;
-			DirectX::SimpleMath::Matrix bindLocal;
-		};
-
-		struct NodeTreeAsset {
-			std::vector<NodeData> nodes;
-			std::unordered_map<std::string, int> nodeIndexByName;
-			int rootIndex = -1;
 		};
 
 		struct MeshBasicInfo
@@ -59,7 +48,7 @@ namespace MMMEngine {
 		};
 
 		enum class TextureSemantic {
-			BaseColor, Normal, Metallic, Roughness, AO, Emissive, Opacity
+			Albedo, Normal, Metallic, Roughness, AO, Emissive, Opacity
 		};
 		struct TextureRef {
 			std::string path; // resolve된 경로(또는 embedded 표기)
@@ -83,29 +72,12 @@ namespace MMMEngine {
 			std::vector<BoneAsset> bones;
 		};
 
-		struct VecKey
-		{
-			float timeSec = 0.f;
-			DirectX::SimpleMath::Vector3 value{};
-		};
-		struct QuatKey
-		{
-			float timeSec = 0.f;
-			DirectX::SimpleMath::Vector4 value{};
-		};
-		struct NodeAnimTrack
-		{
-			int nodeIndex = -1;
-			std::vector<VecKey> posKeys;
-			std::vector<QuatKey> rotKeys;
-			std::vector<VecKey> scaleKeys;
-		};
 		struct AnimationClipAsset
 		{
 			std::string name;
 			float durationSec = 0.f;
 			float ticksPerSecond = 25.f;
-			std::vector<NodeAnimTrack> tracks;
+			std::vector<Mesh_AnimTrack> tracks;
 		};
 		struct ModelAsset {
 			NodeTreeAsset nodeTree;
@@ -140,6 +112,7 @@ namespace MMMEngine {
 
 		ResPtr<StaticMesh> ConvertStaticMesh(ModelAsset* _model);
 		ResPtr<SkeletalMesh> ConvertSkeletalMesh(ModelAsset* _model);
+		ResPtr<AnimationClip> ConvertAnimationClip(AnimationClipAsset* _clip);
 		bool ConvertMaterial(const TextureSemantic _sementic, const TextureRef* _ref, Material* _out);
 
 		int BuildNodeRecursive(const aiNode* node, int parentIndex, NodeTreeAsset& out);
@@ -161,7 +134,7 @@ namespace MMMEngine {
 		}
 		inline ImportOptions AnimatedModelOptions() {
 			return{
-				ModelType::Animated,
+				ModelType::Skinned,
 				aiProcess_GlobalScale |
 				aiProcess_Triangulate |
 				aiProcess_GenNormals |

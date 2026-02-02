@@ -13,6 +13,9 @@ namespace MMMEngine {
 			friend class ResourceManager;
 			friend class SceneManager;
 			friend class Scene;
+	private:
+		Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<Mesh_Vertex>& _vertices);
+		Microsoft::WRL::ComPtr<ID3D11Buffer> CreateIndexBuffer(const std::vector<UINT>& _indices);
 	public:
 		// -- 직렬화되는 데이터
 		// 메시 데이터
@@ -27,9 +30,6 @@ namespace MMMEngine {
 		
 		// 인덱스 사이즈
 		std::vector<UINT> indexSizes;
-
-		bool castShadows = true;
-		bool receiveShadows = true;
 
 		// TODO::직렬화 시켜야함, 이거할때 버퍼를 만들어야함(그리고 meshData를 비움)
 		bool LoadFromFilePath(const std::wstring& filePath) override;

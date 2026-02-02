@@ -139,7 +139,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     float4 albedo = _albedo.Sample(_sp0, input.Tex);
     float metallic = _metallic.Sample(_sp0, input.Tex).r * mMetallic;
     float roughness = _roughness.Sample(_sp0, input.Tex).r * mRoughness;
-    float ao = 0.5f; //_ambientOcclusion.Sample(_sp0, input.Tex).r;
+    float ao = _ambientOcclusion.Sample(_sp0, input.Tex).r * 0.5f;
 
     // BRDF 계산
     // Cook-Torrance 모델

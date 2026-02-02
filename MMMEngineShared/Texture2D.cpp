@@ -81,8 +81,10 @@ void MMMEngine::Texture2D::CreateResourceView(std::filesystem::path& _path, ID3D
 bool MMMEngine::Texture2D::LoadFromFilePath(const std::wstring& filePath)
 {
 	fs::path fPath(filePath);
-	if (!fs::exists(fPath))
-		throw std::runtime_error("Texture2D::File does not Exist !!!");
+	if (!fs::exists(fPath)) {
+		std::cout << "exture2D::File does not Exist !!!" << std::endl;
+		return false;
+	}
 
 	WRL::ComPtr<ID3D11ShaderResourceView> srv;
 	CreateResourceView(fPath, srv.GetAddressOf());

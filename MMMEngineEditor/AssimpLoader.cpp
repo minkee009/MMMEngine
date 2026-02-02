@@ -4,6 +4,7 @@
 #include "StringHelper.h"
 #include "StaticMesh.h"
 #include "SkeletalMesh.h"
+#include "AnimationClip.h"
 #include "Material.h"
 #include "Texture2D.h"
 
@@ -14,6 +15,7 @@
 #include "ResourceSerializer.h"
 #include "ProjectManager.h"
 #include "ShaderInfo.h"
+#include <AnimationClip.h>
 
 namespace fs = std::filesystem;
 
@@ -40,6 +42,7 @@ const aiScene* MMMEngine::AssimpLoader::ImportScene(const std::wstring path, Mod
 	// (Assimp::Importer는 새로 ReadFile하면 내부에서 교체되기도 하지만 명시적으로 해도 됨)
 	m_importer.FreeScene();
 
+	m_importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.5f);
 	const aiScene* scene = m_importer.ReadFile(Utility::StringHelper::WStringToString(path), opt.assimpFlags);
 
 	return scene;
@@ -156,20 +159,32 @@ MMMEngine::ResPtr<MMMEngine::SkeletalMesh> MMMEngine::AssimpLoader::ConvertSkele
 		}
 	}
 
-	// 본 매트릭스, 오프셋 전달
+	// 본 매트릭스, 오프셋, 이름그룹 전달
 	if (!_model->skin.bones.empty())
 	{
 		for (size_t i = 0; i < _model->skin.bones.size() && i < BONE_MAXSIZE; ++i)
 		{
 			const auto& bone = _model->skin.bones[i];
-			skeletalMesh->boneBuffer.BoneMat[i] = DirectX::SimpleMath::Matrix::Identity; // 애니메이션 시점에서 갱신됨
-			skeletalMesh->offsetBuffer.BoneMat[i] = bone.offset; // 바인드 포즈 오프셋
+			//skeletalMesh->boneBuffer.BoneMat[i] = DirectX::SimpleMath::Matrix::Identity; // 애니메이션 시점에서 갱신됨
+			skeletalMesh->offsetBuffer.BoneMat[i] = bone.offset;		// 바인드 포즈 오프셋
+			skeletalMesh->boneIdxData[bone.name] = i;					// 본 이름별 인덱스
+			skeletalMesh->nodeIdxData[i] = bone.nodeIndex;				// 본 인덱스별 노드 인덱스
 		}
 	}
 
-	// 애니메이션 클립 전달
-
 	return skeletalMesh;
+}
+
+MMMEngine::ResPtr<MMMEngine::AnimationClip> MMMEngine::AssimpLoader::ConvertAnimationClip(AnimationClipAsset* _clip)
+{
+	ResPtr<AnimationClip> clip = std::make_shared<AnimationClip>();
+	
+	clip->mName = _clip->name;
+	clip->durationSec = _clip->durationSec;
+	clip->ticksPerSecond = _clip->ticksPerSecond;
+	clip->mTracks.swap(_clip->tracks);
+
+	return clip;
 }
 
 bool MMMEngine::AssimpLoader::ConvertMaterial(const TextureSemantic _sementic, const TextureRef* _ref, Material* _out)
@@ -178,7 +193,7 @@ bool MMMEngine::AssimpLoader::ConvertMaterial(const TextureSemantic _sementic, c
 	std::wstring property;
 
 	static const std::unordered_map<TextureSemantic, std::wstring> semanticMap = {
-	{TextureSemantic::BaseColor, L"_albedo"},
+	{TextureSemantic::Albedo,    L"_albedo"},
 	{TextureSemantic::Normal,    L"_normal"},
 	{TextureSemantic::Metallic,  L"_metallic"},
 	{TextureSemantic::Roughness, L"_roughness"},
@@ -449,9 +464,9 @@ bool MMMEngine::AssimpLoader::ExtractMaterials(const aiScene* scene, const std::
 
 		std::string raw;
 
-		// BaseColor
+		// Albedo
 		if (GetTexturePath(mat, aiTextureType_BASE_COLOR, raw) || GetTexturePath(mat, aiTextureType_DIFFUSE, raw))
-			put(TextureSemantic::BaseColor, raw, true);
+			put(TextureSemantic::Albedo, raw, true);
 
 		// Normal (fallback: HEIGHT로 들어오는 경우)
 		raw.clear();
@@ -493,7 +508,7 @@ void MMMEngine::AssimpLoader::AddBoneWeight(Mesh_Vertex& v, int boneIndex, float
 	{
 		if (v.BoneWeights[i] == 0.0f)
 		{
-			v.BoneWeights[i] = boneIndex;
+			v.BoneIndices[i] = boneIndex;
 			v.BoneWeights[i] = w;
 			return;
 		}
@@ -628,7 +643,7 @@ bool MMMEngine::AssimpLoader::ExtractAnimationClips(const aiScene* scene, const 
 			{
 				continue;
 			}
-			NodeAnimTrack track;
+			Mesh_AnimTrack track;
 			track.nodeIndex = it->second;
 
 			if (ch->mNumPositionKeys > 0 && ch->mPositionKeys)
@@ -636,7 +651,7 @@ bool MMMEngine::AssimpLoader::ExtractAnimationClips(const aiScene* scene, const 
 				track.posKeys.reserve(ch->mNumPositionKeys);
 				for (unsigned k = 0; k < ch->mNumPositionKeys; ++k)
 				{
-					VecKey vk;
+					Mesh_VecKey vk;
 					vk.timeSec = (float)ch->mPositionKeys[k].mTime / clip.ticksPerSecond;
 					vk.value = ToVector3(ch->mPositionKeys[k].mValue);
 					track.posKeys.push_back(vk);
@@ -647,7 +662,7 @@ bool MMMEngine::AssimpLoader::ExtractAnimationClips(const aiScene* scene, const 
 				track.rotKeys.reserve(ch->mNumRotationKeys);
 				for (unsigned k = 0; k < ch->mNumRotationKeys; ++k)
 				{
-					QuatKey qk;
+					Mesh_QuatKey qk;
 					qk.timeSec = (float)ch->mRotationKeys[k].mTime / clip.ticksPerSecond;
 					qk.value = ToVector4(ch->mRotationKeys[k].mValue);
 					track.rotKeys.push_back(qk);
@@ -658,7 +673,7 @@ bool MMMEngine::AssimpLoader::ExtractAnimationClips(const aiScene* scene, const 
 				track.scaleKeys.reserve(ch->mNumScalingKeys);
 				for (unsigned k = 0; k < ch->mNumScalingKeys; ++k)
 				{
-					VecKey sk;
+					Mesh_VecKey sk;
 					sk.timeSec = (float)ch->mScalingKeys[k].mTime / clip.ticksPerSecond;
 					sk.value = ToVector3(ch->mScalingKeys[k].mValue);
 					track.scaleKeys.push_back(sk);
@@ -692,6 +707,13 @@ bool MMMEngine::AssimpLoader::ImportModel(const std::wstring& path, ModelType ty
 	if (!ExtractNodeTree(scene, out.nodeTree)) return false;
 	std::vector<int> meshToNode;
 	if (!ExtractMeshNodeLinks(scene, out.nodeTree, meshToNode)) return false;
+
+	if (type == ModelType::Animation)
+	{
+		if (!ExtractAnimationClips(scene, out.nodeTree, out.clips)) return false;
+		return true;
+	}
+
 	if (!ExtractSubMeshes(scene, meshToNode, out.subMeshes)) return false;
 	std::string modelDir;
 	std::string texDir;
@@ -706,10 +728,9 @@ bool MMMEngine::AssimpLoader::ImportModel(const std::wstring& path, ModelType ty
 		texDir.clear();
 	}
 	if (!ExtractMaterials(scene, texDir, out.materials)) return false;
-	if (type == ModelType::Animated)
+	if (type == ModelType::Skinned)
 	{
 		if (!ExtractSkinning(scene, out.nodeTree, out.subMeshes, out.skin)) return false;
-		if (!ExtractAnimationClips(scene, out.nodeTree, out.clips)) return false;
 	}
 	return true;
 }
@@ -726,6 +747,7 @@ void MMMEngine::AssimpLoader::RegisterModel(const std::wstring path, ModelType t
 
 	ResPtr<StaticMesh> staticMesh;
 	ResPtr<SkeletalMesh> skeletalMesh;
+	ResPtr<AnimationClip> animationClip;
 
 	fs::path fPath(path);
 	std::wstring filename;
@@ -735,7 +757,7 @@ void MMMEngine::AssimpLoader::RegisterModel(const std::wstring path, ModelType t
 	}
 
 	//TODO::ExportPath 변경 필요시 제거
-	m_exportPath = fPath.parent_path();
+	//m_exportPath = fPath.parent_path();
 
 	switch (type)
 	{
@@ -743,11 +765,22 @@ void MMMEngine::AssimpLoader::RegisterModel(const std::wstring path, ModelType t
 		staticMesh = ConvertStaticMesh(&model);
 		ResourceSerializer::Get().Serialize_StaticMesh(staticMesh.get(), m_exportPath, filename);
 		break;
-	case MMMEngine::ModelType::Animated:
+	case MMMEngine::ModelType::Skinned:
 		skeletalMesh = ConvertSkeletalMesh(&model);
 		//TODO::Skeletalmesh 직렬화
-		//ResourceSerializer::Get().Serialize_StaticMesh(skeletalMesh.get(), m_exportPath);
+		ResourceSerializer::Get().Serialize_SkeletalMesh(skeletalMesh.get(), m_exportPath, filename);
+		skeletalMesh->mNodeTree = std::move(model.nodeTree);
 		break;
+	case MMMEngine::ModelType::Animation:
+	{
+		int idx = 0;
+		for (auto& clip : model.clips) {
+			animationClip = ConvertAnimationClip(&clip);
+			ResourceSerializer::Get().Serialize_Animation(animationClip.get(), m_exportPath, filename, idx);
+			idx++;
+		}
+		break;
+	}
 	default:
 		return;
 		break;

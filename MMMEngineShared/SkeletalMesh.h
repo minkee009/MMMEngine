@@ -13,7 +13,11 @@ namespace MMMEngine {
 			friend class ResourceManager;
 			friend class SceneManager;
 			friend class Scene;
+	private:
+		Microsoft::WRL::ComPtr<ID3D11Buffer> CreateVertexBuffer(const std::vector<Mesh_Vertex>& _vertices);
+		Microsoft::WRL::ComPtr<ID3D11Buffer> CreateIndexBuffer(const std::vector<UINT>& _indices);
 	public:
+		// -- 직렬화되는 데이터
 		// 메시 데이터
 		MeshData meshData;
 		// GPU 버퍼
@@ -22,19 +26,20 @@ namespace MMMEngine {
 		std::vector<ResPtr<Material>> materials;
 		// 메시 그룹 <MatIdx, MeshIdx>
 		std::unordered_map<UINT, std::vector<UINT>> meshGroupData;
+		// 인덱스 사이즈
+		std::vector<UINT> indexSizes;
 
 		// 본 버퍼
-		Mesh_BoneBuffer boneBuffer;
 		Mesh_BoneBuffer offsetBuffer;
+		// 본 그룹 <Name, BoneIdx>
+		std::unordered_map<std::string, UINT> boneIdxData;
+		// 노드 정보 <BoneIdx, NodeIdx>
+		std::unordered_map<UINT, UINT> nodeIdxData;
 
-		// 애니메이션 클립 목록
+		// 노드 트리
+		NodeTreeAsset mNodeTree;
 
-
-		bool castShadows = true;
-		bool receiveShadows = true;
-
-		// TODO::직렬화 시켜야함
-		bool LoadFromFilePath(const std::wstring& _path) override;
+		bool LoadFromFilePath(const std::wstring& filePath) override;
 	};
 }
 

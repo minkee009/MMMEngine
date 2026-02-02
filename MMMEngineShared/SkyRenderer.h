@@ -25,7 +25,6 @@ namespace MMMEngine {
 		void SetSkyBrdf(ResPtr<Texture2D>& _res);
 
 		void Initialize() override;
-		void Init() override {};
 		void UnInitialize() override;
 
 		void Render() override;

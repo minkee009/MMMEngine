@@ -11,7 +11,7 @@ RTTR_REGISTRATION
 		(rttr::metadata("wrapper_type_name", "ObjPtr<Renderer>"))(rttr::metadata("INSPECTOR", "DONT_ADD_COMP"))
 		.property("isEnabled", &Renderer::GetEnabled, &Renderer::SetEnabled);
 
-
+	
 	registration::class_<ObjPtr<Renderer>>("ObjPtr<Renderer>")
 		.constructor<>(
 			[]() {
