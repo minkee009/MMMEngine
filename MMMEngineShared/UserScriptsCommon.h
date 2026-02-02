@@ -31,6 +31,10 @@
 /// 예: USCRIPT_PROPERTY_CHAIN("true=AdvancedOption;false=BasicOption")
 #define USCRIPT_PROPERTY_CHAIN(chain)
 
+/// 숫자 범위를 지정하는 프로퍼티 (빌드툴에서 RANGE 메타데이터 등록용)
+/// 예: USCRIPT_PROPERTY_RANGE("0,10") / USCRIPT_PROPERTY_RANGE("0..100")
+#define USCRIPT_PROPERTY_RANGE(range)
+
 /// 프로퍼티이지만 자동 등록 대상에서 제외 (빌드툴 스킵용)
 #define USCRIPT_PROPERTY_HIDDEN()
 

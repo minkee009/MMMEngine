@@ -11,7 +11,9 @@ RTTR_REGISTRATION
 	registration::class_<CapsuleColliderComponent>("CapsuleCollider")
 		(rttr::metadata("wrapper_type_name", "ObjPtr<CapsuleColliderComponent>"))
 		.property("Radius", &CapsuleColliderComponent::GetRadius, &CapsuleColliderComponent::SetRadius)
+			(rttr::metadata("RANGE", "0.01,1000"))
 		.property("Height", &CapsuleColliderComponent::GetHalfHeight, &CapsuleColliderComponent::SetHalfHeight)
+			(rttr::metadata("RANGE", "0.01,1000"))
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
 		;
 

@@ -17,7 +17,9 @@ RTTR_REGISTRATION
         .property("DynamicFriction", &ColliderComponent::GetDynamicFriction, &ColliderComponent::SetDynamicFriction)
         .property("Restitution", &ColliderComponent::GetRestitution, &ColliderComponent::SetRestitution)
         .property("SetOverLayer", &ColliderComponent::GetOverrideLayer, &ColliderComponent::SetOverrideLayer)
-        .property("LayerType", &ColliderComponent::GetLayer, &ColliderComponent::SetLayer);
+            (rttr::metadata("INSPECTOR_CHAIN", "true=LayerType"))
+        .property("LayerType", &ColliderComponent::GetLayer, &ColliderComponent::SetLayer)
+            (rttr::metadata("RANGE", "0,7"));
 }
 
 

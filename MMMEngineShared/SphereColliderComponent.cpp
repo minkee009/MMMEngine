@@ -10,6 +10,7 @@ RTTR_REGISTRATION
 	registration::class_<SphereColliderComponent>("SphereCollider")
 		(rttr::metadata("wrapper_type_name", "ObjPtr<SphereColliderComponent>"))
 		.property("Radius", &SphereColliderComponent::GetRadius, &SphereColliderComponent::SetRadius)
+			(rttr::metadata("RANGE", "0.01,1000"))
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
 		;
 

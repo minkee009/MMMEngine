@@ -24,6 +24,8 @@ using namespace DirectX;
 #include <iterator>
 #include <unordered_set>
 #include <cctype>
+#include <cstdint>
+#include <limits>
 
 using namespace MMMEngine;
 using namespace MMMEngine::Editor;
@@ -88,6 +90,88 @@ namespace
         }
         out.push_back(current);
         return out;
+    }
+
+    static bool TryParseDouble(const std::string& s, double& out)
+    {
+        std::string trimmed = TrimCopy(s);
+        if (trimmed.empty())
+            return false;
+        try
+        {
+            size_t idx = 0;
+            out = std::stod(trimmed, &idx);
+            return idx == trimmed.size();
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
+    struct NumericRange
+    {
+        bool has = false;
+        double min = 0.0;
+        double max = 0.0;
+    };
+
+    static NumericRange GetNumericRange(const rttr::property* prop, rttr::instance inst)
+    {
+        NumericRange range;
+        if (!prop || !inst.is_valid())
+            return range;
+
+        rttr::variant md = prop->get_metadata("RANGE");
+        if (!md.is_valid())
+            return range;
+
+        if (md.is_type<std::string>())
+        {
+            const std::string raw = md.get_value<std::string>();
+            std::string left;
+            std::string right;
+            size_t sep = raw.find(',');
+            if (sep != std::string::npos)
+            {
+                left = raw.substr(0, sep);
+                right = raw.substr(sep + 1);
+            }
+            else
+            {
+                sep = raw.find("..");
+                if (sep != std::string::npos)
+                {
+                    left = raw.substr(0, sep);
+                    right = raw.substr(sep + 2);
+                }
+                else
+                {
+                    return range;
+                }
+            }
+
+            if (TryParseDouble(left, range.min) && TryParseDouble(right, range.max))
+            {
+                range.has = true;
+                if (range.min > range.max)
+                    std::swap(range.min, range.max);
+            }
+            return range;
+        }
+
+        if (md.can_convert<Vector2>())
+        {
+            Vector2 v = md.get_value<Vector2>();
+            range.min = static_cast<double>(v.x);
+            range.max = static_cast<double>(v.y);
+            range.has = true;
+            if (range.min > range.max)
+                std::swap(range.min, range.max);
+            return range;
+        }
+
+        return range;
     }
 
     static std::string NormalizeBoolKey(const std::string& key)
@@ -285,7 +369,7 @@ namespace
 }
 
 /// 단순 타입(Vector2/3/4, float, int, bool, Color, enum) 그리기 및 편집. var를 갱신하고, 처리한 타입이면 true.
-/// prop/inst가 주어지면 float에 MIN/MAX 메타데이터 적용. (sequential 요소용으로는 nullptr/빈 instance 전달)
+/// prop/inst가 주어지면 숫자 타입에 RANGE 메타데이터 적용. (sequential 요소용으로는 nullptr/빈 instance 전달)
 static bool DrawSimplePropertyValue(const char* label, rttr::variant& var, rttr::type propType, bool readOnly,
     bool* outChanged, const rttr::property* prop = nullptr, rttr::instance inst = rttr::instance())
 {
@@ -295,23 +379,44 @@ static bool DrawSimplePropertyValue(const char* label, rttr::variant& var, rttr:
     if (propType == rttr::type::get<int>())
     {
         int v = var.to_int();
+        NumericRange range = GetNumericRange(prop, inst);
+        int minVal = static_cast<int>(range.min);
+        int maxVal = static_cast<int>(range.max);
         if (readOnly) ImGui::BeginDisabled(true);
-        changed = ImGui::DragInt(label, &v);
+        changed = ImGui::DragInt(label, &v, 1.0f, range.has ? minVal : 0, range.has ? maxVal : 0);
+        if (readOnly) ImGui::EndDisabled();
+        if (changed && !readOnly) var = v;
+    }
+    else if (propType == rttr::type::get<uint32_t>())
+    {
+        uint32_t v = var.to_uint32();
+        NumericRange range = GetNumericRange(prop, inst);
+        uint32_t minVal = 0;
+        uint32_t maxVal = std::numeric_limits<uint32_t>::max();
+        if (range.has)
+        {
+            double clampedMin = std::clamp(range.min, 0.0, static_cast<double>(std::numeric_limits<uint32_t>::max()));
+            double clampedMax = std::clamp(range.max, 0.0, static_cast<double>(std::numeric_limits<uint32_t>::max()));
+            minVal = static_cast<uint32_t>(clampedMin);
+            maxVal = static_cast<uint32_t>(clampedMax);
+            if (minVal > maxVal)
+                std::swap(minVal, maxVal);
+        }
+        const void* pMin = range.has ? static_cast<const void*>(&minVal) : nullptr;
+        const void* pMax = range.has ? static_cast<const void*>(&maxVal) : nullptr;
+        if (readOnly) ImGui::BeginDisabled(true);
+        changed = ImGui::DragScalar(label, ImGuiDataType_U32, &v, 1.0f, pMin, pMax, "%u");
         if (readOnly) ImGui::EndDisabled();
         if (changed && !readOnly) var = v;
     }
     else if (propType == rttr::type::get<float>())
     {
         float v = static_cast<float>(var.to_double());
-        float minVal = 0.0f, maxVal = 0.0f;
-        if (prop && inst.is_valid())
-        {
-            rttr::variant mdMin = prop->get_metadata("MIN"), mdMax = prop->get_metadata("MAX");
-            if (mdMin.is_valid() && mdMin.can_convert<float>()) minVal = mdMin.get_value<float>();
-            if (mdMax.is_valid() && mdMax.can_convert<float>()) maxVal = mdMax.get_value<float>();
-        }
+        NumericRange range = GetNumericRange(prop, inst);
+        float minVal = static_cast<float>(range.min);
+        float maxVal = static_cast<float>(range.max);
         if (readOnly) ImGui::BeginDisabled(true);
-        changed = ImGui::DragFloat(label, &v, 0.01f, minVal, maxVal);
+        changed = ImGui::DragFloat(label, &v, 0.01f, range.has ? minVal : 0.0f, range.has ? maxVal : 0.0f);
         if (readOnly) ImGui::EndDisabled();
         if (changed && !readOnly) var = v;
     }

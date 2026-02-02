@@ -114,12 +114,14 @@ void HandleCustomEvent(int value);
 |--------|------|
 | `USCRIPT_PROPERTY()` | 인스펙터에 노출 + gen.cpp 에서 RTTR `.property(...)` 자동 등록 |
 | `USCRIPT_PROPERTY_CHAIN("...")` | 인스펙터 체이닝 규칙 지정 (`INSPECTOR_CHAIN` 메타데이터 부여) |
+| `USCRIPT_PROPERTY_RANGE("...")` | 숫자 범위 지정 (`RANGE` 메타데이터 부여) |
 | `USCRIPT_PROPERTY_HIDDEN()` | RTTR 등록은 유지하되 **인스펙터에서 숨김** (`INSPECTOR=HIDDEN` 메타데이터 부여) |
 
 - 인스펙터에도 저장에도 필요 없는 멤버는 **아예 매크로를 붙이지 않습니다.**
 - `USCRIPT_PROPERTY_CHAIN("값=대상1,대상2;다른값=대상3")` 형태로 체이닝 규칙을 지정합니다.
   - `bool` 컨트롤러는 `true/false`(또는 `1/0`, `yes/no`, `on/off`) 키를 지원합니다.
   - `enum` 컨트롤러는 이름 키 또는 정수값 키를 사용할 수 있습니다.
+- `USCRIPT_PROPERTY_RANGE("min,max")` 또는 `USCRIPT_PROPERTY_RANGE("min..max")` 형식으로 범위를 지정합니다.
 
 ```cpp
 USCRIPT_PROPERTY()
@@ -130,6 +132,9 @@ std::string characterName;
 
 USCRIPT_PROPERTY_CHAIN("true=AdvancedOption;false=BasicOption")
 bool useAdvanced = false;
+
+USCRIPT_PROPERTY_RANGE("0,10")
+float moveSpeed = 5.0f;
 
 USCRIPT_PROPERTY_HIDDEN()
 bool debugFlag = false;
