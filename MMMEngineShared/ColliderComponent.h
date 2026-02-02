@@ -69,7 +69,7 @@ namespace MMMEngine
 
 		//overlayer 설정
 		void SetOverrideLayer(bool enable);
-		bool IsOverrideLayer() const { return m_OverrideLayer; }
+		bool GetOverrideLayer() const { return m_OverrideLayer; }
 
 		void SetLayer(uint32_t layer);
 		uint32_t GetLayer() const { return m_LayerOverride; }

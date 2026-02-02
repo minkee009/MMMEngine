@@ -98,6 +98,7 @@ namespace MMMEngine
 
 		void TransferCollider(MMMEngine::RigidBodyComponent* oldRb, MMMEngine::RigidBodyComponent* newRb, MMMEngine::ColliderComponent* col, const CollisionMatrix& matrix);
 
+		void ForgetCollider(MMMEngine::ColliderComponent* col);
 	private:
 		PhysSceneDesc m_desc;
 

@@ -139,7 +139,7 @@ void MMMEngine::PhysxManager::NotifyColliderRemoved(ColliderComponent* col)
     m_FilterDirtyColliders.erase(col);
     m_PendingDestroyCols.push_back(col);
 
-    RequestDetachCollider(rb, col);
+    m_PhysScene.ForgetCollider(col);
 }
 
 void MMMEngine::PhysxManager::NotifyColliderChanged(ColliderComponent* col)
