@@ -137,7 +137,8 @@ void MMMEngine::ShaderInfo::StartUp()
 	CreatePShaderReflection(L"Shader/SkyBox/SkyBoxPixelShader.hlsl");
 
 	// 기본 쉐이더 정의
-	m_pDefaultVShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
+	m_pDefaultVShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/StaticVertexShader.hlsl");
+	m_pSkeletalVShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/SkeletalVertexShader.hlsl");
 	m_pDefaultPShader = ResourceManager::Get().Load<PShader>(L"Shader/PBR/PS/BRDFShader.hlsl");
 
 	m_pFullScreenVS = ResourceManager::Get().Load<VShader>(L"Shader/PP/FullScreenVS.hlsl");
@@ -164,6 +165,11 @@ void MMMEngine::ShaderInfo::ShutDown()
 MMMEngine::ResPtr<MMMEngine::VShader> MMMEngine::ShaderInfo::GetDefaultVShader()
 {
 	return m_pDefaultVShader;
+}
+
+MMMEngine::ResPtr<MMMEngine::VShader> MMMEngine::ShaderInfo::GetSkeletalVShader()
+{
+	return m_pSkeletalVShader;
 }
 
 MMMEngine::ResPtr<MMMEngine::PShader> MMMEngine::ShaderInfo::GetDefaultPShader()

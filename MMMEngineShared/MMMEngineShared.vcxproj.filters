@@ -126,6 +126,11 @@
     <ClCompile Include="PhysicsSettings.cpp">
       <Filter>소스 파일\Core\Physcis API</Filter>
     </ClCompile>
+    <ClCompile Include="SkinRenderer.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Animator.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
     <ClCompile Include="Canvas.cpp">
       <Filter>소스 파일\Core\Render API\UI</Filter>
     </ClCompile>
@@ -417,6 +422,11 @@
     <ClInclude Include="RenderShared.h">
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
+    <ClInclude Include="SkinRenderer.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Animator.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
     <ClInclude Include="Canvas.h">
       <Filter>헤더 파일\Core\Render API\UI</Filter>
     </ClInclude>

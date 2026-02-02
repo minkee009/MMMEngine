@@ -54,7 +54,6 @@ namespace MMMEngine
 		std::unordered_map<int, DirectX::SimpleMath::Matrix> m_objWorldMatMap;
 		std::vector<Renderer*> m_renderers;
 		std::unordered_map<uint32_t, Renderer*> m_rendererIdMap;
-		std::queue<Renderer*> m_renInitQueue;
 		unsigned int m_rObjIdx = 0;
 		uint32_t m_nextRendererId = 1;
 
@@ -77,9 +76,7 @@ namespace MMMEngine
 
 		void ApplyMatToContext(ID3D11DeviceContext4* _context, Material* _material);
 		void ExcuteCommands();
-		void InitCache();
 
-		void InitRenderers();
 		void UpdateRenderers();
 		void UpdateLights();
 		void RenderUI();
@@ -114,10 +111,10 @@ namespace MMMEngine
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_pDepthStencilView;		// 깊이값 처리를 위한 뎊스스텐실 뷰
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1> m_pDepthStencilBuffer;			// 뎊스스텐실 텍스쳐버퍼
 
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pDafaultSampler;		// 샘플러 상태.
-		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pDefaultRS;			// 기본 RS
-		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pUIRS;				// UI RS (cull none)
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pDafaultSampler;		// 기본 샘플러
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pCompareSampler;		// 비교 샘플러
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pDefaultRS;		// 기본 RS
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pUIRS;				// UI RS (cull none)
 		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pDefaultBS;		// 기본 블랜드 스테이트
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_DefaultRS;	// 기본 레스터라이저 스테이트
 		D3D11_VIEWPORT m_swapViewport;							// 기본 뷰포트
@@ -140,6 +137,9 @@ namespace MMMEngine
 		ObjPtr<Camera> m_pMainCamera;	// 메인 카메라 참조
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCambuffer = nullptr;		// 캠 버퍼
 
+		// 스킨드매시
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pOffsetBuffer = nullptr;		// 본 오프셋 버퍼
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pAnimBuffer = nullptr;		// 본 애니메이션 버퍼
 
 		// 쉐도우 버퍼
 		UINT m_shadowMapWidth = 4096;
@@ -150,6 +150,7 @@ namespace MMMEngine
 		ResPtr<Texture2D>  m_pShadowSRV;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	  m_pShadowDSV;
 		Microsoft::WRL::ComPtr<ID3D11Buffer>			  m_pShadowBuffer;
+
 		void ShadowRender( const DirectX::SimpleMath::Matrix& _camView);	// 개별패스
 
 	public:
@@ -187,8 +188,6 @@ namespace MMMEngine
 		void AddCommand(RenderType _type, RenderCommand&& _command);	// 렌더커맨드 추가
 		int AddMatrix(const DirectX::SimpleMath::Matrix& _worldMatrix);		// 월드매트릭스 추가
 
-		void ClearAllCommands();
-
 		void BeginFrame();
 		void Render();
 		void RenderOnlyRenderer();
@@ -204,6 +203,7 @@ namespace MMMEngine
 
 		int AddLight(Light* _obj);
 		void RemoveLight(int _idx);
+		void InitCache();
 
 		UINT GetSceneWidth() { return m_sceneWidth; }
 		UINT GetSceneHeight() { return m_sceneHeight; }

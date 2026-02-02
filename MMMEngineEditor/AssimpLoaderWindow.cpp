@@ -113,7 +113,9 @@ void MMMEngine::Editor::AssimpLoaderWindow::Render()
 		ImGui::Text(u8"모델 타입");
 		ImGui::RadioButton(u8"정적", &modelType, 0);
 		ImGui::SameLine();
-		ImGui::RadioButton(u8"애니메이션", &modelType, 1);
+		ImGui::RadioButton(u8"스켈레탈", &modelType, 1);
+		ImGui::SameLine();
+		ImGui::RadioButton(u8"애니메이션", &modelType, 2);
 
 		ImGui::Spacing();
 		ImGui::Text(u8"내보내기 경로 (프로젝트 기준)");
@@ -165,7 +167,8 @@ void MMMEngine::Editor::AssimpLoaderWindow::Render()
 				}
 
 				loader.m_exportPath = StringHelper::StringToWString(exportPath);
-				ModelType type = (modelType == 0) ? ModelType::Static : ModelType::Animated;
+				ModelType type = static_cast<ModelType>(modelType);
+
 				loader.RegisterModel(pathForAssimp.wstring(), type);
 			}
 		}

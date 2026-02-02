@@ -1,4 +1,4 @@
-#include "RenderShared.h"
+﻿#include "RenderShared.h"
 #include "rttr/registration.h"
 
 #pragma warning(disable: 4506)
@@ -23,4 +23,21 @@ RTTR_REGISTRATION
 
 	registration::class_<MMMEngine::MeshData>("MeshData")
 		.property("vertices", &MeshData::vertices);
+
+	registration::class_<MMMEngine::Mesh_AnimTrack>("Mesh_AnimTrack")
+		.constructor<>()
+		.property("nodeIndex", &Mesh_AnimTrack::nodeIndex)
+		.property("posKeys", &Mesh_AnimTrack::posKeys)
+		.property("rotKeys", &Mesh_AnimTrack::rotKeys)
+		.property("scaleKeys", &Mesh_AnimTrack::scaleKeys);
+
+	registration::class_<MMMEngine::Mesh_VecKey>("Mesh_VecKey")
+		.constructor<>()
+		.property("timeSec", &Mesh_VecKey::timeSec)
+		.property("value", &Mesh_VecKey::value);
+
+	registration::class_<MMMEngine::Mesh_QuatKey>("Mesh_QuatKey")
+		.constructor<>()
+		.property("timeSec", &Mesh_QuatKey::timeSec)
+		.property("value", &Mesh_QuatKey::value);
 }

@@ -14,13 +14,12 @@ VS_OUTPUT main(VS_INPUT input)
         0, 0, 0, 1
     };
     
-    #ifdef VERTEX_SKINNING
-        Matrix tempMat[4] =
+    Matrix tempMat[4] =
         {
-            mul(boneOffsetMat[input.BoneIdx.x], boneMat[input.BoneIdx.x]),
-            mul(boneOffsetMat[input.BoneIdx.y], boneMat[input.BoneIdx.y]),
-            mul(boneOffsetMat[input.BoneIdx.z], boneMat[input.BoneIdx.z]),
-            mul(boneOffsetMat[input.BoneIdx.w], boneMat[input.BoneIdx.w])
+            mul(mBoneOffsetMat[input.BoneIdx.x], mBoneMat[input.BoneIdx.x]),
+            mul(mBoneOffsetMat[input.BoneIdx.y], mBoneMat[input.BoneIdx.y]),
+            mul(mBoneOffsetMat[input.BoneIdx.z], mBoneMat[input.BoneIdx.z]),
+            mul(mBoneOffsetMat[input.BoneIdx.w], mBoneMat[input.BoneIdx.w])
         };
         
         skinMat = mul(input.BoneWeight.x, tempMat[0]);
@@ -30,9 +29,6 @@ VS_OUTPUT main(VS_INPUT input)
         
         skinMat = mul(skinMat, mWorld);
         output.Pos = mul(worldPos, skinMat);
-    #else
-        output.Pos = mul(worldPos, mWorld);
-    #endif
     
     output.W_Pos = output.Pos;
     output.Pos = mul(output.Pos, mView);

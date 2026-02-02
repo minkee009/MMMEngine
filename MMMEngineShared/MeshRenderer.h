@@ -17,7 +17,6 @@ namespace MMMEngine {
 
 		void Initialize() override;
 		void UnInitialize() override;
-		void Init() override;
 		void Render() override;
 	public:
 		ResPtr<StaticMesh>& GetMesh() { return mesh; }
@@ -28,8 +27,8 @@ namespace MMMEngine {
 		void SetReceiveShadow(bool _val);
 		bool GetReceiveShadow();
 
-		/*void SetMaterial(std::vector<ResPtr<Material>> _materials);
-		std::vector<ResPtr<Material>> GetMaterial();*/
+		void SetMaterial(std::vector<ResPtr<Material>>& _materials);
+		std::vector<ResPtr<Material>>& GetMaterial();
 	};
 }
 

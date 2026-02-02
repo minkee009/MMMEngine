@@ -126,7 +126,14 @@ void MMMEngine::Material::LoadTexture(const std::wstring& _propertyName, const s
 
 bool MMMEngine::Material::LoadFromFilePath(const std::wstring& _filePath)
 {
-	MaterialSerializer::Get().UnSerealize(this, _filePath);
+	std::filesystem::path fPath{ _filePath };
+
+	if (!std::filesystem::exists(fPath)) {
+		std::cout << "Material::Files does not exist!!" << std::endl;
+		return false;
+	}
+
+	MaterialSerializer::Get().DeSerialize(this, _filePath);
 
 	// 타입에 따라 프로퍼티 생성, 삭제
 	auto type = ShaderInfo::Get().GetShaderType(m_pPShader->GetFilePath());

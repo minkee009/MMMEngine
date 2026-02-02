@@ -7,8 +7,10 @@ namespace fs = std::filesystem;
 
 bool MMMEngine::VShader::LoadFromFilePath(const std::wstring& filePath)
 {
-	if (!fs::exists(fs::path(filePath)))
-		throw std::runtime_error("VSShader::File not exist !!");
+	if (!std::filesystem::exists(std::filesystem::path(filePath))) {
+		std::cout << "VSShader::File not exist !!" << std::endl;
+		return false;
+	}
 
 	auto m_pDevice = RenderManager::Get().GetDevice();
 

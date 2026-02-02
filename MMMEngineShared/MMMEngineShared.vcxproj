@@ -171,6 +171,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AnimationClip.h" />
+    <ClInclude Include="Animator.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="Behaviour.h" />
     <ClInclude Include="BoxColliderComponent.h" />
@@ -241,6 +242,7 @@
     <ClInclude Include="SerializableEvent.h" />
     <ClInclude Include="ShaderInfo.h" />
     <ClInclude Include="SkeletalMesh.h" />
+    <ClInclude Include="SkinRenderer.h" />
     <ClInclude Include="SkyRenderer.h" />
     <ClInclude Include="SphereColliderComponent.h" />
     <ClInclude Include="StaticMesh.h" />
@@ -262,6 +264,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AnimationClip.cpp" />
+    <ClCompile Include="Animator.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="Behaviour.cpp" />
     <ClCompile Include="BehaviourManager.cpp" />
@@ -324,6 +327,7 @@
     <ClCompile Include="ScriptBehaviour.cpp" />
     <ClCompile Include="ShaderInfo.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
+    <ClCompile Include="SkinRenderer.cpp" />
     <ClCompile Include="SkyRenderer.cpp" />
     <ClCompile Include="SphereColliderComponent.cpp" />
     <ClCompile Include="StaticMesh.cpp" />

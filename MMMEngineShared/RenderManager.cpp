@@ -139,27 +139,25 @@ namespace MMMEngine {
 				std::sort(commands.begin(), commands.end(),
 					[](const RenderCommand& a, const RenderCommand& b)
 					{
-						if (a.material.expired() || b.material.expired())
+						if (!a.material || !b.material)
 							return false;
-						return a.material.lock() < b.material.lock();
+						return a.material < b.material;
 					});
 			}
 
 			// 정렬된 커맨드 실행
-			std::weak_ptr<Material> lastMaterial;
+			ResPtr<Material> lastMaterial;
+			Mesh_BoneBuffer* lastOffset = nullptr;
+			Mesh_BoneBuffer* lastAnim = nullptr;
 			for (auto& cmd : commands)
 			{
-				if (cmd.material.expired())
+				if (!cmd.material)
 					continue;
 
-				auto lMat = lastMaterial.lock();
-				auto cMat = cmd.material.lock();
-
-				if (cMat != lMat)
+				if (cmd.material != lastMaterial)
 				{
-					ApplyMatToContext(m_pDeviceContext.Get(), cMat.get());
+					ApplyMatToContext(m_pDeviceContext.Get(), cmd.material.get());
 					lastMaterial = cmd.material;
-					lMat = cMat;
 				}
 
 
@@ -168,14 +166,25 @@ namespace MMMEngine {
 				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
 				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-				if (cmd.boneMatIndex >= 0)
+				
+				// 스킨드 메시라면 본 인덱스를 셰이더에 전달
+				if ( cmd.offsetBuffer != nullptr && lastOffset != cmd.offsetBuffer)
 				{
-					// 스킨드 메시라면 본 인덱스를 셰이더에 전달
-					// UpdateBoneIndexConstantBuffer(cmd.boneMatIndex);
+					
+					m_pDeviceContext->UpdateSubresource1(m_pOffsetBuffer.Get(), 0, nullptr, cmd.offsetBuffer, 0, 0, D3D11_COPY_DISCARD);
+					m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pOffsetBuffer.GetAddressOf());
+					lastOffset = cmd.offsetBuffer;
+				}
+
+				if (cmd.animBuffer != nullptr && lastAnim != cmd.animBuffer)
+				{
+					m_pDeviceContext->UpdateSubresource1(m_pAnimBuffer.Get(), 0, nullptr, cmd.animBuffer, 0, 0, D3D11_COPY_DISCARD);
+					m_pDeviceContext->VSSetConstantBuffers(2, 1, m_pAnimBuffer.GetAddressOf());
+					lastAnim = cmd.animBuffer;
 				}
 
 				// 상수버퍼 등록
-				auto sType = ShaderInfo::Get().GetShaderType(lMat->GetPShader()->GetFilePath());
+				auto sType = ShaderInfo::Get().GetShaderType(lastMaterial->GetPShader()->GetFilePath());
 
 				// 상수버퍼 일렬업데이트
 				ShaderInfo::Get().UpdateCBuffers(sType);
@@ -201,21 +210,8 @@ namespace MMMEngine {
 		// 캐싱 컨테이너 초기화
 		m_objWorldMatMap.clear();
 		m_renderCommands.clear();
+
 		m_rObjIdx = 0;
-	}
-
-	void RenderManager::InitRenderers()
-	{
-		int size = static_cast<int>(m_renInitQueue.size());
-		for (int i = 0; i < size; ++i) {
-			auto renderer = m_renInitQueue.front();
-			m_renInitQueue.pop();
-
-			if (!renderer->IsActiveAndEnabled())
-				m_renInitQueue.push(renderer);
-			else
-				renderer->Init();
-		}
 	}
 
 	void RenderManager::UpdateRenderers()
@@ -590,6 +586,9 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pTransbuffer));
 		bd.ByteWidth = sizeof(Render_ShadowBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pShadowBuffer));
+ 		bd.ByteWidth = sizeof(Mesh_BoneBuffer);
+		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pOffsetBuffer));
+		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pAnimBuffer));
 		bd.ByteWidth = sizeof(Render_UIBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pUIBuffer.GetAddressOf()));
 
@@ -645,9 +644,6 @@ namespace MMMEngine {
 
 
 		//// 변수 초기화
-		//while (!m_initQueue.empty())
-		//	m_initQueue.pop();
-
 		m_worldMatrix = Matrix::Identity;
 		m_viewMatrix = Matrix::Identity;
 		m_projMatrix = Matrix::Identity;
@@ -868,11 +864,6 @@ namespace MMMEngine {
 		return index;
 	}
 
-	void RenderManager::ClearAllCommands()
-	{
-		m_renderCommands.clear();
-	}
-
 	void RenderManager::BeginFrame()
 	{
 		// Clear
@@ -883,7 +874,6 @@ namespace MMMEngine {
 		ShaderInfo::Get().ClearWorldPropertyDatas();
 
 		// 렌더러 컨트롤
-		InitRenderers();
 		UpdateRenderers();
 		UpdateLights();
 
@@ -1018,29 +1008,28 @@ namespace MMMEngine {
 				std::sort(commands.begin(), commands.end(),
 					[](const RenderCommand& a, const RenderCommand& b)
 					{
-						if (a.material.expired() || b.material.expired())
+						if (!a.material || !b.material)
 							return false;
-						return a.material.lock() < b.material.lock();
+						return a.material < b.material;
 					});
 			}
 
 			// 정렬된 커맨드 실행
-			std::weak_ptr<Material> lastMaterial;
+			ResPtr<Material> lastMaterial;
+			Mesh_BoneBuffer* lastOffset = nullptr;
+			Mesh_BoneBuffer* lastAnim = nullptr;
 			for (auto& cmd : commands)
 			{
-				if (cmd.material.expired())
+				if (!cmd.material)
 					continue;
 
 				// CastShadow False Skip
 				if (!cmd.castShadow)
 					continue;
 
-				auto lMat = lastMaterial.lock();
-				auto cMat = cmd.material.lock();
-
-				if (cMat != lMat)
+				if (cmd.material != lastMaterial)
 				{
-					auto VS = cMat->m_pVShader;
+					auto VS = cmd.material->m_pVShader;
 					auto PS = ShaderInfo::Get().GetShadowPShader();
 
 					m_pDeviceContext->VSSetShader(VS->m_pVShader.Get(), nullptr, 0);
@@ -1050,14 +1039,13 @@ namespace MMMEngine {
 					m_pDeviceContext->IASetInputLayout(VS->m_pInputLayout.Get());
 
 					// Albedo 등록
-					auto tex2D = std::get_if<ResPtr<Texture2D>>(&cMat->GetProperty(L"_albedo"));
+					auto tex2D = std::get_if<ResPtr<Texture2D>>(&cmd.material->GetProperty(L"_albedo"));
 					if ((*tex2D)) {
 						ID3D11ShaderResourceView* albedo = (*tex2D)->m_pSRV.Get();
 						m_pDeviceContext->PSSetShaderResources(0, 1, &albedo);
 					}
 
 					lastMaterial = cmd.material;
-					lMat = cMat;
 				}
 
 				UINT stride = sizeof(Mesh_Vertex); // 실제 버텍스 구조체 크기
@@ -1065,10 +1053,20 @@ namespace MMMEngine {
 				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
 				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-				if (cmd.boneMatIndex >= 0)
+				// 스킨드 메시라면 본 인덱스를 셰이더에 전달
+				if (cmd.offsetBuffer != nullptr && lastOffset != cmd.offsetBuffer)
 				{
-					// 스킨드 메시라면 본 인덱스를 셰이더에 전달
-					// UpdateBoneIndexConstantBuffer(cmd.boneMatIndex);
+
+					m_pDeviceContext->UpdateSubresource1(m_pOffsetBuffer.Get(), 0, nullptr, cmd.offsetBuffer, 0, 0, D3D11_COPY_DISCARD);
+					m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pOffsetBuffer.GetAddressOf());
+					lastOffset = cmd.offsetBuffer;
+				}
+
+				if (cmd.animBuffer != nullptr && lastAnim != cmd.animBuffer)
+				{
+					m_pDeviceContext->UpdateSubresource1(m_pAnimBuffer.Get(), 0, nullptr, cmd.animBuffer, 0, 0, D3D11_COPY_DISCARD);
+					m_pDeviceContext->VSSetConstantBuffers(2, 1, m_pAnimBuffer.GetAddressOf());
+					lastAnim = cmd.animBuffer;
 				}
 
 				// 월드매트릭스 버퍼집어넣기
@@ -1146,8 +1144,8 @@ namespace MMMEngine {
 
 		// (풀스크린 트라이앵글)
 		if (useBackBuffer) {
-			auto vs = ShaderInfo::Get().GetFullScreenVShader();
-			auto ps = ShaderInfo::Get().GetFullScreenPShader();
+			auto& vs = ShaderInfo::Get().GetFullScreenVShader();
+			auto& ps = ShaderInfo::Get().GetFullScreenPShader();
 			m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			m_pDeviceContext->IASetInputLayout(nullptr);
 			m_pDeviceContext->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
@@ -1378,7 +1376,6 @@ namespace MMMEngine {
 		uint32_t id = m_nextRendererId++;
 		m_renderers.push_back(_renderer);
 		m_rendererIdMap[id] = _renderer;
-		m_renInitQueue.push(_renderer);
 		return id;
 	}
 

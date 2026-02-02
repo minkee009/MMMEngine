@@ -12,10 +12,13 @@ namespace MMMEngine {
 	protected:
 		uint32_t renderIndex = UINT32_MAX;
 		bool isEnabled = true;
+		bool castShadows = true;
+		bool receiveShadows = true;
 
 		virtual void Render() {}
-		virtual void Init() {}
 		virtual ~Renderer() {}
+		virtual void Initialize() override {};
+		virtual void UnInitialize() override {};
 
 	public:
 		bool GetEnabled() { return isEnabled; }

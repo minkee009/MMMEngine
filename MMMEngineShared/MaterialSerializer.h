@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "ExportSingleton.hpp"
 #include <string>
 #include "ResourceManager.h"
@@ -15,8 +15,8 @@ namespace MMMEngine {
 		PropertyValue property_from_json(const nlohmann::json& j);
 		void to_json(nlohmann::json& j, const MMMEngine::PropertyValue& value);
 	public:
-		std::filesystem::path Serealize(Material* _in, std::wstring _path, std::wstring _name, int _index);		// _path´Â Ãâ·Âpath
-		void UnSerealize(Material* _out, std::wstring _path);		// _path´Â ÀÔ·Âpath
+		std::filesystem::path Serialize(Material* _in, std::wstring _path, std::wstring _name, int _index);		// _pathëŠ” ì¶œë ¥path
+		void DeSerialize(Material* _out, std::wstring _path);		// _pathëŠ” ìž…ë ¥path
 	};
 }
 

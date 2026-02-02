@@ -1,6 +1,7 @@
-#pragma once
+ï»¿#pragma once
 #include "Export.h"
 #include "Resource.h"
+#include "RenderShared.h"
 #include "rttr/type"
 
 namespace MMMEngine {
@@ -12,9 +13,15 @@ namespace MMMEngine {
 			friend class SceneManager;
 			friend class Scene;
 	public:
+		std::string mName;
 
+		float durationSec = 0.0f;
+		float ticksPerSecond = 30.0f;
+		std::vector<Mesh_AnimTrack> mTracks;
 
-		//TODO::¿ªÁ÷·ÄÈ­½ÃÅ°±â
+		NodeTreeAsset mNodeTree;
+
+		//TODO::ì—­ì§ë ¬í™”ì‹œí‚¤ê¸°
 		bool LoadFromFilePath(const std::wstring& filePath) override;
 	};
 }

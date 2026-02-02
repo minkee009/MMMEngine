@@ -98,6 +98,7 @@ namespace MMMEngine {
 	private: 
 		// 기본값 쉐이더
 		ResPtr<VShader> m_pDefaultVShader;
+		ResPtr<VShader> m_pSkeletalVShader;
 		ResPtr<PShader> m_pDefaultPShader;
 
 		// 풀스크린 쉐이더
@@ -142,6 +143,7 @@ namespace MMMEngine {
 
 	public:
 		ResPtr<VShader> GetDefaultVShader();
+		ResPtr<VShader> GetSkeletalVShader();
 		ResPtr<PShader> GetDefaultPShader();
 		ResPtr<VShader> GetFullScreenVShader();
 		ResPtr<PShader> GetFullScreenPShader();

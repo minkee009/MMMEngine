@@ -69,7 +69,7 @@ void MMMEngine::MaterialSerializer::to_json(json& j, const MMMEngine::PropertyVa
 }
 
 
-std::filesystem::path MMMEngine::MaterialSerializer::Serealize(Material* _material, std::wstring _path, std::wstring _name, int _index)
+std::filesystem::path MMMEngine::MaterialSerializer::Serialize(Material* _material, std::wstring _path, std::wstring _name, int _index)
 {
 	json snapshot;
 	auto matMUID = _material->GetMUID().IsEmpty() ? Utility::MUID::NewMUID() : _material->GetMUID();
@@ -119,7 +119,7 @@ std::filesystem::path MMMEngine::MaterialSerializer::Serealize(Material* _materi
 	return p.filename();
 }
 
-void MMMEngine::MaterialSerializer::UnSerealize(Material* _material, std::wstring _path)
+void MMMEngine::MaterialSerializer::DeSerialize(Material* _material, std::wstring _path)
 {
 	// 경로 만들기
 	fs::path loadPath(ResourceManager::Get().GetCurrentRootPath());

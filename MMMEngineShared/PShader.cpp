@@ -7,8 +7,10 @@ namespace fs = std::filesystem;
 
 bool MMMEngine::PShader::LoadFromFilePath(const std::wstring& filePath)
 {
-	if (!fs::exists(fs::path(filePath)))
-		throw std::runtime_error("PShader::File not exist !!");
+	if (!fs::exists(fs::path(filePath))) {
+		std::cout << "PShader::File not exist !!" << std::endl;
+		return false;
+	}
 
 	auto m_pDevice = RenderManager::Get().GetDevice();
 
