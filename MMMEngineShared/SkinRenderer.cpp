@@ -122,8 +122,16 @@ namespace MMMEngine {
 				command.rendererID = renderIndex;
 				command.castShadow = castShadows;
 				command.receiveShadow = receiveShadows;
-				command.offsetBuffer = &mesh->offsetBuffer;
-				command.animBuffer = &mAnimBuffer;
+
+				if (mAnimBuffer != nullptr) {
+					command.offsetBuffer = &mesh->offsetBuffer;
+					command.animBuffer = mAnimBuffer;
+				}
+				else {
+					command.offsetBuffer = &mDefaultBoneBuffer;
+					command.animBuffer = &mDefaultBoneBuffer;
+				}
+				
 
 				// TODO::TransCulant일시 CamDistance 보내줘야함!!
 				command.camDistance = 0.0f;

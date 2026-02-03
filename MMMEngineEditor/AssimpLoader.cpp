@@ -43,6 +43,8 @@ const aiScene* MMMEngine::AssimpLoader::ImportScene(const std::wstring path, Mod
 	m_importer.FreeScene();
 
 	m_importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.5f);
+	m_importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, 0);
+
 	const aiScene* scene = m_importer.ReadFile(Utility::StringHelper::WStringToString(path), opt.assimpFlags);
 
 	return scene;
@@ -94,6 +96,9 @@ MMMEngine::ResPtr<MMMEngine::StaticMesh> MMMEngine::AssimpLoader::ConvertStaticM
 		matList.push_back(material);
 	}
 	
+	// 메테리얼 등록
+	staticMesh->materials.swap(matList);
+
 	// SubMeshAsset → MeshData
 	for (size_t i = 0; i < _model->subMeshes.size(); ++i)
 	{
@@ -106,9 +111,6 @@ MMMEngine::ResPtr<MMMEngine::StaticMesh> MMMEngine::AssimpLoader::ConvertStaticM
 		// Material 매핑
 		if (sub.materialIndex >= 0 && sub.materialIndex < _model->materials.size())
 		{
-			// 메테리얼 등록
-			staticMesh->materials.push_back(matList[sub.materialIndex]);
-
 			// 메테리얼:메시그룹 등록
 			staticMesh->meshGroupData[sub.materialIndex].push_back((UINT)i);
 		}
@@ -139,6 +141,9 @@ MMMEngine::ResPtr<MMMEngine::SkeletalMesh> MMMEngine::AssimpLoader::ConvertSkele
 		matList.push_back(material);
 	}
 
+	// 메테리얼 등록
+	skeletalMesh->materials.swap(matList);
+
 	// SubMeshAsset → MeshData
 	for (size_t i = 0; i < _model->subMeshes.size(); ++i)
 	{
@@ -151,9 +156,6 @@ MMMEngine::ResPtr<MMMEngine::SkeletalMesh> MMMEngine::AssimpLoader::ConvertSkele
 		// Material 매핑
 		if (sub.materialIndex >= 0 && sub.materialIndex < _model->materials.size())
 		{
-			// 메테리얼 등록
-			skeletalMesh->materials.push_back(matList[sub.materialIndex]);
-
 			// 메테리얼:메시그룹 등록
 			skeletalMesh->meshGroupData[sub.materialIndex].push_back((UINT)i);
 		}
@@ -171,6 +173,9 @@ MMMEngine::ResPtr<MMMEngine::SkeletalMesh> MMMEngine::AssimpLoader::ConvertSkele
 			skeletalMesh->nodeIdxData[i] = bone.nodeIndex;				// 본 인덱스별 노드 인덱스
 		}
 	}
+
+	// 트리 전달
+	skeletalMesh->mNodeTree = std::move(_model->nodeTree);
 
 	return skeletalMesh;
 }
@@ -769,7 +774,6 @@ void MMMEngine::AssimpLoader::RegisterModel(const std::wstring path, ModelType t
 		skeletalMesh = ConvertSkeletalMesh(&model);
 		//TODO::Skeletalmesh 직렬화
 		ResourceSerializer::Get().Serialize_SkeletalMesh(skeletalMesh.get(), m_exportPath, filename);
-		skeletalMesh->mNodeTree = std::move(model.nodeTree);
 		break;
 	case MMMEngine::ModelType::Animation:
 	{
