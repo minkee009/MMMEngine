@@ -16,10 +16,20 @@ RTTR_REGISTRATION
         .property("StaticFriction", &ColliderComponent::GetStaticFriction, &ColliderComponent::SetStaticFriction)
         .property("DynamicFriction", &ColliderComponent::GetDynamicFriction, &ColliderComponent::SetDynamicFriction)
         .property("Restitution", &ColliderComponent::GetRestitution, &ColliderComponent::SetRestitution)
+        .property("Mode", &ColliderComponent::GetShapeMode, &ColliderComponent::SetShapeMode)
         .property("SetOverLayer", &ColliderComponent::GetOverrideLayer, &ColliderComponent::SetOverrideLayer)
             (rttr::metadata("INSPECTOR_CHAIN", "true=LayerType"))
         .property("LayerType", &ColliderComponent::GetLayer, &ColliderComponent::SetLayer)
             (rttr::metadata("RANGE", "0,7"));
+    registration::enumeration<ColliderComponent::ShapeMode>("ShapeMode")
+        (
+            rttr::value("Simulation", ColliderComponent::ShapeMode::Simulation),
+            rttr::value("Trigger", ColliderComponent::ShapeMode::Trigger),
+            rttr::value("QueryOnly", ColliderComponent::ShapeMode::QueryOnly),
+            rttr::value("Disabled", ColliderComponent::ShapeMode::Disabled)
+            );
+    //registration::class_<ColliderComponent::ShapeMode>("Mode")
+    //    .property("Mode", &ColliderComponent::m_Mode);
 }
 
 

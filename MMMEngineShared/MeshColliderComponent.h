@@ -13,6 +13,8 @@ namespace MMMEngine
 	public:
 		enum class MeshMode { Auto, Triangle, Convex };
 		void SetMesh(ResPtr<StaticMesh> mesh);
+		ResPtr<StaticMesh> GetMesh();
+
 		void SetSubmesh(int idx); // 선택 사항
 
 		bool BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) override;
@@ -28,6 +30,10 @@ namespace MMMEngine
 
 		bool RebuildForRigidType(MMMEngine::RigidBodyComponent::Type type);
 		bool RebuildShapeOnly(MMMEngine::RigidBodyComponent::Type type);
+
+
+
+
 
 	private:
 		ResPtr<StaticMesh> m_mesh;

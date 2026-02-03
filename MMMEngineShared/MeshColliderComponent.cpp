@@ -14,10 +14,10 @@ RTTR_REGISTRATION
 
     registration::class_<MeshColliderComponent>("MeshCollider")
         (rttr::metadata("wrapper_type_name", "ObjPtr<MeshColliderComponent>"))
-        .property("Extents", &MeshColliderComponent::GetHalfExtents, &MeshColliderComponent::SetHalfExtents)
+        .property("Mesh", &MeshColliderComponent::GetMesh, &MeshColliderComponent::SetMesh)
         ;
 
-    registration::class_<ObjPtr<MeshColliderComponent>>("ObjPtr<BoxColliderComponent>")
+    registration::class_<ObjPtr<MeshColliderComponent>>("ObjPtr<MeshColliderComponent>")
         .constructor(
             []() {
                 return Object::NewObject<MeshColliderComponent>();
@@ -31,6 +31,12 @@ void MMMEngine::MeshColliderComponent::SetMesh(ResPtr<StaticMesh> mesh)
     if (m_mesh == mesh) return;
     m_mesh = mesh;
     MarkGeometryDirty();
+    TryBuildAndRegister();
+}
+
+MMMEngine::ResPtr<MMMEngine::StaticMesh> MMMEngine::MeshColliderComponent::GetMesh()
+{
+    return m_mesh;
 }
 
 void MMMEngine::MeshColliderComponent::SetSubmesh(int idx)
@@ -84,7 +90,15 @@ bool MMMEngine::MeshColliderComponent::BuildShape(physx::PxPhysics* physics, phy
 
 void MMMEngine::MeshColliderComponent::Initialize()
 {
-    
+    if (GetGameObject().IsValid())
+    {
+        auto _meshRenderer = GetComponent<MeshRenderer>();
+        if (_meshRenderer.IsValid())
+        {
+            m_mesh = _meshRenderer->GetMesh();
+            TryBuildAndRegister();
+        }
+    }
 }
 
 bool MMMEngine::MeshColliderComponent::TryBuildAndRegister()
@@ -105,12 +119,17 @@ bool MMMEngine::MeshColliderComponent::TryBuildAndRegister()
 
     if (!m_Shape)
     {
-        if (!BuildShape(&physics, mat) || !m_Shape) return false;
+        if (!BuildShape(&physics, mat) || !m_Shape) 
+        {
+            std::cout << u8"생성실패" << std::endl;
+            return false;
+        }
         RegisterToPhysics();
         return true;
     }
 
     if (!m_IsRegistered) RegisterToPhysics();
+    else { std::cout << u8"생성실패2" << std::endl; }
     return true;
 }
 

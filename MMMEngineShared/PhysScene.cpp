@@ -645,12 +645,6 @@ void MMMEngine::PhysScene::TransferCollider(MMMEngine::RigidBodyComponent* oldRb
 		DetachCollider(oldRb, col); // ownerByCollider / collidersByRigid 정리 포함
 	}
 
-	if (auto* meshCol = dynamic_cast<MeshColliderComponent*>(col))
-	{
-		if (!meshCol->RebuildShapeOnly(newRb->GetType()))
-			return; // 실패 시 attach 중단
-	}
-
 	// newRb 기준 local pose 계산
 	auto go = col->GetGameObject();
 	if (go.IsValid())
