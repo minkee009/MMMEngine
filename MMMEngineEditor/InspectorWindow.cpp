@@ -18,6 +18,7 @@ using namespace DirectX;
 #include "StringHelper.h"
 #include "ProjectManager.h"
 #include "ResourceManager.h"
+#include "AnimationCurveEditor.h"
 #include <rttr/variant_sequential_view.h>
 #include <algorithm>
 #include <optional>
@@ -26,6 +27,7 @@ using namespace DirectX;
 #include <cctype>
 #include <cstdint>
 #include <limits>
+#include <cfloat>
 
 using namespace MMMEngine;
 using namespace MMMEngine::Editor;
@@ -284,6 +286,32 @@ namespace
                 return false;
         }
         return true;
+    }
+
+    static bool IsAnimationCurveType(const rttr::type& t)
+    {
+        if (!t.is_valid())
+            return false;
+        if (t == rttr::type::get<AnimationCurve>())
+            return true;
+
+        const std::string name = t.get_name().to_string();
+        if (name == "AnimationCurve" || name == "MMMEngine::AnimationCurve")
+            return true;
+        if (name.find("AnimationCurve") != std::string::npos)
+            return true;
+
+        const rttr::type raw = t.get_raw_type();
+        if (raw.is_valid() && raw != t)
+        {
+            const std::string rawName = raw.get_name().to_string();
+            if (rawName == "AnimationCurve" || rawName == "MMMEngine::AnimationCurve")
+                return true;
+            if (rawName.find("AnimationCurve") != std::string::npos)
+                return true;
+        }
+
+        return false;
     }
 
     static std::unordered_map<std::string, bool> BuildInspectorChainVisibility(rttr::instance inst, const rttr::type& t)
@@ -708,6 +736,8 @@ struct EventMessageOption
     MMMEngine::Utility::MUID targetMUID;
 };
 
+enum class EventArgType { Void, Float, Bool, Int, String };
+
 static bool IsScreenSpaceCanvasRoot(const ObjPtr<GameObject>& go, Canvas*& outCanvas)
 {
     outCanvas = nullptr;
@@ -722,7 +752,7 @@ static bool IsScreenSpaceCanvasRoot(const ObjPtr<GameObject>& go, Canvas*& outCa
     return true;
 }
 
-static void CollectEventMessageOptions(const ObjPtr<GameObject>& go, bool floatEvent,
+static void CollectEventMessageOptions(const ObjPtr<GameObject>& go, EventArgType argType,
     std::vector<EventMessageOption>& outOptions)
 {
     outOptions.clear();
@@ -736,10 +766,14 @@ static void CollectEventMessageOptions(const ObjPtr<GameObject>& go, bool floatE
             continue;
 
         std::vector<std::string> messageNames;
-        if (floatEvent)
-            behaviour->GetFloatMessageNames(messageNames);
-        else
-            behaviour->GetVoidMessageNames(messageNames);
+        switch (argType)
+        {
+        case EventArgType::Void:   behaviour->GetVoidMessageNames(messageNames); break;
+        case EventArgType::Float:  behaviour->GetFloatMessageNames(messageNames); break;
+        case EventArgType::Bool:   behaviour->GetBoolMessageNames(messageNames); break;
+        case EventArgType::Int:    behaviour->GetIntMessageNames(messageNames); break;
+        case EventArgType::String: behaviour->GetStringMessageNames(messageNames); break;
+        }
 
         if (messageNames.empty())
             continue;
@@ -766,7 +800,7 @@ static void CollectEventMessageOptions(const ObjPtr<GameObject>& go, bool floatE
 static bool DrawSerializableEventProperty(const std::string& name, rttr::variant& var, rttr::type propType,
     const rttr::property& prop, rttr::instance inst, bool readOnly)
 {
-    auto drawCalls = [&](std::vector<PersistentCall>& calls, bool floatEvent)
+    auto drawCalls = [&](std::vector<PersistentCall>& calls, EventArgType argType)
     {
         ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
         std::string headerLabel = name + "  [" + std::to_string(calls.size()) + "]###" + name;
@@ -810,7 +844,7 @@ static bool DrawSerializableEventProperty(const std::string& name, rttr::variant
 
                 ObjPtr<GameObject> targetGo = GetTargetGameObjectFromMUID(calls[i].GetTargetMUID());
                 std::vector<EventMessageOption> options;
-                CollectEventMessageOptions(targetGo, floatEvent, options);
+                CollectEventMessageOptions(targetGo, argType, options);
 
                 std::string previewLabel = GetMessagePreviewLabel(calls[i]);
                 if (!targetGo.IsValid())
@@ -874,7 +908,7 @@ static bool DrawSerializableEventProperty(const std::string& name, rttr::variant
     {
         SerializableEvent ev = var.get_value<SerializableEvent>();
         std::vector<PersistentCall> calls = ev.GetCalls();
-        drawCalls(calls, false);
+        drawCalls(calls, EventArgType::Void);
         ev.SetCalls(std::move(calls));
         prop.set_value(inst, ev);
         return true;
@@ -883,7 +917,34 @@ static bool DrawSerializableEventProperty(const std::string& name, rttr::variant
     {
         SerializableEventT<float> ev = var.get_value<SerializableEventT<float>>();
         std::vector<PersistentCall> calls = ev.GetCalls();
-        drawCalls(calls, true);
+        drawCalls(calls, EventArgType::Float);
+        ev.SetCalls(std::move(calls));
+        prop.set_value(inst, ev);
+        return true;
+    }
+    if (propType == rttr::type::get<SerializableEventT<bool>>())
+    {
+        SerializableEventT<bool> ev = var.get_value<SerializableEventT<bool>>();
+        std::vector<PersistentCall> calls = ev.GetCalls();
+        drawCalls(calls, EventArgType::Bool);
+        ev.SetCalls(std::move(calls));
+        prop.set_value(inst, ev);
+        return true;
+    }
+    if (propType == rttr::type::get<SerializableEventT<int>>())
+    {
+        SerializableEventT<int> ev = var.get_value<SerializableEventT<int>>();
+        std::vector<PersistentCall> calls = ev.GetCalls();
+        drawCalls(calls, EventArgType::Int);
+        ev.SetCalls(std::move(calls));
+        prop.set_value(inst, ev);
+        return true;
+    }
+    if (propType == rttr::type::get<SerializableEventT<std::string>>())
+    {
+        SerializableEventT<std::string> ev = var.get_value<SerializableEventT<std::string>>();
+        std::vector<PersistentCall> calls = ev.GetCalls();
+        drawCalls(calls, EventArgType::String);
         ev.SetCalls(std::move(calls));
         prop.set_value(inst, ev);
         return true;
@@ -980,6 +1041,122 @@ static std::string MakeStringKey(const rttr::instance& inst, const rttr::propert
     auto tname = inst.get_derived_type().get_name().to_string();
     auto pname = prop.get_name().to_string();
     return tname + "::" + pname;
+}
+
+static std::string MakeCurveCacheKey(const rttr::instance& inst, const rttr::property& prop)
+{
+    rttr::type t = inst.get_derived_type();
+    rttr::property muidProp = t.get_property("MUID");
+    if (muidProp.is_valid())
+    {
+        rttr::variant muidVar = muidProp.get_value(inst);
+        if (muidVar.is_valid() && muidVar.is_type<MMMEngine::Utility::MUID>())
+        {
+            std::string muidStr = muidVar.get_value<MMMEngine::Utility::MUID>().ToStringWithoutHyphens();
+            return muidStr + "::" + t.get_name().to_string() + "::" + prop.get_name().to_string();
+        }
+    }
+
+    void* instPtr = inst.try_convert<void*>();
+    std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(instPtr);
+    return std::to_string(addr) + "::" + t.get_name().to_string() + "::" + prop.get_name().to_string();
+}
+
+struct CurveEditorCache
+{
+    AnimationCurve working;
+    AnimationCurveEditorView view;
+    bool opened = false;
+    bool initialized = false;
+    ImVec2 editorSize = ImVec2(560.0f, 360.0f); // 커브 에디터 창 크기 (크기 조절 시 유지)
+};
+
+static bool DrawAnimationCurveProperty(const std::string& name, rttr::variant& var, rttr::type propType,
+    const rttr::property& prop, rttr::instance inst, bool readOnly)
+{
+    if (!IsAnimationCurveType(propType))
+        return false;
+
+    AnimationCurve curve = var.get_value<AnimationCurve>();
+    static std::unordered_map<std::string, CurveEditorCache> s_curveEditors;
+    const std::string key = MakeCurveCacheKey(inst, prop);
+    CurveEditorCache& cache = s_curveEditors[key];
+
+    if (!cache.initialized)
+    {
+        cache.view.autoFit = true;
+        cache.view.lockAspect = true;
+        cache.initialized = true;
+    }
+
+    ImGui::Text("%s", name.c_str());
+    ImVec2 previewSize(ImGui::GetContentRegionAvail().x, 70.0f);
+    bool previewChanged = false;
+    bool previewClicked = DrawAnimationCurvePreview(curve, previewSize, cache.view, &previewChanged);
+
+    if (!readOnly && previewClicked)
+    {
+        cache.working = curve;
+        cache.opened = true;
+        ImGui::OpenPopup(("CurveEditor##" + key).c_str());
+    }
+    if (previewChanged && !readOnly)
+    {
+        prop.set_value(inst, curve);
+        var = curve;
+    }
+
+    if (cache.opened)
+    {
+        bool keepOpen = true;
+        ImGui::SetNextWindowSize(cache.editorSize);
+        ImGui::SetNextWindowSizeConstraints(ImVec2(400.0f, 300.0f), ImVec2(FLT_MAX, FLT_MAX));
+        if (ImGui::BeginPopupModal(("CurveEditor##" + key).c_str(), &keepOpen, 0))
+        {
+            ImGui::Text("%s", name.c_str());
+            ImGui::Separator();
+
+            ImGui::Checkbox(u8"비율 고정", &cache.view.lockAspect);
+            ImGui::SameLine();
+            const bool scaleEditable = !cache.view.lockAspect;
+            if (!scaleEditable)
+                ImGui::BeginDisabled();
+            ImGui::SetNextItemWidth(70.0f);
+            if (ImGui::DragFloat(u8"X 스케일", &cache.view.scaleX, 0.05f, 0.1f, 10.0f, "%.2f"))
+                cache.view.autoFit = true; // 스케일 변경 시 한 번 다시 맞춤 적용
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(70.0f);
+            if (ImGui::DragFloat(u8"Y 스케일", &cache.view.scaleY, 0.05f, 0.1f, 10.0f, "%.2f"))
+                cache.view.autoFit = true;
+            if (!scaleEditable)
+                ImGui::EndDisabled();
+
+            ImVec2 graphSize = ImGui::GetContentRegionAvail();
+            graphSize.y = std::max(graphSize.y, 150.0f);
+            DrawAnimationCurveGraph(cache.working, graphSize, cache.view);
+
+            cache.editorSize = ImGui::GetWindowSize();
+
+            // 편집 중에도 즉시 반영 (플레이/스냅샷에 반영되도록)
+            if (!readOnly)
+            {
+                prop.set_value(inst, cache.working);
+                var = cache.working;
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if (!keepOpen)
+        {
+            prop.set_value(inst, cache.working);
+            var = cache.working;
+        }
+
+        cache.opened = keepOpen;
+    }
+
+    return true;
 }
 
 void AddComponentFromDropFilePath(std::string filePath)
@@ -1093,6 +1270,11 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
             ImGui::PopID();
             continue;
         }
+        if (DrawAnimationCurveProperty(name, var, propType, prop, inst, readOnly))
+        {
+            ImGui::PopID();
+            continue;
+        }
         if (var.is_sequential_container())
         {
             DrawSequentialProperty_UnityLike(name, var, prop, inst, readOnly);
@@ -1166,48 +1348,83 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
             }
             ImGui::PopID();
 
-            //MUID dragged_muid = GetMuid("gameobject_muid");
             Utility::MUID result = Utility::MUID::Empty();
+            bool useObjectPayload = false;
 
             if (ImGui::BeginDragDropTarget())
             {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("gameobject_muid"))
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object_muid"))
                 {
                     if (payload->IsDelivery() && payload->Data && payload->DataSize == sizeof(Utility::MUID))
                     {
                         std::memcpy(&result, payload->Data, sizeof(Utility::MUID));
+                        useObjectPayload = true;
+                    }
+                }
+                if (!useObjectPayload)
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("gameobject_muid"))
+                    {
+                        if (payload->IsDelivery() && payload->Data && payload->DataSize == sizeof(Utility::MUID))
+                        {
+                            std::memcpy(&result, payload->Data, sizeof(Utility::MUID));
+                        }
                     }
                 }
                 ImGui::EndDragDropTarget();
             }
 
             MUID dragged_muid = result;
-            if(dragged_muid.IsValid())
+            if (dragged_muid.IsValid())
             {
-                auto sceneRef = SceneManager::Get().GetCurrentScene();
-                auto dragged = SceneManager::Get().FindWithMUID(sceneRef, dragged_muid);
-
-                auto innertype = StringHelper::ExtractInnerTypeName(propType.get_name().to_string());
-
-                if (innertype == "GameObject")
+                if (useObjectPayload)
                 {
-                    const ObjPtrBase& baseRef = dragged;
-                    auto func = propType.get_method("Inject");
-                    if (func.is_valid())
+                    auto tryInject = [&](const ObjPtrBase& baseRef) -> bool
                     {
+                        auto func = propType.get_method("Inject");
+                        if (!func.is_valid())
+                            return false;
                         auto fvar = func.invoke(var, baseRef);
                         if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
                         {
                             prop.set_value(inst, var);
-                            break;
+                            return true;
+                        }
+                        return false;
+                    };
+
+                    ObjPtr<Object> droppedObj = ObjectManager::Get().GetObjectByMUID(dragged_muid);
+                    if (droppedObj.IsValid())
+                    {
+                        if (!tryInject(droppedObj))
+                        {
+                            if (auto comp = droppedObj.Cast<Component>(); comp.IsValid())
+                            {
+                                auto owner = comp->GetGameObject();
+                                if (owner.IsValid())
+                                    tryInject(owner);
+                            }
+                            else if (auto go = droppedObj.Cast<GameObject>(); go.IsValid())
+                            {
+                                for (auto& _comp : go->GetAllComponents())
+                                {
+                                    if (tryInject(_comp))
+                                        break;
+                                }
+                            }
                         }
                     }
                 }
                 else
                 {
-                    for (auto& _comp : dragged->GetAllComponents())
+                    auto sceneRef = SceneManager::Get().GetCurrentScene();
+                    auto dragged = SceneManager::Get().FindWithMUID(sceneRef, dragged_muid);
+
+                    auto innertype = StringHelper::ExtractInnerTypeName(propType.get_name().to_string());
+
+                    if (innertype == "GameObject")
                     {
-                        const ObjPtrBase& baseRef = _comp;
+                        const ObjPtrBase& baseRef = dragged;
                         auto func = propType.get_method("Inject");
                         if (func.is_valid())
                         {
@@ -1216,6 +1433,23 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
                             {
                                 prop.set_value(inst, var);
                                 break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (auto& _comp : dragged->GetAllComponents())
+                        {
+                            const ObjPtrBase& baseRef = _comp;
+                            auto func = propType.get_method("Inject");
+                            if (func.is_valid())
+                            {
+                                auto fvar = func.invoke(var, baseRef);
+                                if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
+                                {
+                                    prop.set_value(inst, var);
+                                    break;
+                                }
                             }
                         }
                     }
@@ -1573,11 +1807,19 @@ void MMMEngine::Editor::InspectorWindow::Render()
             std::string duplicatePrevantName = typeName + "##" + std::to_string(compCount++);
             if (typeName != "Transform")
             {
-                if(ImGui::CollapsingHeader(duplicatePrevantName.c_str(), &visible, ImGuiTreeNodeFlags_DefaultOpen))
+                bool headerOpen = ImGui::CollapsingHeader(duplicatePrevantName.c_str(), &visible, ImGuiTreeNodeFlags_DefaultOpen);
+                if (visible)
+                    GiveMuid("object_muid", comp->GetMUID(), typeName);
+                if (headerOpen)
                     RenderProperties(*comp, comp.Cast<Object>());
             }
-            else if (ImGui::CollapsingHeader(duplicatePrevantName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
-                RenderProperties(*comp, comp.Cast<Object>());
+            else
+            {
+                bool headerOpen = ImGui::CollapsingHeader(duplicatePrevantName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+                GiveMuid("object_muid", comp->GetMUID(), typeName);
+                if (headerOpen)
+                    RenderProperties(*comp, comp.Cast<Object>());
+            }
 
             if (!visible)
             {

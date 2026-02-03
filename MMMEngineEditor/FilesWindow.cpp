@@ -13,11 +13,6 @@
 
 using namespace MMMEngine::EditorRegistry;
 
-// 또는 unordered_set으로 (검색 성능 향상)
-static inline std::unordered_set<std::string> fileExclusionsSet = {
-    ".obj", ".csproj", ".vcxproj", ".filters", ".user", ".dll", ".exp", ".lib", ".settings"
-};
-
 void MMMEngine::Editor::FilesWindow::Render()
 {
     if (!g_editor_window_files)
@@ -434,17 +429,22 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
         if (extLower == ".staticmesh")
         {
             iconColor = IM_COL32(80, 200, 120, 255); // Green for StaticMesh
-            iconGlyph = "\xef\x85\x9b"; // File icon
+            iconGlyph = "\xef\x86\xb2"; // Cube icon
+        }
+        else if (extLower == ".skinmesh")
+        {
+            iconColor = IM_COL32(80, 200, 120, 255); // Green for StaticMesh
+            iconGlyph = "\xef\x86\x83"; // Cube icon
         }
         else if (extLower == ".spritefont")
         {
             iconColor = IM_COL32(240, 160, 70, 255); // Orange for SpriteFont
-            iconGlyph = "\xef\x85\x9b"; // File icon
+            iconGlyph = "\xef\x80\xb1"; // Font icon
         }
         else if (extLower == ".material")
         {
             iconColor = IM_COL32(90, 200, 210, 255); // Cyan for Material
-            iconGlyph = "\xef\x85\x9b"; // File icon
+            iconGlyph = "\xef\x87\xbc"; // Paint brush icon
         }
         else if (extLower == ".cpp" || extLower == ".h" || extLower == ".hpp" || extLower == ".c")
         {
@@ -464,7 +464,9 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
     }
 
     // Draw icon background
-    ImGui::GetWindowDrawList()->AddRectFilled(iconMin, iconMax, iconColor, 8.0f);
+    auto* drawList = ImGui::GetWindowDrawList();
+    const float cornerRounding = 8.0f;
+    drawList->AddRectFilled(iconMin, iconMax, iconColor, cornerRounding);
 
     // Draw icon glyph (centered)
 // 아이콘 텍스트 크기 계산

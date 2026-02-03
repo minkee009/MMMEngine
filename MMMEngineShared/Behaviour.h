@@ -179,5 +179,8 @@ namespace MMMEngine
 
 		void GetVoidMessageNames(std::vector<std::string>& outNames) const;
 		void GetFloatMessageNames(std::vector<std::string>& outNames) const;
+		void GetBoolMessageNames(std::vector<std::string>& outNames) const;
+		void GetIntMessageNames(std::vector<std::string>& outNames) const;
+		void GetStringMessageNames(std::vector<std::string>& outNames) const;
 	};
 }

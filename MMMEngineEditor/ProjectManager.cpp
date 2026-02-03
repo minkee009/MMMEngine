@@ -5,6 +5,9 @@
 #include <filesystem>
 #include <cstdlib>
 #include <cassert>
+#include <vector>
+#include <string>
+#include <algorithm>
 #include <json/json.hpp>
 
 // MUID로 vcxproj ProjectGuid 만들기
@@ -86,6 +89,51 @@ namespace MMMEngine::Editor
         // MUID에 이런 함수명이 없으면 ToString()/ToUpperString()에 맞춰 수정하면 됨
         // (너가 "muid는 이거쓰면됨"이라 했으니 여기만 네 MUID API에 맞게 1줄 수정하면 끝)
         return "{" + id.ToUpperString() + "}";
+    }
+
+    static void CollectUserScriptFiles(
+        const fs::path& projectRootDir,
+        std::vector<std::string>& outCpp,
+        std::vector<std::string>& outHeaders)
+    {
+        outCpp.clear();
+        outHeaders.clear();
+
+        const fs::path scriptsDir = projectRootDir / "Source" / "UserScripts" / "Scripts";
+        if (!fs::exists(scriptsDir) || !fs::is_directory(scriptsDir))
+            return;
+
+        auto toLower = [](std::string s) {
+            for (char& c : s)
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            return s;
+        };
+
+        std::error_code ec;
+        for (const auto& e : fs::recursive_directory_iterator(scriptsDir, fs::directory_options::skip_permission_denied, ec))
+        {
+            if (ec) break;
+            if (!e.is_regular_file())
+                continue;
+
+            std::string ext = toLower(e.path().extension().string());
+            bool isCpp = (ext == ".cpp" || ext == ".c" || ext == ".cc" || ext == ".cxx");
+            bool isHeader = (ext == ".h" || ext == ".hpp");
+            if (!isCpp && !isHeader)
+                continue;
+
+            fs::path rel = fs::relative(e.path(), projectRootDir / "Source" / "UserScripts");
+            std::string relStr = rel.generic_string();
+            std::replace(relStr.begin(), relStr.end(), '/', '\\');
+
+            if (isCpp)
+                outCpp.push_back(relStr);
+            else
+                outHeaders.push_back(relStr);
+        }
+
+        std::sort(outCpp.begin(), outCpp.end());
+        std::sort(outHeaders.begin(), outHeaders.end());
     }
 
     // ------------------------------------------------------------
@@ -496,11 +544,19 @@ void MMMEngine::ExampleBehaviour::Update()
     </Link>
   </ItemDefinitionGroup>
 
-  <!--유저 스크립트 자동 포함(재생성 없이 새 파일 인식)-->
   <ItemGroup>
-    <ClCompile Include="Scripts\**\*.cpp" />
-    <ClInclude Include="Scripts\**\*.h" />
-  </ItemGroup>
+)xml";
+
+        std::vector<std::string> cppFiles;
+        std::vector<std::string> headerFiles;
+        CollectUserScriptFiles(projectRootDir, cppFiles, headerFiles);
+        for (const auto& file : cppFiles)
+            out << "    <ClCompile Include=\"" << file << "\" />\n";
+        for (const auto& file : headerFiles)
+            out << "    <ClInclude Include=\"" << file << "\" />\n";
+
+        out <<
+            R"xml(  </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
@@ -528,13 +584,18 @@ void MMMEngine::ExampleBehaviour::Update()
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Scripts\**\*.cpp">
-      <Filter>Scripts</Filter>
-    </ClCompile>
-    <ClInclude Include="Scripts\**\*.h">
-      <Filter>Scripts</Filter>
-    </ClInclude>
-  </ItemGroup>
+)";
+
+        std::vector<std::string> cppFiles;
+        std::vector<std::string> headerFiles;
+        CollectUserScriptFiles(projectRootDir, cppFiles, headerFiles);
+        for (const auto& file : cppFiles)
+            out << "    <ClCompile Include=\"" << file << "\"><Filter>Scripts</Filter></ClCompile>\n";
+        for (const auto& file : headerFiles)
+            out << "    <ClInclude Include=\"" << file << "\"><Filter>Scripts</Filter></ClInclude>\n";
+
+        out <<
+            R"(  </ItemGroup>
 </Project>
 )";
         return true;
@@ -704,19 +765,9 @@ void MMMEngine::ExampleBehaviour::Update()
         const fs::path projectRootDir = fs::path(GetActiveProject().rootPath);
         EnsureUserScriptsFolders(projectRootDir);
 
-        const fs::path vcxprojPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.vcxproj";
-        const fs::path slnPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.sln";
-        if (!fs::exists(vcxprojPath))
-        {
-            GenerateUserScriptsProject(projectRootDir);
-            return;
-        }
-
-        if (!fs::exists(slnPath))
-        {
-            GenerateUserScriptsSolution(projectRootDir);
-        }
-
+        GenerateUserScriptsVcxproj(projectRootDir);
+        GenerateUserScriptsFilters(projectRootDir);
+        GenerateUserScriptsSolution(projectRootDir);
         GenerateVSCodeSettings(projectRootDir);
     }
 }

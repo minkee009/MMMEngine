@@ -1,4 +1,4 @@
-﻿#include "Behaviour.h"
+#include "Behaviour.h"
 #include "BehaviourManager.h"
 
 #include "rttr/registration"
@@ -77,6 +77,63 @@ void MMMEngine::Behaviour::GetFloatMessageNames(std::vector<std::string>& outNam
 
 		const std::type_info* argType = entry.second->GetArgType(0);
 		if (argType && (*argType == typeid(float)))
+			outNames.push_back(entry.first);
+	}
+}
+
+void MMMEngine::Behaviour::GetBoolMessageNames(std::vector<std::string>& outNames) const
+{
+	outNames.clear();
+	outNames.reserve(m_messages.size());
+
+	for (const auto& entry : m_messages)
+	{
+		if (!entry.second)
+			continue;
+
+		if (entry.second->GetArgCount() != 1)
+			continue;
+
+		const std::type_info* argType = entry.second->GetArgType(0);
+		if (argType && (*argType == typeid(bool)))
+			outNames.push_back(entry.first);
+	}
+}
+
+void MMMEngine::Behaviour::GetIntMessageNames(std::vector<std::string>& outNames) const
+{
+	outNames.clear();
+	outNames.reserve(m_messages.size());
+
+	for (const auto& entry : m_messages)
+	{
+		if (!entry.second)
+			continue;
+
+		if (entry.second->GetArgCount() != 1)
+			continue;
+
+		const std::type_info* argType = entry.second->GetArgType(0);
+		if (argType && (*argType == typeid(int)))
+			outNames.push_back(entry.first);
+	}
+}
+
+void MMMEngine::Behaviour::GetStringMessageNames(std::vector<std::string>& outNames) const
+{
+	outNames.clear();
+	outNames.reserve(m_messages.size());
+
+	for (const auto& entry : m_messages)
+	{
+		if (!entry.second)
+			continue;
+
+		if (entry.second->GetArgCount() != 1)
+			continue;
+
+		const std::type_info* argType = entry.second->GetArgType(0);
+		if (argType && (*argType == typeid(std::string) || *argType == typeid(const std::string)))
 			outNames.push_back(entry.first);
 	}
 }
