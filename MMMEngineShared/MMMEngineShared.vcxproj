@@ -191,6 +191,7 @@
     <ClInclude Include="Graphic.h" />
     <ClInclude Include="Gage.h" />
     <ClInclude Include="HandleGage.h" />
+    <ClInclude Include="MeshColliderComponent.h" />
     <ClInclude Include="UIEventManager.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="GameObject.h" />
@@ -283,6 +284,7 @@
     <ClCompile Include="Gage.cpp" />
     <ClCompile Include="Graphic.cpp" />
     <ClCompile Include="HandleGage.cpp" />
+    <ClCompile Include="MeshColliderComponent.cpp" />
     <ClCompile Include="UIEventManager.cpp" />
     <ClCompile Include="Image.cpp" />
     <ClCompile Include="GlobalRegistry.cpp" />
@@ -351,5 +353,3 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
-
-

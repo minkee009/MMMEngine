@@ -98,24 +98,6 @@ void MMMEngine::PhysxManager::NotifyRigidAdded(RigidBodyComponent* rb)
 void MMMEngine::PhysxManager::NotifyRigidRemoved(RigidBodyComponent* rb)
 {
     if (!rb) return;
-    //auto go = rb->GetGameObject();
-    //if (!go.IsValid()) return;
-    ////중복 rigid 생성 후 즉시 destroy되는 케이스 방어 (선택)
-    ////현재 GO의 대표 rigid가 rb가 아니라면, 이 rb는 물리월드에 등록됐을 가능성이 낮음.
-    ////그래도 안전하게 Unregister만 요청(혹시 등록돼있으면 제거되게).
-    //auto currentRbPtr = go->GetComponent<RigidBodyComponent>();
-    //RigidBodyComponent* currentRb = currentRbPtr.IsValid()
-    //    ? static_cast<RigidBodyComponent*>(currentRbPtr.GetRaw())
-    //    : nullptr;
-
-    //if (currentRb && currentRb != rb)
-    //{
-    //    // "대표 rigid"가 아닌 중복 rigid 제거: collider 건드릴 필요 없음
-    //    RequestUnregisterRigid(rb);
-    //    return;
-    //}
-
-    ////마지막으로 rigid 제거(PhysX unregister) 예약
     RequestUnregisterRigid(rb);
 }
 

@@ -15,6 +15,7 @@ RTTR_REGISTRATION
 		.property("Height", &CapsuleColliderComponent::GetHalfHeight, &CapsuleColliderComponent::SetHalfHeight)
 			(rttr::metadata("RANGE", "0.01,1000"))
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
+		.property("Quater", &ColliderComponent::GetLocalQuater, &ColliderComponent::SetLocalRotation)
 		;
 
 	registration::class_<ObjPtr<CapsuleColliderComponent>>("ObjPtr<CapsuleColliderComponent>")
@@ -71,9 +72,9 @@ void MMMEngine::CapsuleColliderComponent::ApplyLocalPose()
 	m_Shape->setLocalPose(m_RigidOffsetPose * m_LocalPose * m_AxisCorrection);
 }
 
-void MMMEngine::CapsuleColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
+bool MMMEngine::CapsuleColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
 {
-    if (!physics || !material) return;
+    if (!physics || !material) return false;
 
     const float t_radius = (m_radius > 0.0f) ? m_radius : 0.01f;
     const float t_halfheight = (m_halfHeight > 0.0f) ? m_halfHeight : 0.01f;
@@ -82,10 +83,11 @@ void MMMEngine::CapsuleColliderComponent::BuildShape(physx::PxPhysics* physics, 
 
     // shape 생성
     physx::PxShape* shape = physics->createShape(geom, *material, true);
-    if (!shape) return;
+    if (!shape) return false;
 
     // 부모가 userData 설정 및 ApplyAll 수행
     SetShape(shape, true);
+	return true;
 }
 
 MMMEngine::ColliderComponent::DebugColliderShapeDesc MMMEngine::CapsuleColliderComponent::GetDebugShapeDesc() const

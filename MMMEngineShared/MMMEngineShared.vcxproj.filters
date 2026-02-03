@@ -168,6 +168,9 @@
     <ClCompile Include="AnimatorController.cpp">
       <Filter>소스 파일\Core\Render API\Component</Filter>
     </ClCompile>
+    <ClCompile Include="MeshColliderComponent.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimationClip.h" />
@@ -467,6 +470,9 @@
     </ClInclude>
     <ClInclude Include="AnimatorController.h">
       <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshColliderComponent.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -769,5 +775,3 @@
     </Filter>
   </ItemGroup>
 </Project>
-
-

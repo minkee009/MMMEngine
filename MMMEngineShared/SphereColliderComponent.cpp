@@ -12,6 +12,7 @@ RTTR_REGISTRATION
 		.property("Radius", &SphereColliderComponent::GetRadius, &SphereColliderComponent::SetRadius)
 			(rttr::metadata("RANGE", "0.01,1000"))
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
+		.property("Quater", &ColliderComponent::GetLocalQuater, &ColliderComponent::SetLocalRotation)
 		;
 
 	registration::class_<ObjPtr<SphereColliderComponent>>("ObjPtr<SphereColliderComponent>")
@@ -52,18 +53,19 @@ bool MMMEngine::SphereColliderComponent::UpdateShapeGeometry()
 	return true;
 }
 
-void MMMEngine::SphereColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
+bool MMMEngine::SphereColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
 {
-	if (!physics || !material) return;
+	if (!physics || !material) return false;
 
 	const float r = (m_radius > 0.0f) ? m_radius : 0.01f;
 
 	physx::PxSphereGeometry geom(r);
 
 	physx::PxShape* shape = physics->createShape(geom, *material, true);
-	if (!shape) return;
+	if (!shape) return false;
 
 	SetShape(shape, true);
+	return true;
 }
 
 MMMEngine::ColliderComponent::DebugColliderShapeDesc MMMEngine::SphereColliderComponent::GetDebugShapeDesc() const

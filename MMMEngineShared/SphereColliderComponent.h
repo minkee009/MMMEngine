@@ -15,7 +15,7 @@ namespace MMMEngine
 
 		bool UpdateShapeGeometry() override;
 
-		void BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) override;
+		bool BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) override;
 
 		DebugColliderShapeDesc GetDebugShapeDesc() const override;
 	private:

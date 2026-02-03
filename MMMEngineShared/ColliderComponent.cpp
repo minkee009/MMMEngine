@@ -33,6 +33,24 @@ void MMMEngine::ColliderComponent::EnsureMaterial()
 	}
 }
 
+void MMMEngine::ColliderComponent::RegisterToPhysics()
+{
+    if (m_IsRegistered || !m_Shape) return;
+    MMMEngine::PhysxManager::Get().NotifyColliderAdded(this);
+    GetGameObject()->GetTransform()->onUpdateTransformTree
+        .AddListener<ColliderComponent, &ColliderComponent::NoticeCompoundCollider>(this);
+    m_IsRegistered = true;
+}
+
+void MMMEngine::ColliderComponent::UnregisterFromPhysics()
+{
+    if (!m_IsRegistered) return;
+    GetGameObject()->GetTransform()->onUpdateTransformTree
+        .RemoveListener<ColliderComponent, &ColliderComponent::NoticeCompoundCollider>(this);
+    MMMEngine::PhysxManager::Get().NotifyColliderRemoved(this);
+    m_IsRegistered = false;
+}
+
 void MMMEngine::ColliderComponent::ApplyMaterial()
 {
 	EnsureMaterial();
@@ -366,18 +384,21 @@ void MMMEngine::ColliderComponent::Initialize()
 
 	if (mat)
 	{
-		BuildShape(&physics, mat);
+        if (!BuildShape(&physics, mat) || !m_Shape)
+        {
+            std::cout << u8"Shape 생성 실패 , BuildShape를 확인" << std::endl;
+            return;
+        }
 	}
-	MMMEngine::PhysxManager::Get().NotifyColliderAdded(this);
-    
-    GetGameObject()->GetTransform()->onUpdateTransformTree.AddListener<ColliderComponent, &ColliderComponent::NoticeCompoundCollider>(this);
+
+    RegisterToPhysics();
 }
 
 void MMMEngine::ColliderComponent::UnInitialize()
 {
     if(GetGameObject().IsValid())
     {
-        GetGameObject()->GetTransform()->onUpdateTransformTree.RemoveListener<ColliderComponent, &ColliderComponent::NoticeCompoundCollider>(this);
+        UnregisterFromPhysics();
     }
 
     PhysxManager::Get().NotifyColliderRemoved(this);

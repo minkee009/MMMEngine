@@ -12,6 +12,7 @@ RTTR_REGISTRATION
 		(rttr::metadata("wrapper_type_name", "ObjPtr<BoxColliderComponent>"))
 		.property("Extents", &BoxColliderComponent::GetHalfExtents, &BoxColliderComponent::SetHalfExtents)
 		.property("Center", &ColliderComponent::GetLocalCenter, &ColliderComponent::SetLocalCenter)
+		.property("Quater", &ColliderComponent::GetLocalQuater, &ColliderComponent::SetLocalRotation)
 		;
 
 	registration::class_<ObjPtr<BoxColliderComponent>>("ObjPtr<BoxColliderComponent>")
@@ -58,9 +59,9 @@ void MMMEngine::BoxColliderComponent::PrintFilter()
 	printf("simFilter: %u %u %u %u\n", fd.word0, fd.word1, fd.word2, fd.word3);
 }
 
-void MMMEngine::BoxColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
+bool MMMEngine::BoxColliderComponent::BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material)
 {
-	if (!physics || !material) return;
+	if (!physics || !material) return false;
 
 	const float hx = (m_halfExtents.x > 0.f) ? m_halfExtents.x : 0.01f;
 	const float hy = (m_halfExtents.y > 0.f) ? m_halfExtents.y : 0.01f;
@@ -69,9 +70,10 @@ void MMMEngine::BoxColliderComponent::BuildShape(physx::PxPhysics* physics, phys
 	physx::PxBoxGeometry geom(hx, hy, hz);
 
 	physx::PxShape* shape = physics->createShape(geom, *material, true);
-	if (!shape) return;
+	if (!shape) return false;
 
 	SetShape(shape, true);
+	return true;
 }
 
 MMMEngine::ColliderComponent::DebugColliderShapeDesc MMMEngine::BoxColliderComponent::GetDebugShapeDesc() const

@@ -4,6 +4,7 @@
 #include "RigidBodyComponent.h"
 #include "ColliderComponent.h"
 #include "CollisionMatrix.h"
+#include "MeshColliderComponent.h"
 
 //using namespace DirectX::SimpleMath;
 

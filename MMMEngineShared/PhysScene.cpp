@@ -322,6 +322,12 @@ void MMMEngine::PhysScene::AttachCollider(MMMEngine::RigidBodyComponent* rb, MMM
 	//}
 
 
+	if (auto* meshCol = dynamic_cast<MeshColliderComponent*>(col))
+	{
+		if (!meshCol->RebuildShapeOnly(rb->GetType()))
+			return; // 실패 시 attach하지 않음
+	}
+
 
 	// 필터 적용
 	auto* shape = col->GetPxShape();
@@ -552,10 +558,20 @@ void MMMEngine::PhysScene::ChangeRigidType(MMMEngine::RigidBodyComponent* rb, co
 	auto* newActor = rb->GetPxActor();
 	if (!newActor) return;
 
+
 	//콜라이더 다시 attach (컨테이너는 건드리지 말고, actor에 shape만 attach)
 	for (auto* col : cols)
 	{
 		if (!col) continue;
+
+
+		//
+		if (auto* meshCol = dynamic_cast<MeshColliderComponent*>(col))
+		{
+			if (!meshCol->RebuildShapeOnly(rb->GetType()))
+				continue; // 실패 시 이 콜라이더는 attach 안 함
+		}
+		//
 
 		auto* shape = col->GetPxShape();
 		if (!shape) continue; // 정책상 여기서 BuildShape를 할지, 그냥 스킵할지 결정
@@ -627,6 +643,12 @@ void MMMEngine::PhysScene::TransferCollider(MMMEngine::RigidBodyComponent* oldRb
 	if (oldRb)
 	{
 		DetachCollider(oldRb, col); // ownerByCollider / collidersByRigid 정리 포함
+	}
+
+	if (auto* meshCol = dynamic_cast<MeshColliderComponent*>(col))
+	{
+		if (!meshCol->RebuildShapeOnly(newRb->GetType()))
+			return; // 실패 시 attach 중단
 	}
 
 	// newRb 기준 local pose 계산
