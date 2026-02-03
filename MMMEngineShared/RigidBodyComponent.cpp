@@ -72,7 +72,7 @@ RTTR_REGISTRATION
 		.property("SolverVelocityIters", &RigidBodyComponent::Desc::solverVelocityIters);
 }
 
-void MMMEngine::RigidBodyComponent::CreateActor(physx::PxPhysics* physics, Vector3 worldPos, Quaternion Quater)
+void MMMEngine::RigidBodyComponent::CreateActor(physx::PxPhysics* physics, Vector3 worldPos, Quaternion Quater , bool attachExistingShapes)
 {
 	if (m_Actor) return;
 
@@ -102,11 +102,13 @@ void MMMEngine::RigidBodyComponent::CreateActor(physx::PxPhysics* physics, Vecto
 		t_dynamic->setSolverIterationCounts(m_Desc.solverPositionIters, m_Desc.solverVelocityIters);
 	}
 
-
-	for (auto* t_collider : m_Colliders)
+	if(attachExistingShapes)
 	{
-		if (auto* shape = t_collider->GetPxShape())
-			m_Actor->attachShape(*shape);
+		for (auto* t_collider : m_Colliders)
+		{
+			if (auto* shape = t_collider->GetPxShape())
+				m_Actor->attachShape(*shape);
+		}
 	}
 
 	MarkMassDirty();

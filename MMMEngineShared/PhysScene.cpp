@@ -553,7 +553,7 @@ void MMMEngine::PhysScene::ChangeRigidType(MMMEngine::RigidBodyComponent* rb, co
 	//새 actor 생성
 	auto& physics = PhysicX::Get().GetPhysics();
 	rb->SetType_Internal();
-	rb->CreateActor(&physics, rb->GetRequestedPos(), rb->GetRequestedRot());
+	rb->CreateActor(&physics, rb->GetRequestedPos(), rb->GetRequestedRot(), false);
 
 	auto* newActor = rb->GetPxActor();
 	if (!newActor) return;

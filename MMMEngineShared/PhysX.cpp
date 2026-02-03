@@ -1,4 +1,4 @@
-#include "PhysX.h"
+ï»¿#include "PhysX.h"
 #include <physx/extensions/PxDefaultCpuDispatcher.h>
 #include <physx/cooking/PxCooking.h>
 #include <iostream>
@@ -9,7 +9,7 @@
 
 DEFINE_SINGLETON(MMMEngine::PhysicX)
 
-//¼ø¼­ º¸ÀåÀ» À§ÇØ init ÇÔ¼ö¸¦ °³º°·Î ³ª´®
+//ìˆœì„œ ë³´ì¥ì„ ìœ„í•´ init í•¨ìˆ˜ë¥¼ ê°œë³„ë¡œ ë‚˜ëˆ”
 bool MMMEngine::PhysicX::Initialize()
 {
 	if (!InitTolerances(1.0f, 1.0f)) return false;
@@ -34,7 +34,7 @@ bool MMMEngine::PhysicX::UnInitialize()
 //	SAFE_RELEASE(transport);
 //	SAFE_RELEASE(m_Pvd);
 //#endif
-	//¸¶Áö¸·¿¡ ÇØÁ¦
+	//ë§ˆì§€ë§‰ì— í•´ì œ
 	SAFE_RELEASE(m_foundation);
 	SAFE_RELEASE(m_defaultMaterial);
 	return true;
@@ -52,8 +52,8 @@ physx::PxMaterial* MMMEngine::PhysicX::GetMaterial(MaterialID id)
 
 bool MMMEngine::PhysicX::InitTolerances(float _length, float _speed)
 {
-	if (_length <= 0.01f || _length > 100.0f) { std::cout << "Àß¸øµÈ ±æÀÌ°ª ÀÔ·Â" << std::endl; return false; }
-	if (_speed <= 0.01f) { std::cout << "Àß¸øµÈ ¼Óµµ°ª ÀÔ·Â" << std::endl; return false; }
+	if (_length <= 0.01f || _length > 100.0f) { std::cout << "ì˜ëª»ëœ ê¸¸ì´ê°’ ì…ë ¥" << std::endl; return false; }
+	if (_speed <= 0.01f) { std::cout << "ì˜ëª»ëœ ì†ë„ê°’ ì…ë ¥" << std::endl; return false; }
 
 	m_Tscale.length = _length; m_Tscale.speed = _speed;
 	return true;
@@ -85,10 +85,11 @@ bool MMMEngine::PhysicX::InitPhysics()
 
 bool MMMEngine::PhysicX::InitCook()
 {
-	//3, 4 ¹öÀü¿¡¼­´Â »óÅÂÇ® °´Ã¼¿´Áö¸¸ 5¿¡¼­´Â ¼ø¼ö ÇÔ¼öÈ­¸¦ Çß±â¶§¹®¿¡ ¼³Á¤°ª + ÀÔ·Â => °á°ú·Î ´Ü¼øÈ­ÇÔ
+	//3, 4 ë²„ì „ì—ì„œëŠ” ìƒíƒœí’€ ê°ì²´ì˜€ì§€ë§Œ 5ì—ì„œëŠ” ìˆœìˆ˜ í•¨ìˆ˜í™”ë¥¼ í–ˆê¸°ë•Œë¬¸ì— ì„¤ì •ê°’ + ì…ë ¥ => ê²°ê³¼ë¡œ ë‹¨ìˆœí™”í•¨
 	//m_cookingParams = physx::PxCookingParams(m_physics->getTolerancesScale());
 	m_cookingParams.emplace(m_physics->getTolerancesScale());
 	m_cookingParams->meshPreprocessParams |= physx::PxMeshPreprocessingFlag::eWELD_VERTICES;
+	m_cookingParams->meshWeldTolerance = 0.001f * m_Tscale.length;
 	m_cookingParamInitialized = true;
 	return true;
 }
@@ -104,10 +105,10 @@ bool MMMEngine::PhysicX::InitMaterial()
 	return true;
 }
 
-//µğ¹ö±×½Ã¿¡¸¸ »ç¿ë
+//ë””ë²„ê·¸ì‹œì—ë§Œ ì‚¬ìš©
 //bool MMMEngine::PhysicX::InitPVD()
 //{
-//	//PVD ¿¬°á
+//	//PVD ì—°ê²°
 //	m_Pvd = physx::PxCreatePvd(*m_foundation);
 //	if (!m_Pvd) return false;
 //	transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);

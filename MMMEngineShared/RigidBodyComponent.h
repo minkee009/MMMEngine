@@ -92,7 +92,7 @@ namespace MMMEngine {
 
 		void OnDestroy();
 		//Scene에 등록
-		void CreateActor(physx::PxPhysics* physics, DirectX::SimpleMath::Vector3 worldPos, DirectX::SimpleMath::Quaternion Quater);
+		void CreateActor(physx::PxPhysics* physics, DirectX::SimpleMath::Vector3 worldPos, DirectX::SimpleMath::Quaternion Quater , bool attachExistingShapes = true);
 
 		//Shape 붙이기
 		void AttachCollider(ColliderComponent* collider);
