@@ -8,7 +8,7 @@ namespace MMMEngine
 	class MMMENGINE_API MeshColliderComponent : public ColliderComponent
 	{
 	private:
-		RTTR_ENABLE(Component)
+		RTTR_ENABLE(ColliderComponent)
 			RTTR_REGISTRATION_FRIEND
 	public:
 		enum class MeshMode { Auto, Triangle, Convex };

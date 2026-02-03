@@ -1547,118 +1547,167 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 
 		auto& sceneGameObjects = SceneManager::Get().GetAllGameObjectInCurrentScene();
 
-		for (size_t i = 0; i < sceneGameObjects.size(); ++i)
+
+		// 전체보기는 성능이 문제로 픽한게임오브젝트만
+		if(g_selectedGameObject.IsValid())
 		{
-			auto& go = sceneGameObjects[i];
+			auto& go = g_selectedGameObject;
 
-			if (!go->IsActiveInHierarchy())
-				continue;
-
-			auto& ColliderComponents = go->GetComponents<ColliderComponent>();
-
-			for (auto& col : ColliderComponents)
+			if (go->IsActiveInHierarchy())
 			{
-				if (!col.IsValid() && col->IsDestroyed())
+				auto& ColliderComponents = go->GetComponents<ColliderComponent>();
+
+				for (auto& col : ColliderComponents)
 				{
-					continue;
-				}
-				auto desc = col->GetDebugShapeDesc();
-
-				switch (desc.type)
-				{
-				case ColliderComponent::DebugColliderType::Box:
-				{
-					BoundingBox box;
-					box.Center = desc.localCenter;
-					box.Extents = desc.halfExtents;
-					BoundingOrientedBox obb;
-					obb.CreateFromBoundingBox(obb, box);
-					obb.Transform(obb, go->GetTransform()->GetWorldMatrix());
-					DX::Draw(m_batch.get(), obb, Colors::LightGreen);
-					break;
-				}
-				case ColliderComponent::DebugColliderType::Sphere:
-				{
-					BoundingSphere sphere;
-					sphere.Center = desc.localCenter;
-					sphere.Radius = desc.sphereRadius;
-					DX::Draw(m_batch.get(), sphere, go->GetTransform()->GetWorldMatrix(), Colors::LightGreen);
-					break;
-				}
-				case ColliderComponent::DebugColliderType::Capsule:
-				{
-					const auto& wm = go->GetTransform()->GetWorldMatrix();
-
-					const Vector3 upV = wm.Up();
-					const Vector3 rightV = wm.Right();
-					const Vector3 forwardV = wm.Forward();
-
-					const float r = desc.radius;
-
-					const Vector3 worldPos = go->GetTransform()->GetWorldPosition() + desc.localCenter;
-					const Vector3 p0 = worldPos + upV * desc.halfHeight; // 상단 구 중심
-					const Vector3 p1 = worldPos - upV * desc.halfHeight; // 하단 구 중심
-
-					const XMVECTOR color = Colors::LightGreen;
-
-					// 축 벡터를 XMVECTOR로 (ring/arc에 사용)
-					const XMVECTOR rightAxis = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&rightV)) * r;
-					const XMVECTOR forwardAxis = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&forwardV)) * r;
-					const XMVECTOR upAxis = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&upV)) * r;
-
-					// ---- A) 절단원 링 2개 (원기둥 위/아래 단면) ----
+					if (!col.IsValid() && col->IsDestroyed())
 					{
-						const XMVECTOR o0 = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p0));
-						const XMVECTOR o1 = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p1));
-
-						// Up에 수직인 평면: major=Right*r, minor=Forward*r
-						DX::DrawRing(m_batch.get(), o0, rightAxis, forwardAxis, color);
-						DX::DrawRing(m_batch.get(), o1, rightAxis, forwardAxis, color);
+						continue;
 					}
+					auto desc = col->GetDebugShapeDesc();
 
-					// ---- B) 원기둥(측면) 4개 선 ----
+
+
+
+					switch (desc.type)
 					{
-						m_batch->DrawLine(
-							VertexPositionColor(p0 + rightV * r, Colors::LightGreen),
-							VertexPositionColor(p1 + rightV * r, Colors::LightGreen));
-
-						m_batch->DrawLine(
-							VertexPositionColor(p0 - rightV * r, Colors::LightGreen),
-							VertexPositionColor(p1 - rightV * r, Colors::LightGreen));
-
-						m_batch->DrawLine(
-							VertexPositionColor(p0 + forwardV * r, Colors::LightGreen),
-							VertexPositionColor(p1 + forwardV * r, Colors::LightGreen));
-
-						m_batch->DrawLine(
-							VertexPositionColor(p0 - forwardV * r, Colors::LightGreen),
-							VertexPositionColor(p1 - forwardV * r, Colors::LightGreen));
-					}
-
-					// ---- C) 상단 반구: 하프링 2개 ----
+					case ColliderComponent::DebugColliderType::Unknown:
 					{
-						const XMVECTOR o = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p0));
+						if (auto& meshCol = col.Cast<MeshColliderComponent>(); meshCol.IsValid())
+						{
+							auto make_rt_noscale = [](const Vector3& translation,
+								const Quaternion& rotation) -> Matrix
+								{
+									return
+										Matrix::CreateFromQuaternion(rotation) *
+										Matrix::CreateTranslation(translation);
+								};
 
-						// sin>=0 쪽이 +Up이므로 "상단" 반원
-						DX::DrawHalfRing(m_batch.get(), o, rightAxis, upAxis, color, 16);
-						DX::DrawHalfRing(m_batch.get(), o, forwardAxis, upAxis, color, 16);
+							auto rt = make_rt_noscale(go->GetTransform()->GetLocalPosition(), go->GetTransform()->GetLocalRotation());
+
+							const auto& meshes = meshCol->GetMesh()->meshData;
+
+							// indexCount는 3의 배수여야 함(삼각형 리스트)
+							for (size_t i = 0; i < meshes.vertices.size(); ++i)
+							{
+								auto& submesh = meshes.vertices[i];
+								auto& submeshIndices = meshes.indices[i];
+
+								const auto vertexCount = submesh.size();
+								const size_t triCount = submeshIndices.size() / 3;
+								for (size_t t = 0; t < triCount; ++t)
+								{
+									uint32_t ia = submeshIndices[t * 3 + 0];
+									uint32_t ib = submeshIndices[t * 3 + 1];
+									uint32_t ic = submeshIndices[t * 3 + 2];
+
+									if (ia >= submesh.size() || ib >= vertexCount || ic >= vertexCount)
+										continue; // 안전장치
+
+
+									XMVECTOR A = XMVector3TransformCoord(XMLoadFloat3(&submesh[ia].Pos), rt);
+									XMVECTOR B = XMVector3TransformCoord(XMLoadFloat3(&submesh[ib].Pos), rt);
+									XMVECTOR C = XMVector3TransformCoord(XMLoadFloat3(&submesh[ic].Pos), rt);
+
+									DX::DrawTriangle(m_batch.get(), A, B, C, Colors::LightGreen);
+								}
+							}
+
+						}
 					}
-
-					// ---- D) 하단 반구: 하프링 2개 ----
+					case ColliderComponent::DebugColliderType::Box:
 					{
-						const XMVECTOR o = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p1));
-
-						// 하단은 minorAxis를 -Up으로 뒤집으면 됨
-						const XMVECTOR downAxis = -upAxis;
-
-						DX::DrawHalfRing(m_batch.get(), o, rightAxis, downAxis, color, 16);
-						DX::DrawHalfRing(m_batch.get(), o, forwardAxis, downAxis, color, 16);
+						BoundingBox box;
+						box.Center = desc.localCenter;
+						box.Extents = desc.halfExtents;
+						BoundingOrientedBox obb;
+						obb.CreateFromBoundingBox(obb, box);
+						obb.Transform(obb, go->GetTransform()->GetWorldMatrix());
+						DX::Draw(m_batch.get(), obb, Colors::LightGreen);
+						break;
 					}
+					case ColliderComponent::DebugColliderType::Sphere:
+					{
+						BoundingSphere sphere;
+						sphere.Center = desc.localCenter;
+						sphere.Radius = desc.sphereRadius;
+						DX::Draw(m_batch.get(), sphere, go->GetTransform()->GetWorldMatrix(), Colors::LightGreen);
+						break;
+					}
+					case ColliderComponent::DebugColliderType::Capsule:
+					{
+						const auto& wm = go->GetTransform()->GetWorldMatrix();
 
-					break;
-				}
-				default:
-					break;
+						const Vector3 upV = wm.Up();
+						const Vector3 rightV = wm.Right();
+						const Vector3 forwardV = wm.Forward();
+
+						const float r = desc.radius;
+
+						const Vector3 worldPos = go->GetTransform()->GetWorldPosition() + desc.localCenter;
+						const Vector3 p0 = worldPos + upV * desc.halfHeight; // 상단 구 중심
+						const Vector3 p1 = worldPos - upV * desc.halfHeight; // 하단 구 중심
+
+						const XMVECTOR color = Colors::LightGreen;
+
+						// 축 벡터를 XMVECTOR로 (ring/arc에 사용)
+						const XMVECTOR rightAxis = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&rightV)) * r;
+						const XMVECTOR forwardAxis = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&forwardV)) * r;
+						const XMVECTOR upAxis = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&upV)) * r;
+
+						// ---- A) 절단원 링 2개 (원기둥 위/아래 단면) ----
+						{
+							const XMVECTOR o0 = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p0));
+							const XMVECTOR o1 = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p1));
+
+							// Up에 수직인 평면: major=Right*r, minor=Forward*r
+							DX::DrawRing(m_batch.get(), o0, rightAxis, forwardAxis, color);
+							DX::DrawRing(m_batch.get(), o1, rightAxis, forwardAxis, color);
+						}
+
+						// ---- B) 원기둥(측면) 4개 선 ----
+						{
+							m_batch->DrawLine(
+								VertexPositionColor(p0 + rightV * r, Colors::LightGreen),
+								VertexPositionColor(p1 + rightV * r, Colors::LightGreen));
+
+							m_batch->DrawLine(
+								VertexPositionColor(p0 - rightV * r, Colors::LightGreen),
+								VertexPositionColor(p1 - rightV * r, Colors::LightGreen));
+
+							m_batch->DrawLine(
+								VertexPositionColor(p0 + forwardV * r, Colors::LightGreen),
+								VertexPositionColor(p1 + forwardV * r, Colors::LightGreen));
+
+							m_batch->DrawLine(
+								VertexPositionColor(p0 - forwardV * r, Colors::LightGreen),
+								VertexPositionColor(p1 - forwardV * r, Colors::LightGreen));
+						}
+
+						// ---- C) 상단 반구: 하프링 2개 ----
+						{
+							const XMVECTOR o = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p0));
+
+							// sin>=0 쪽이 +Up이므로 "상단" 반원
+							DX::DrawHalfRing(m_batch.get(), o, rightAxis, upAxis, color, 16);
+							DX::DrawHalfRing(m_batch.get(), o, forwardAxis, upAxis, color, 16);
+						}
+
+						// ---- D) 하단 반구: 하프링 2개 ----
+						{
+							const XMVECTOR o = XMLoadFloat3(reinterpret_cast<const XMFLOAT3*>(&p1));
+
+							// 하단은 minorAxis를 -Up으로 뒤집으면 됨
+							const XMVECTOR downAxis = -upAxis;
+
+							DX::DrawHalfRing(m_batch.get(), o, rightAxis, downAxis, color, 16);
+							DX::DrawHalfRing(m_batch.get(), o, forwardAxis, downAxis, color, 16);
+						}
+
+						break;
+					}
+					default:
+						break;
+					}
 				}
 			}
 		}
