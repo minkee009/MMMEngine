@@ -12,10 +12,15 @@ using namespace MMMEngine::EditorRegistry;
 #include <optional>
 #include <algorithm>
 #include <filesystem>
+#include <unordered_set>
 
 using namespace MMMEngine;
 using namespace MMMEngine::Utility;
 using namespace MMMEngine::Editor;
+
+// 다음 프레임에 부모 트리 노드를 열 대상 오브젝트 MUID (선택이 자식으로 바뀌었을 때만 사용)
+static std::unordered_set<MUID, MMMEngine::Utility::MUID::Hash> s_expandNodeMuids;
+static bool s_expandParentsNextFrame = false;
 
 struct ReparentCmd
 {
@@ -76,6 +81,10 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj, bool allowDrag)
 		ImGui::PushStyleColor(ImGuiCol_Text, c);
 	}
 
+	// 피킹으로 자식이 선택되었을 때 부모 노드는 닫혀 있으면 한 프레임만 열기
+	if (s_expandNodeMuids.count(muid) != 0)
+		ImGui::SetNextItemOpen(true);
+
 	bool open = ImGui::TreeNodeEx(obj->GetName().c_str(), flags);
 
 	if (!activeSelf)
@@ -115,10 +124,31 @@ void DrawHierarchyMember(ObjPtr<GameObject> obj, bool allowDrag)
 	ImGui::PopID();
 }
 
+void MMMEngine::Editor::HierarchyWindow::RequestExpandParentsForSelection()
+{
+	s_expandParentsNextFrame = true;
+}
+
 void MMMEngine::Editor::HierarchyWindow::Render()
 {
 	if (!g_editor_window_hierarchy)
 		return;
+
+	// 피킹 등으로 선택이 자식으로 바뀌었을 때: 부모 체인을 이번 트리 그리기에서 열기
+	s_expandNodeMuids.clear();
+	if (s_expandParentsNextFrame)
+	{
+		s_expandParentsNextFrame = false;
+		if (g_selectedGameObject.IsValid() && g_selectedGameObject->GetTransform().IsValid())
+		{
+			for (ObjPtr<Transform> tr = g_selectedGameObject->GetTransform()->GetParent(); tr.IsValid(); tr = tr->GetParent())
+			{
+				auto go = tr->GetGameObject();
+				if (go.IsValid())
+					s_expandNodeMuids.insert(go->GetMUID());
+			}
+		}
+	}
 
 	ImGuiWindowClass wc;
 	// 핵심: 메인 뷰포트에 이 윈도우를 종속시킵니다.
@@ -219,6 +249,9 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 		}
 		ImGui::EndDragDropTarget();
 	}
+
+	// 이번 프레임에만 사용한 확장 대상 정리
+	s_expandNodeMuids.clear();
 
 	// 마우스 버튼을 뗐을 때 처리 (ImGui::End() 전에 체크해야 함)
 	if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))

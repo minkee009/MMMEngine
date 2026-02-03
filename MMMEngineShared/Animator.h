@@ -28,8 +28,11 @@ namespace MMMEngine {
 		bool mIsPlaying = false;
 		float mPlaySpeed = 1.0f;
 		ObjPtr<SkinRenderer> mSkinComp;
+		Mesh_BoneBuffer mAnimBuffer;
 		std::vector<ResPtr<AnimationClip>> mAnimClips;
 
+		// <AnimName, AnimIdx>
+		std::unordered_map<std::string, int> mAnimClipIdx;
 		// <AnimName, AnimInfo>
 		std::unordered_map<std::string, AnimInfo> mCurrentPlayingMap;
 
@@ -46,15 +49,15 @@ namespace MMMEngine {
 		void UnInitialize() override;
 		void Update(float _deltaTime);
 
-		void AddAnimClip(ResPtr<AnimationClip> _clip) {mAnimClips.push_back(_clip); }
+		void AddAnimClip(ResPtr<AnimationClip> _clip);
 		ResPtr<AnimationClip> GetAnimClip(std::string name) { return mAnimClips[mCurrentPlayingMap[name].clipIdx]; }
 		void RemoveAnimClip(ResPtr<AnimationClip> _clip);
 
 		std::vector<ResPtr<AnimationClip>>& GetAnimClips() { return mAnimClips; }
 		void SetAnimClips(std::vector<ResPtr<AnimationClip>>& _clips) { mAnimClips = _clips; }
 	
-		void PlayClip(std::string _name, int _rootIdx = -1);
-		void PlayBlendClip(std::string _name, float _blendWeight, int _rootIdx = -1);
+		void PlayClip(std::string _name, bool _isLoop = false, int _rootIdx = -1);
+		void PlayBlendClip(std::string _name, float _blendWeight, bool _isLoop = false, int _rootIdx = -1);
 		void StopClip();
 		void PauseClip();
 		void ResumeClip();

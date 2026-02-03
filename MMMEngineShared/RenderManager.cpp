@@ -1283,9 +1283,6 @@ namespace MMMEngine {
 
 			for (auto& cmd : commands)
 			{
-				// 스켈레탈 메시는 픽킹용 ID 렌더링에서 제외
-				if (cmd.offsetBuffer != nullptr || cmd.animBuffer != nullptr)
-					continue;
 				if (cmd.rendererID == UINT32_MAX)
 					continue;
 
@@ -1346,9 +1343,6 @@ namespace MMMEngine {
 
 			for (auto& cmd : commands)
 			{
-				// 스켈레탈 메시는 마스크/아웃라인에서 제외
-				if (cmd.offsetBuffer != nullptr || cmd.animBuffer != nullptr)
-					continue;
 				if (cmd.rendererID == UINT32_MAX || !isSelected(cmd.rendererID))
 					continue;
 

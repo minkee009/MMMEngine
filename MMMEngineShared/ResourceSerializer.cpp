@@ -454,24 +454,24 @@ std::filesystem::path MMMEngine::ResourceSerializer::Serialize_SkeletalMesh(cons
 	snapshot["BoneOffset"] = boneOffsetJson;
 
 	// NodeTree 직렬화
-	snapshot["nodeTree"]["rootIndex"] = _in->mNodeTree.rootIndex;
-	snapshot["nodeTree"]["nodes"] = json::array();
+	snapshot["NodeTree"]["RootIndex"] = std::to_string(_in->mNodeTree.rootIndex);
+	snapshot["NodeTree"]["Nodes"] = json::array();
 	for (const auto& node : _in->mNodeTree.nodes)
 	{
 		json n;
-		n["name"] = node.name;
-		n["parentIndex"] = node.parentIndex;
-		n["children"] = node.children;
+		n["Name"] = node.name;
+		n["ParentIndex"] = node.parentIndex;
+		n["Children"] = node.children;
 
 		// bindLocal 행렬을 배열로 저장
-		n["bindLocal"] = {
+		n["BindLocal"] = {
 			node.bindLocal._11, node.bindLocal._12, node.bindLocal._13, node.bindLocal._14,
 			node.bindLocal._21, node.bindLocal._22, node.bindLocal._23, node.bindLocal._24,
 			node.bindLocal._31, node.bindLocal._32, node.bindLocal._33, node.bindLocal._34,
 			node.bindLocal._41, node.bindLocal._42, node.bindLocal._43, node.bindLocal._44
 		};
 
-		snapshot["nodeTree"]["nodes"].push_back(n);
+		snapshot["NodeTree"]["Nodes"].push_back(n);
 	}
 
 	// Json 출력
@@ -686,18 +686,18 @@ void MMMEngine::ResourceSerializer::DeSerialize_SkeletalMesh(SkeletalMesh* _out,
 	}
 
 	// NodeTree 역직렬화
-	_out->mNodeTree.rootIndex = snapshot["nodeTree"]["rootIndex"].get<int>();
+	_out->mNodeTree.rootIndex = std::stoi(snapshot["NodeTree"]["RootIndex"].get<std::string>());
 	_out->mNodeTree.nodes.clear();
 	_out->mNodeTree.nodeIndexByName.clear();
 
-	for (auto& n : snapshot["nodeTree"]["nodes"])
+	for (auto& n : snapshot["NodeTree"]["Nodes"])
 	{
 		NodeData node;
-		node.name = n["name"].get<std::string>();
-		node.parentIndex = n["parentIndex"].get<int>();
-		node.children = n["children"].get<std::vector<int>>();
+		node.name = n["Name"].get<std::string>();
+		node.parentIndex = n["ParentIndex"].get<int>();
+		node.children = n["Children"].get<std::vector<int>>();
 
-		auto matArr = n["bindLocal"];
+		auto matArr = n["BindLocal"];
 		node.bindLocal = DirectX::SimpleMath::Matrix(
 			matArr[0], matArr[1], matArr[2], matArr[3],
 			matArr[4], matArr[5], matArr[6], matArr[7],

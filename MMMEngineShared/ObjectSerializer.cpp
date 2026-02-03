@@ -28,6 +28,49 @@ namespace MMMEngine
         using json = nlohmann::json;
         using namespace rttr;
 
+        static bool IsObjPtrWrapperType(const rttr::type& wrapped_type)
+        {
+            if (!wrapped_type.is_valid() || !wrapped_type.is_pointer())
+                return false;
+
+            rttr::type raw = wrapped_type.get_raw_type();
+            return (raw == rttr::type::get<MMMEngine::Object>() ||
+                    raw.is_derived_from(rttr::type::get<MMMEngine::Object>()));
+        }
+
+        static bool IsObjPtrLikeType(const rttr::type& t)
+        {
+            if (t.get_name().to_string().find("ObjPtr") != std::string::npos)
+                return true;
+
+            if (t.is_wrapper())
+            {
+                if (IsObjPtrWrapperType(t.get_wrapped_type()))
+                    return true;
+            }
+            return false;
+        }
+
+        static rttr::type ResolveObjPtrInjectType(const rttr::type& target_type)
+        {
+            if (!IsObjPtrLikeType(target_type))
+                return rttr::type::get_by_name("");
+
+            if (target_type.get_method("Inject").is_valid())
+                return target_type;
+
+            if (target_type.is_wrapper())
+            {
+                rttr::type wrapped = target_type.get_wrapped_type();
+                rttr::type raw = wrapped.get_raw_type();
+                if (!raw.is_valid())
+                    raw = wrapped;
+                if (raw.get_method("Inject").is_valid())
+                    return raw;
+            }
+            return rttr::type::get_by_name("");
+        }
+
         void CollectHierarchy(const ObjPtr<GameObject>& root, std::vector<ObjPtr<GameObject>>& out)
         {
             if (!root.IsValid() || root->IsDestroyed())
@@ -496,17 +539,26 @@ namespace MMMEngine
                 rttr::type wrapped = target_type.get_wrapped_type();
                 if (wrapped.is_valid())
                 {
-                    rttr::type raw_wrapped = wrapped.get_raw_type();
-                    if (!raw_wrapped.is_valid())
-                        raw_wrapped = wrapped;
+                    bool isObjPtrWrapper = false;
+                    if (wrapped.is_pointer())
+                    {
+                        rttr::type raw = wrapped.get_raw_type();
+                        if (raw == type::get<MMMEngine::Object>() || raw.is_derived_from(type::get<MMMEngine::Object>()))
+                            isObjPtrWrapper = true;
+                    }
 
-                    rttr::variant unwrapped = target.extract_wrapped_value();
-                    if (!unwrapped.is_valid() || unwrapped.get_type() != raw_wrapped)
-                        unwrapped = raw_wrapped.create();
-
-                    DeserializeVariantPrefab(unwrapped, j, raw_wrapped, ctx);
-                    target = unwrapped;
-                    return;
+                    if (!isObjPtrWrapper)
+                    {
+                        rttr::type raw_wrapped = wrapped.get_raw_type();
+                        if (!raw_wrapped.is_valid())
+                            raw_wrapped = wrapped;
+                        rttr::variant unwrapped = target.extract_wrapped_value();
+                        if (!unwrapped.is_valid() || unwrapped.get_type() != raw_wrapped)
+                            unwrapped = raw_wrapped.create();
+                        DeserializeVariantPrefab(unwrapped, j, raw_wrapped, ctx);
+                        target = unwrapped;
+                        return;
+                    }
                 }
             }
 
@@ -729,9 +781,10 @@ namespace MMMEngine
                 }
             }
 
-            if (target_type.get_name().to_string().find("ObjPtr") != std::string::npos)
+            rttr::type inject_type = ResolveObjPtrInjectType(target_type);
+            if (inject_type.is_valid())
             {
-                auto inject = target_type.get_method("Inject");
+                auto inject = inject_type.get_method("Inject");
                 if (!inject.is_valid())
                 {
                     target = rttr::variant();
@@ -746,6 +799,13 @@ namespace MMMEngine
                     return;
                 }
 
+                if (!j.is_string())
+                {
+                    ObjPtr<Object> nullObj;
+                    const ObjPtrBase& nullRef = nullObj;
+                    inject.invoke(target, nullRef);
+                    return;
+                }
                 std::string muidStr = j.get<std::string>();
                 auto it = ctx.objectTable.find(muidStr);
                 if (it == ctx.objectTable.end() || IsMissingScriptTargetVariant(it->second))
@@ -932,25 +992,13 @@ namespace MMMEngine
                 }
 
                 rttr::type wrappedType = t.get_wrapped_type();
-                if (wrappedType.is_valid())
+                if (wrappedType.is_valid() && !IsObjPtrWrapperType(wrappedType))
                 {
-                    std::string wrappedName = wrappedType.get_name().to_string();
-                    if (wrappedName.find("ObjPtr") != std::string::npos)
-                    {
-                        rttr::variant unwrapped = var.extract_wrapped_value();
-                        if (unwrapped.is_valid())
-                        {
-                            MMMEngine::Object* obj = nullptr;
-                            if (unwrapped.convert(obj) && obj != nullptr)
-                                return obj->GetMUID().ToString();
-                        }
-                        return nullptr;
-                    }
+                    rttr::variant unwrapped = var.extract_wrapped_value();
+                    if (unwrapped.is_valid() && unwrapped.get_type() != t)
+                        return SerializeVariant(unwrapped);
                 }
-
-                rttr::variant unwrapped = var.extract_wrapped_value();
-                if (unwrapped.is_valid() && unwrapped.get_type() != t)
-                    return SerializeVariant(unwrapped);
+                // ObjPtr wrapper는 아래 ObjPtr 분기에서 처리하도록 fallthrough
             }
 
             if (t.is_enumeration())
@@ -998,13 +1046,11 @@ namespace MMMEngine
                 return arr;
             }
 
-            if (var.get_type().get_name().to_string().find("ObjPtr") != std::string::npos)
+            if (IsObjPtrLikeType(t))
             {
                 MMMEngine::Object* obj = nullptr;
                 if (var.convert(obj) && obj != nullptr)
-                {
                     return obj->GetMUID().ToString();
-                }
                 return nullptr;
             }
 

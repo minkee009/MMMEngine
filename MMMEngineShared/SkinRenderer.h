@@ -18,7 +18,8 @@ namespace MMMEngine {
 		// GPU 버퍼
 		ResPtr<SkeletalMesh> mesh = nullptr;
 		Animator* mAnimator = nullptr;
-		Mesh_BoneBuffer mAnimBuffer;
+		Mesh_BoneBuffer* mAnimBuffer = nullptr;
+		Mesh_BoneBuffer mDefaultBoneBuffer;
 
 		void Initialize() override;
 		void UnInitialize() override;

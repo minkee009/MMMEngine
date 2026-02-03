@@ -12,6 +12,8 @@ namespace MMMEngine {
 			friend class ResourceManager;
 			friend class SceneManager;
 			friend class Scene;
+			friend class Animator;
+
 	public:
 		std::string mName;
 

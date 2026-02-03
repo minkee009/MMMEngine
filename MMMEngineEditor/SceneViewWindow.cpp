@@ -1,6 +1,7 @@
 ﻿#include "imgui.h"
 #include "SceneViewWindow.h"
 #include "EditorRegistry.h"
+#include "HierarchyWindow.h"
 #include "RenderStateGuard.h"
 #include "RenderManager.h"
 #include "ResourceManager.h"
@@ -1237,10 +1238,12 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 							{
 								picked = graphic->GetGameObject();
 							}
+							}
 						}
-					}
 
 					g_selectedGameObject = picked;
+					if (picked.IsValid() && picked->GetTransform().IsValid() && picked->GetTransform()->GetParent() != nullptr)
+						HierarchyWindow::Get().RequestExpandParentsForSelection();
 				}
 				else
 				{
@@ -1268,6 +1271,8 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 								if (renderer && renderer->GetGameObject().IsValid() && !renderer->GetGameObject()->IsDestroyed())
 								{
 									g_selectedGameObject = renderer->GetGameObject();
+									if (g_selectedGameObject->GetTransform().IsValid() && g_selectedGameObject->GetTransform()->GetParent() != nullptr)
+										HierarchyWindow::Get().RequestExpandParentsForSelection();
 								}
 								else
 								{
