@@ -6,6 +6,7 @@
 #include <regex>
 #include <algorithm>
 #include <set>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
@@ -86,6 +87,123 @@ namespace MMMEngine::Editor
             std::vector<MessageInfo> messages;
             std::vector<PropertyInfo> properties;
         };
+
+        struct FileStamp
+        {
+            int64_t writeTime = 0;
+            uintmax_t fileSize = 0;
+        };
+
+        static int64_t ToStampTime(const fs::file_time_type& time)
+        {
+            return static_cast<int64_t>(time.time_since_epoch().count());
+        }
+
+        static bool GetFileStamp(const fs::path& path, FileStamp& outStamp)
+        {
+            std::error_code ec;
+            if (!fs::exists(path, ec) || !fs::is_regular_file(path, ec))
+                return false;
+            const auto t = fs::last_write_time(path, ec);
+            if (ec) return false;
+            const auto s = fs::file_size(path, ec);
+            if (ec) return false;
+            outStamp.writeTime = ToStampTime(t);
+            outStamp.fileSize = s;
+            return true;
+        }
+
+        static size_t HashCombine(size_t seed, size_t value)
+        {
+            seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+            return seed;
+        }
+
+        static size_t ComputeEngineSignatureHash(const std::vector<MMMEngine::UserScriptMessageSignature>& engineSigs)
+        {
+            size_t h = 0;
+            std::hash<std::string> hs;
+            for (const auto& sig : engineSigs)
+            {
+                h = HashCombine(h, hs(sig.messageName));
+                for (const auto& p : sig.paramTypes)
+                    h = HashCombine(h, hs(p));
+            }
+            return h;
+        }
+
+        static fs::path GetCachePath(const fs::path& scriptsDir)
+        {
+            return scriptsDir / "UserScripts.gen.cache";
+        }
+
+        static bool LoadCache(
+            const fs::path& scriptsDir,
+            size_t& outSigHash,
+            std::unordered_map<std::string, FileStamp>& outMap)
+        {
+            outMap.clear();
+            outSigHash = 0;
+
+            fs::path cachePath = GetCachePath(scriptsDir);
+            std::ifstream in(cachePath, std::ios::binary);
+            if (!in) return false;
+
+            std::string line;
+            bool hasVersion = false;
+            bool hasSig = false;
+            while (std::getline(in, line))
+            {
+                if (line.empty())
+                    continue;
+                if (!hasVersion)
+                {
+                    if (line != "version=1")
+                        return false;
+                    hasVersion = true;
+                    continue;
+                }
+                if (!hasSig)
+                {
+                    const std::string prefix = "sigHash=";
+                    if (line.rfind(prefix, 0) != 0)
+                        return false;
+                    outSigHash = static_cast<size_t>(std::stoull(line.substr(prefix.size())));
+                    hasSig = true;
+                    continue;
+                }
+
+                const size_t first = line.find('|');
+                const size_t second = (first == std::string::npos) ? std::string::npos : line.find('|', first + 1);
+                if (first == std::string::npos || second == std::string::npos)
+                    continue;
+                std::string relPath = line.substr(0, first);
+                FileStamp stamp;
+                stamp.writeTime = std::stoll(line.substr(first + 1, second - first - 1));
+                stamp.fileSize = static_cast<uintmax_t>(std::stoull(line.substr(second + 1)));
+                outMap.emplace(std::move(relPath), stamp);
+            }
+
+            return hasVersion && hasSig;
+        }
+
+        static bool SaveCache(
+            const fs::path& scriptsDir,
+            size_t sigHash,
+            const std::unordered_map<std::string, FileStamp>& map)
+        {
+            fs::path cachePath = GetCachePath(scriptsDir);
+            std::ofstream out(cachePath, std::ios::binary);
+            if (!out) return false;
+
+            out << "version=1\n";
+            out << "sigHash=" << sigHash << "\n";
+            for (const auto& [rel, stamp] : map)
+            {
+                out << rel << "|" << stamp.writeTime << "|" << stamp.fileSize << "\n";
+            }
+            return true;
+        }
 
         // UTF-8 등으로 파일 읽기
         static std::string ReadFileAsUtf8(const fs::path& path)
@@ -561,7 +679,15 @@ namespace MMMEngine::Editor
             return true;
 
         std::vector<MMMEngine::UserScriptMessageSignature> engineSigs = MMMEngine::GetEngineMessageSignatures();
-        std::vector<ScriptInfo> allScripts;
+        const size_t sigHash = ComputeEngineSignatureHash(engineSigs);
+
+        std::unordered_map<std::string, FileStamp> cached;
+        size_t cachedSigHash = 0;
+        const bool hasCache = LoadCache(scriptsDir, cachedSigHash, cached);
+
+        std::unordered_map<std::string, FileStamp> current;
+        std::vector<std::string> headerList;
+        bool headerListChanged = false;
 
         std::error_code ecDir;
         auto dirIt = fs::recursive_directory_iterator(scriptsDir,
@@ -574,10 +700,58 @@ namespace MMMEngine::Editor
                 continue;
             if (e.path().extension() != ".h")
                 continue;
-            std::vector<ScriptInfo> infos = ParseHeaderFile(e.path(), scriptsDir, engineSigs);
+            FileStamp stamp;
+            if (!GetFileStamp(e.path(), stamp))
+            {
+                headerListChanged = true;
+                continue;
+            }
+            std::string rel = fs::relative(e.path(), scriptsDir).generic_u8string();
+            current.emplace(rel, stamp);
+            headerList.push_back(std::move(rel));
+        }
+
+        if (!hasCache || cachedSigHash != sigHash)
+        {
+            headerListChanged = true;
+        }
+        else if (current.size() != cached.size())
+        {
+            headerListChanged = true;
+        }
+        else
+        {
+            for (const auto& [rel, stamp] : current)
+            {
+                auto it = cached.find(rel);
+                if (it == cached.end())
+                {
+                    headerListChanged = true;
+                    break;
+                }
+                if (it->second.writeTime != stamp.writeTime || it->second.fileSize != stamp.fileSize)
+                {
+                    headerListChanged = true;
+                    break;
+                }
+            }
+        }
+
+        fs::path genPath = scriptsDir / "UserScripts.gen.cpp";
+        if (!headerListChanged && fs::exists(genPath))
+        {
+            return true;
+        }
+
+        std::sort(headerList.begin(), headerList.end());
+        std::vector<ScriptInfo> allScripts;
+        for (const auto& rel : headerList)
+        {
+            const fs::path headerPath = scriptsDir / fs::path(rel);
+            std::vector<ScriptInfo> infos = ParseHeaderFile(headerPath, scriptsDir, engineSigs);
             for (ScriptInfo& info : infos)
             {
-                info.headerPath = fs::relative(e.path(), scriptsDir);
+                info.headerPath = fs::relative(headerPath, scriptsDir);
                 allScripts.push_back(std::move(info));
             }
         }
@@ -613,6 +787,7 @@ namespace MMMEngine::Editor
             fs::remove(backupPath, ec);
         }
 
+        SaveCache(scriptsDir, sigHash, current);
         return true;
     }
 }

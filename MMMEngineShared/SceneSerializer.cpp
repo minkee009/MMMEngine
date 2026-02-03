@@ -1,4 +1,4 @@
-﻿#include "SceneSerializer.h"
+#include "SceneSerializer.h"
 #include "GameObject.h"
 #include "Component.h"
 #include "StringHelper.h"
@@ -9,6 +9,7 @@
 #include "MissingScriptBehaviour.h"
 #include "SerializableEvent.h"
 #include "ObjectManager.h"
+#include "AnimationCurve.h"
 
 #include <fstream>
 #include <filesystem>
@@ -45,7 +46,55 @@ json SerializeObject(const rttr::instance& obj)
 
 json SerializeVariant(const rttr::variant& var)
 {
+    if (!var.is_valid())
+        return nullptr;
+
     rttr::type t = var.get_type();
+
+    if (t.is_wrapper())
+    {
+        auto args = t.get_template_arguments();
+        if (args.begin() != args.end())
+        {
+            rttr::type innerType = *args.begin();
+            rttr::type resourceBase = rttr::type::get<MMMEngine::Resource>();
+
+            if (innerType.is_derived_from(resourceBase) || innerType == resourceBase)
+            {
+                auto resPtr = var.get_value<std::shared_ptr<MMMEngine::Resource>>();
+
+                if (resPtr && !resPtr->GetFilePath().empty())
+                {
+                    return MMMEngine::Utility::StringHelper::WStringToString(
+                        resPtr->GetFilePath()
+                    );
+                }
+
+                return nullptr;
+            }
+        }
+
+        rttr::type wrappedType = t.get_wrapped_type();
+        if (wrappedType.is_valid())
+        {
+            std::string wrappedName = wrappedType.get_name().to_string();
+            if (wrappedName.find("ObjPtr") != std::string::npos)
+            {
+                rttr::variant unwrapped = var.extract_wrapped_value();
+                if (unwrapped.is_valid())
+                {
+                    MMMEngine::Object* obj = nullptr;
+                    if (unwrapped.convert(obj) && obj != nullptr)
+                        return obj->GetMUID().ToString();
+                }
+                return nullptr;
+            }
+        }
+
+        rttr::variant unwrapped = var.extract_wrapped_value();
+        if (unwrapped.is_valid() && unwrapped.get_type() != t)
+            return SerializeVariant(unwrapped);
+    }
 
     if (t.is_enumeration())
     {
@@ -69,6 +118,8 @@ json SerializeVariant(const rttr::variant& var)
         if (t == type::get<double>()) return var.to_double();
     }
 
+
+
     if (t == type::get<MMMEngine::Utility::MUID>()) {
         return var.get_value<MMMEngine::Utility::MUID>().ToString();
     }
@@ -87,33 +138,6 @@ json SerializeVariant(const rttr::variant& var)
             arr.push_back(SerializeVariant(item));
         }
         return arr;
-    }
-
-    // shared_ptr<Resource> 처리
-    if (t.is_wrapper())
-    {
-        auto args = t.get_template_arguments();
-        if (args.begin() != args.end())
-        {
-            rttr::type innerType = *args.begin();
-            rttr::type resourceBase = rttr::type::get<MMMEngine::Resource>();
-
-            if (innerType.is_derived_from(resourceBase) || innerType == resourceBase)
-            {
-                auto resPtr = var.get_value<std::shared_ptr<MMMEngine::Resource>>();
-
-                if (resPtr && !resPtr->GetFilePath().empty())
-                {
-                    // 파일 경로를 문자열로 저장
-                    return MMMEngine::Utility::StringHelper::WStringToString(
-                        resPtr->GetFilePath()
-                    );
-                }
-
-                // null이거나 경로가 없으면 null 저장
-                return nullptr;
-            }
-        }
     }
 
     if (var.get_type().get_name().to_string().find("ObjPtr") != std::string::npos)
@@ -141,6 +165,36 @@ json SerializeVariant(const rttr::variant& var)
     {
         json arr = json::array();
         const auto& ev = var.get_value<MMMEngine::SerializableEventT<float>>();
+        for (const auto& call : ev.GetCalls())
+        {
+            arr.push_back({ {"TargetMUID", call.targetMUID}, {"MessageName", call.messageName} });
+        }
+        return arr;
+    }
+    if (t == type::get<MMMEngine::SerializableEventT<bool>>())
+    {
+        json arr = json::array();
+        const auto& ev = var.get_value<MMMEngine::SerializableEventT<bool>>();
+        for (const auto& call : ev.GetCalls())
+        {
+            arr.push_back({ {"TargetMUID", call.targetMUID}, {"MessageName", call.messageName} });
+        }
+        return arr;
+    }
+    if (t == type::get<MMMEngine::SerializableEventT<int>>())
+    {
+        json arr = json::array();
+        const auto& ev = var.get_value<MMMEngine::SerializableEventT<int>>();
+        for (const auto& call : ev.GetCalls())
+        {
+            arr.push_back({ {"TargetMUID", call.targetMUID}, {"MessageName", call.messageName} });
+        }
+        return arr;
+    }
+    if (t == type::get<MMMEngine::SerializableEventT<std::string>>())
+    {
+        json arr = json::array();
+        const auto& ev = var.get_value<MMMEngine::SerializableEventT<std::string>>();
         for (const auto& call : ev.GetCalls())
         {
             arr.push_back({ {"TargetMUID", call.targetMUID}, {"MessageName", call.messageName} });
@@ -275,7 +329,7 @@ static bool IsMissingScriptTargetVariant(const rttr::variant& v)
 
 void DeserializeVariant(rttr::variant& target, const json& j, type target_type);
 
-void DeserializeObject(rttr::instance obj, const json& j)
+void DeserializeObject(rttr::instance& obj, const json& j)
 {
     type t = obj.get_derived_type();
 
@@ -303,6 +357,45 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
     {
         target = rttr::variant();
         return;
+    }
+
+    if (target_type.is_wrapper())
+    {
+        auto args = target_type.get_template_arguments();
+        if (args.begin() != args.end())
+        {
+            rttr::type innerType = *args.begin();
+            if (innerType.is_derived_from(rttr::type::get<Resource>()))
+            {
+                std::string pathStr = j.get<std::string>();
+                std::wstring filePath = Utility::StringHelper::StringToWString(pathStr);
+
+                rttr::variant loadedResource = ResourceManager::Get().Load(
+                    innerType, filePath);
+
+                if (loadedResource.convert(target.get_type()))
+                {
+                    target = loadedResource;
+                }
+                return;
+            }
+        }
+
+        rttr::type wrapped = target_type.get_wrapped_type();
+        if (wrapped.is_valid())
+        {
+            rttr::type raw_wrapped = wrapped.get_raw_type();
+            if (!raw_wrapped.is_valid())
+                raw_wrapped = wrapped;
+
+            rttr::variant unwrapped = target.extract_wrapped_value();
+            if (!unwrapped.is_valid() || unwrapped.get_type() != raw_wrapped)
+                unwrapped = raw_wrapped.create();
+
+            DeserializeVariant(unwrapped, j, raw_wrapped);
+            target = unwrapped;
+            return;
+        }
     }
 
     if (target_type.is_enumeration())
@@ -351,6 +444,8 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
         return;
     }
 
+
+
     // SerializableEvent / SerializableEventT<float> <- 배열 { TargetMUID, MessageName }
     if (target_type == type::get<MMMEngine::SerializableEvent>())
     {
@@ -386,16 +481,71 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
         target = ev;
         return;
     }
+    if (target_type == type::get<MMMEngine::SerializableEventT<bool>>())
+    {
+        std::vector<MMMEngine::PersistentCall> calls;
+        if (j.is_array())
+        {
+            for (const auto& item : j)
+            {
+                std::string muid = item.contains("TargetMUID") ? item["TargetMUID"].get<std::string>() : "";
+                std::string name = item.contains("MessageName") ? item["MessageName"].get<std::string>() : "";
+                calls.emplace_back(std::move(muid), std::move(name));
+            }
+        }
+        MMMEngine::SerializableEventT<bool> ev;
+        ev.SetCalls(std::move(calls));
+        target = ev;
+        return;
+    }
+    if (target_type == type::get<MMMEngine::SerializableEventT<int>>())
+    {
+        std::vector<MMMEngine::PersistentCall> calls;
+        if (j.is_array())
+        {
+            for (const auto& item : j)
+            {
+                std::string muid = item.contains("TargetMUID") ? item["TargetMUID"].get<std::string>() : "";
+                std::string name = item.contains("MessageName") ? item["MessageName"].get<std::string>() : "";
+                calls.emplace_back(std::move(muid), std::move(name));
+            }
+        }
+        MMMEngine::SerializableEventT<int> ev;
+        ev.SetCalls(std::move(calls));
+        target = ev;
+        return;
+    }
+    if (target_type == type::get<MMMEngine::SerializableEventT<std::string>>())
+    {
+        std::vector<MMMEngine::PersistentCall> calls;
+        if (j.is_array())
+        {
+            for (const auto& item : j)
+            {
+                std::string muid = item.contains("TargetMUID") ? item["TargetMUID"].get<std::string>() : "";
+                std::string name = item.contains("MessageName") ? item["MessageName"].get<std::string>() : "";
+                calls.emplace_back(std::move(muid), std::move(name));
+            }
+        }
+        MMMEngine::SerializableEventT<std::string> ev;
+        ev.SetCalls(std::move(calls));
+        target = ev;
+        return;
+    }
 
     if (target_type.is_sequential_container())
     {
-        if (!target.is_valid() || target.get_type() != target_type)
-            target = target_type.create();
+        rttr::type container_type = target_type.get_raw_type();
+        if (!container_type.is_valid())
+            container_type = target_type;
+
+        if (!target.is_valid() || target.get_type() != container_type)
+            target = container_type.create();
 
         auto view = target.create_sequential_view();
         view.clear();
 
-        auto args = target_type.get_wrapped_type().get_template_arguments();
+        auto args = container_type.get_template_arguments();
         auto it = args.begin();
         if (it == args.end())
             return;
@@ -413,13 +563,17 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
 
     if (target_type.is_associative_container())
     {
-        if (!target.is_valid() || target.get_type() != target_type)
-            target = target_type.create();
+        rttr::type container_type = target_type.get_raw_type();
+        if (!container_type.is_valid())
+            container_type = target_type;
+
+        if (!target.is_valid() || target.get_type() != container_type)
+            target = container_type.create();
 
         auto view = target.create_associative_view();
         view.clear();
 
-        auto args = target_type.get_wrapped_type().get_template_arguments();
+        auto args = container_type.get_template_arguments();
         auto it = args.begin();
         if (it == args.end())
             return;
@@ -437,37 +591,34 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
             rttr::variant v = value_type.create();
 
             json keyJson = json::parse(key);
-            DeserializeObject(k, keyJson);
-            DeserializeObject(v, value);
+            rttr::instance kInst(k);
+            rttr::instance vInst(v);
+            DeserializeObject(kInst, keyJson);
+            DeserializeObject(vInst, value);
 
             view.insert(k, v);
         }
         return;
     }
 
-    // shared_ptr<Resource 파생 클래스> 체크
-    if (target_type.is_wrapper())
+    if (j.is_array())
     {
-        auto args = target_type.get_template_arguments();
-        if (args.begin() != args.end())
+        rttr::property keyframesProp = target_type.get_property("keyframes");
+        if (keyframesProp.is_valid() && keyframesProp.get_type().is_sequential_container())
         {
-            rttr::type innerType = *args.begin();
+            rttr::type raw_type = target_type.get_raw_type();
+            if (!raw_type.is_valid())
+                raw_type = target_type;
 
-            // Resource를 상속받은 타입인지 확인
-            if (innerType.is_derived_from(rttr::type::get<Resource>()))
-            {
-                std::string pathStr = j.get<std::string>();
-                std::wstring filePath = Utility::StringHelper::StringToWString(pathStr);
-
-                rttr::variant loadedResource = ResourceManager::Get().Load(
-                    innerType, filePath);
-
-                if (loadedResource.convert(target.get_type()))                  // v를 내부적으로 target type으로 변환 (bool 리턴)
-                {
-                    target = loadedResource;               // v는 이제 shared_ptr<StaticMesh> 타입 variant
-                }
+            if (!target.is_valid() || target.get_type() != raw_type)
+                target = raw_type.create();
+            if (!target.is_valid())
                 return;
-            }
+
+            rttr::variant keyframes = keyframesProp.get_value(target);
+            DeserializeVariant(keyframes, j, keyframesProp.get_type());
+            keyframesProp.set_value(target, keyframes);
+            return;
         }
     }
 
@@ -528,7 +679,8 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
         target = target_type.create();
     }
 
-    DeserializeObject(target, j);
+    rttr::instance inst(target);
+    DeserializeObject(inst, j);
 }
 
 struct PendingComponentProps
@@ -793,7 +945,8 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         if (!pending.props)
             continue;
 
-        DeserializeObject(*pending.comp, *pending.props);
+        rttr::instance inst(*pending.comp);
+        DeserializeObject(inst, *pending.props);
     }
 
     // 4-pass: Parent 연결 (Transform MUID 기준)
@@ -813,6 +966,9 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
     // SerializableEvent 리졸버는 ObjectManager의 MUID 테이블을 사용한다.
     SerializableEvent::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
     SerializableEventT<float>::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
+    SerializableEventT<bool>::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
+    SerializableEventT<int>::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
+    SerializableEventT<std::string>::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
 
     g_objectTable.clear();
 }

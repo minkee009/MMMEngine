@@ -96,6 +96,9 @@
     <ClInclude Include="EditorRegistry.h">
       <Filter>헤더 파일\EditorRegistry</Filter>
     </ClInclude>
+    <ClInclude Include="AnimationCurveEditor.h">
+      <Filter>헤더 파일\EditorWindow\ImGuiHelper</Filter>
+    </ClInclude>
     <ClInclude Include="Project.h">
       <Filter>헤더 파일\Project</Filter>
     </ClInclude>
@@ -218,6 +221,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AnimationCurveEditor.cpp">
+      <Filter>소스 파일\EditorWIndow</Filter>
+    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -300,6 +306,9 @@
       <Filter>소스 파일\EditorWIndow\CustomRenderer</Filter>
     </ClCompile>
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp">
+      <Filter>소스 파일\ImGuizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuizmo\ImCurveEdit.cpp">
       <Filter>소스 파일\ImGuizmo</Filter>
     </ClCompile>
     <ClCompile Include="PhysicsSettingsWindow.cpp">

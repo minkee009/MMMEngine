@@ -150,6 +150,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AnimationCurveEditor.h" />
     <ClInclude Include="AssimpLoader.h" />
     <ClInclude Include="AssimpLoaderWindow.h" />
     <ClInclude Include="BuildManager.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="StartUpProjectWindow.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AnimationCurveEditor.cpp" />
     <ClCompile Include="AssimpLoader.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -219,6 +221,7 @@
     <ClCompile Include="ConsoleWindow.cpp" />
     <ClCompile Include="ImGuiEditorContext.cpp" />
     <ClCompile Include="ImGuizmo\ImGuizmo.cpp" />
+    <ClCompile Include="ImGuizmo\ImCurveEdit.cpp" />
     <ClCompile Include="InspectorWindow.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PhysicsSettingsWindow.cpp" />

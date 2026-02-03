@@ -1,4 +1,4 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include <iostream>
 
 #include "GlobalRegistry.h"
@@ -84,6 +84,7 @@ void Update()
 		ObjectManager::Get().UpdateInternalTimer(dt);
 		BehaviourManager::Get().DisableBehaviours();
 		ObjectManager::Get().ProcessPendingDestroy();
+		RenderManager::Get().InitCache();
 		BehaviourManager::Get().AllSortBehaviours();
 		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
 	}

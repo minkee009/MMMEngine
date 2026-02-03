@@ -170,6 +170,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AnimationCurve.h" />
     <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="Animator.h" />
     <ClInclude Include="AnimatorController.h" />
@@ -264,6 +265,7 @@
     <ClInclude Include="BehaviourManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AnimationCurve.cpp" />
     <ClCompile Include="AnimationClip.cpp" />
     <ClCompile Include="Animator.cpp" />
     <ClCompile Include="AnimatorController.cpp" />

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <imgui.h>
 #include <string>
 #include <vector>
@@ -20,18 +20,18 @@ namespace MMMEngine::Editor
 
     private:
         std::vector<std::pair<std::string, std::string>> m_moveQueue;
-        std::vector<std::string> m_fileRenderExclusions = { ".guid", ".csproj", ".vcxproj", ".filters", ".user" };
-        std::vector<std::string> m_folderRenderExclusions = { "bin", "obj", "Build", "Binaries", ".vs" };
+        std::vector<std::string> m_fileRenderExclusions = { ".meta", ".csproj", ".vcxproj", ".filters", ".user", ".exp", ".lib", ".settings" };
+        std::vector<std::string> m_folderRenderExclusions = { "bin", "obj", "Build", "Binaries", ".vs",".git", ".vscode" };
 
         char m_newScriptName[256] = "";
         bool m_openCreateScriptModalRequest = false;
         std::string m_newScriptParentDirectory;
 
-        fs::path m_currentDirectory; // ÇöÀç º¸°í ÀÖ´Â µğ·ºÅä¸®
-        std::vector<fs::path> m_navigationHistory; // ³×ºñ°ÔÀÌ¼Ç È÷½ºÅä¸®
+        fs::path m_currentDirectory; // í˜„ì¬ ë³´ê³  ìˆëŠ” ë””ë ‰í† ë¦¬
+        std::vector<fs::path> m_navigationHistory; // ë„¤ë¹„ê²Œì´ì…˜ íˆìŠ¤í† ë¦¬
         int m_historyIndex = -1;
 
-        // ±×¸®µå ¼³Á¤
+        // ê·¸ë¦¬ë“œ ì„¤ì •
         float m_iconSize = 80.0f;
         float m_iconPadding = 10.0f;
 

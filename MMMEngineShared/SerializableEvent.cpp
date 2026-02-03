@@ -16,6 +16,15 @@ RTTR_REGISTRATION
 
 	registration::class_<SerializableEventT<float>>("SerializableEventFloat")
 		.property("Calls", &SerializableEventT<float>::GetCalls, &SerializableEventT<float>::SetCalls);
+
+	registration::class_<SerializableEventT<bool>>("SerializableEventBool")
+		.property("Calls", &SerializableEventT<bool>::GetCalls, &SerializableEventT<bool>::SetCalls);
+
+	registration::class_<SerializableEventT<int>>("SerializableEventInt")
+		.property("Calls", &SerializableEventT<int>::GetCalls, &SerializableEventT<int>::SetCalls);
+
+	registration::class_<SerializableEventT<std::string>>("SerializableEventString")
+		.property("Calls", &SerializableEventT<std::string>::GetCalls, &SerializableEventT<std::string>::SetCalls);
 }
 
 namespace MMMEngine
