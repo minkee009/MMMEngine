@@ -2,6 +2,7 @@
 #include "Canvas.h"
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
+#include <cmath>
 
 using namespace DirectX::SimpleMath;
 
@@ -12,6 +13,19 @@ namespace
 		if (v < 0.0f) return 0.0f;
 		if (v > 1.0f) return 1.0f;
 		return v;
+	}
+
+	inline void ComputeBasis2D(const DirectX::SimpleMath::Matrix& worldMat,
+		DirectX::SimpleMath::Vector2& rightDir,
+		DirectX::SimpleMath::Vector2& upDir)
+	{
+		using namespace DirectX::SimpleMath;
+		rightDir = { worldMat._11, worldMat._12 };
+		upDir = { worldMat._21, worldMat._22 };
+		const float rightLen = std::sqrt(rightDir.x * rightDir.x + rightDir.y * rightDir.y);
+		const float upLen = std::sqrt(upDir.x * upDir.x + upDir.y * upDir.y);
+		if (rightLen > 1e-6f) rightDir /= rightLen; else rightDir = { 1.0f, 0.0f };
+		if (upLen > 1e-6f) upDir /= upLen; else upDir = { 0.0f, 1.0f };
 	}
 }
 
@@ -96,32 +110,52 @@ Vector4 MMMEngine::RectTransform::GetRectInCanvas(const Vector2& canvasSize) con
 		}
 	}
 
-	Vector2 parentMin = Vector2::Zero;
 	Vector2 parentSize = canvasSize;
+	Vector2 parentOrigin = Vector2::Zero;
+	Vector2 parentRight = Vector2::UnitX;
+	Vector2 parentUp = Vector2::UnitY;
 
 	if (auto parent = GetParent())
 	{
 		if (auto parentRect = parent.Cast<RectTransform>())
 		{
 			Vector4 rect = parentRect->GetRectInCanvas(canvasSize);
-			parentMin = { rect.x, rect.y };
 			parentSize = { rect.z, rect.w };
+
+			const auto pivot = parentRect->GetPivot();
+			const Vector2 parentPivotPos = {
+				rect.x + rect.z * pivot.x,
+				rect.y + rect.w * pivot.y
+			};
+
+			ComputeBasis2D(parentRect->GetWorldMatrix(), parentRight, parentUp);
+
+			parentOrigin = parentPivotPos
+				+ parentRight * (-parentSize.x * pivot.x)
+				+ parentUp * (-parentSize.y * pivot.y);
 		}
 	}
 
-	Vector2 anchorMin = { parentMin.x + parentSize.x * m_anchorMin.x,
-		parentMin.y + parentSize.y * m_anchorMin.y };
-	Vector2 anchorMax = { parentMin.x + parentSize.x * m_anchorMax.x,
-		parentMin.y + parentSize.y * m_anchorMax.y };
+	const Vector2 anchorMinLocal = { parentSize.x * m_anchorMin.x,
+		parentSize.y * m_anchorMin.y };
+	const Vector2 anchorMaxLocal = { parentSize.x * m_anchorMax.x,
+		parentSize.y * m_anchorMax.y };
 
-	Vector2 anchorCenter = (anchorMin + anchorMax) * 0.5f;
-	Vector2 size = (anchorMax - anchorMin) + m_sizeDelta;
+	const Vector2 anchorCenterLocal = (anchorMinLocal + anchorMaxLocal) * 0.5f;
+	const Vector2 anchorCenterWorld = parentOrigin
+		+ parentRight * anchorCenterLocal.x
+		+ parentUp * anchorCenterLocal.y;
+
+	Vector2 size = (anchorMaxLocal - anchorMinLocal) + m_sizeDelta;
 
 	const auto scale = GetWorldScale();
 	size.x *= scale.x;
 	size.y *= scale.y;
 
-	Vector2 pivotPos = anchorCenter + GetAnchoredPosition();
+	const Vector2 anchoredPos = GetAnchoredPosition();
+	Vector2 pivotPos = anchorCenterWorld
+		+ parentRight * anchoredPos.x
+		+ parentUp * anchoredPos.y;
 	Vector2 rectMin = pivotPos - Vector2(size.x * m_pivot.x, size.y * m_pivot.y);
 
 	return Vector4(rectMin.x, rectMin.y, size.x, size.y);
@@ -131,32 +165,47 @@ void MMMEngine::RectTransform::GetAnchorData(const Vector2& canvasSize,
 	Vector2& anchorCenter,
 	Vector2& anchorSpan) const
 {
-	Vector2 parentMin = Vector2::Zero;
 	Vector2 parentSize = canvasSize;
+	Vector2 parentOrigin = Vector2::Zero;
+	Vector2 parentRight = Vector2::UnitX;
+	Vector2 parentUp = Vector2::UnitY;
 
 	if (auto parent = GetParent())
 	{
 		if (auto parentRect = parent.Cast<RectTransform>())
 		{
 			Vector4 rect = parentRect->GetRectInCanvas(canvasSize);
-			parentMin = { rect.x, rect.y };
 			parentSize = { rect.z, rect.w };
+
+			const auto pivot = parentRect->GetPivot();
+			const Vector2 parentPivotPos = {
+				rect.x + rect.z * pivot.x,
+				rect.y + rect.w * pivot.y
+			};
+			ComputeBasis2D(parentRect->GetWorldMatrix(), parentRight, parentUp);
+
+			parentOrigin = parentPivotPos
+				+ parentRight * (-parentSize.x * pivot.x)
+				+ parentUp * (-parentSize.y * pivot.y);
 		}
 	}
 
 	const Vector2 anchorMin = GetAnchorMin();
 	const Vector2 anchorMax = GetAnchorMax();
-	const Vector2 anchorMinPos = {
-		parentMin.x + parentSize.x * anchorMin.x,
-		parentMin.y + parentSize.y * anchorMin.y
+	const Vector2 anchorMinLocal = {
+		parentSize.x * anchorMin.x,
+		parentSize.y * anchorMin.y
 	};
-	const Vector2 anchorMaxPos = {
-		parentMin.x + parentSize.x * anchorMax.x,
-		parentMin.y + parentSize.y * anchorMax.y
+	const Vector2 anchorMaxLocal = {
+		parentSize.x * anchorMax.x,
+		parentSize.y * anchorMax.y
 	};
 
-	anchorCenter = (anchorMinPos + anchorMaxPos) * 0.5f;
-	anchorSpan = { anchorMaxPos.x - anchorMinPos.x, anchorMaxPos.y - anchorMinPos.y };
+	const Vector2 anchorCenterLocal = (anchorMinLocal + anchorMaxLocal) * 0.5f;
+	anchorCenter = parentOrigin
+		+ parentRight * anchorCenterLocal.x
+		+ parentUp * anchorCenterLocal.y;
+	anchorSpan = { anchorMaxLocal.x - anchorMinLocal.x, anchorMaxLocal.y - anchorMinLocal.y };
 }
 
 Vector4 MMMEngine::RectTransform::GetAnchorRectInCanvas(const Vector2& canvasSize) const

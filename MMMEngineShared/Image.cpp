@@ -24,3 +24,14 @@ void MMMEngine::Image::SetAlpha(float a)
 	c.w = (a < 0.0f) ? 0.0f : (a > 1.0f) ? 1.0f : a;
 	SetColor(c);
 }
+
+void MMMEngine::Image::SetTexture(const ResPtr<Texture2D>& texture)
+{
+	Graphic::SetTexture(texture);
+	ApplyNativeSizeFromTexture(texture);
+}
+
+void MMMEngine::Image::SetNativeSize()
+{
+	ApplyNativeSizeFromTexture(GetTexture());
+}

@@ -1,7 +1,8 @@
-﻿#include "Graphic.h"
+#include "Graphic.h"
 #include "Canvas.h"
 #include "RectTransform.h"
 #include "RenderManager.h"
+#include "Texture2D.h"
 #include "rttr/registration"
 
 RTTR_REGISTRATION
@@ -42,6 +43,23 @@ void MMMEngine::Graphic::UnInitialize()
 	m_canvas = nullptr;
 
 	Behaviour::UnInitialize();
+}
+
+void MMMEngine::Graphic::ApplyNativeSizeFromTexture(const ResPtr<Texture2D>& texture)
+{
+	if (!texture)
+		return;
+
+	const auto rectTransform = GetRectTransform();
+	if (!rectTransform.IsValid())
+		return;
+
+	const auto width = texture->GetWidth();
+	const auto height = texture->GetHeight();
+	if (width == 0 || height == 0)
+		return;
+
+	rectTransform->SetSizeDelta({ static_cast<float>(width), static_cast<float>(height) });
 }
 
 void MMMEngine::Graphic::RefreshCanvas(ObjPtr<Transform> newParent)

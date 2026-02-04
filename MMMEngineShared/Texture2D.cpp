@@ -1,4 +1,4 @@
-﻿#include "Texture2D.h"
+#include "Texture2D.h"
 #include <wrl/client.h>
 #include <d3d11_4.h>
 #include "RenderManager.h"
@@ -91,8 +91,43 @@ bool MMMEngine::Texture2D::LoadFromFilePath(const std::wstring& filePath)
 
 	if (srv) {
 		srv.As(&m_pSRV);
+		UpdateSizeFromSRV();
 		return true;
 	}
 
+	m_width = 0;
+	m_height = 0;
 	return false;
+}
+
+void MMMEngine::Texture2D::UpdateSizeFromSRV()
+{
+	if (!m_pSRV)
+	{
+		m_width = 0;
+		m_height = 0;
+		return;
+	}
+
+	WRL::ComPtr<ID3D11Resource> resource;
+	m_pSRV->GetResource(resource.GetAddressOf());
+	if (!resource)
+	{
+		m_width = 0;
+		m_height = 0;
+		return;
+	}
+
+	WRL::ComPtr<ID3D11Texture2D> tex2D;
+	if (FAILED(resource.As(&tex2D)) || !tex2D)
+	{
+		m_width = 0;
+		m_height = 0;
+		return;
+	}
+
+	D3D11_TEXTURE2D_DESC desc = {};
+	tex2D->GetDesc(&desc);
+	m_width = desc.Width;
+	m_height = desc.Height;
 }

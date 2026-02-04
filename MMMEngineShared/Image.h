@@ -17,6 +17,10 @@ namespace MMMEngine
 		Image() = default;
 		virtual ~Image() = default;
 
+		const ResPtr<Texture2D>& GetTexture() { return Graphic::GetTexture(); }
+		void SetTexture(const ResPtr<Texture2D>& texture);
+		void SetNativeSize();
+
 		/// 베이스 컬러 (RGB). Graphic::GetColor/SetColor와 동일.
 		const DirectX::SimpleMath::Color& GetColor() const { return Graphic::GetColor(); }
 		void SetColor(const DirectX::SimpleMath::Color& color) { Graphic::SetColor(color); }

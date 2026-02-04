@@ -15,7 +15,7 @@ void MMMEngine::PhysXSimulationCallback::onContact(const physx::PxContactPairHea
         // 삭제된 shape 관련이면 스킵하도록
         if (cp.flags & (physx::PxContactPairFlag::eREMOVED_SHAPE_0 |
             physx::PxContactPairFlag::eREMOVED_SHAPE_1))
-        {
+        { 
             continue;
         }
 

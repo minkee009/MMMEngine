@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Export.h"
 #include "Graphic.h"
@@ -34,10 +34,12 @@ namespace MMMEngine
 		virtual ~Gage() = default;
 
 		const ResPtr<Texture2D>& GetBackgroundTexture() const { return m_backgroundTexture; }
-		void SetBackgroundTexture(const ResPtr<Texture2D>& tex) { m_backgroundTexture = tex; }
+		void SetBackgroundTexture(const ResPtr<Texture2D>& tex);
 
 		const ResPtr<Texture2D>& GetFillTexture() const { return m_fillTexture; }
-		void SetFillTexture(const ResPtr<Texture2D>& tex) { m_fillTexture = tex; }
+		void SetFillTexture(const ResPtr<Texture2D>& tex);
+
+		void SetNativeSize();
 
 		float GetValue() const { return m_value; }
 		void SetValue(float v);

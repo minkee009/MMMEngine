@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <physx/PxPhysicsAPI.h>
 
 using namespace MMMEngine::Editor;
 using namespace MMMEngine;
@@ -110,33 +111,40 @@ namespace
 		DirectX::SimpleMath::Vector2& anchorCenter,
 		DirectX::SimpleMath::Vector2& anchorSpan)
 	{
+		if (!rect.IsValid())
+		{
+			anchorCenter = DirectX::SimpleMath::Vector2::Zero;
+			anchorSpan = DirectX::SimpleMath::Vector2::Zero;
+			return;
+		}
+
+		rect->GetAnchorData(canvasSize, anchorCenter, anchorSpan);
+	}
+
+	void ComputeParentBasis(const ObjPtr<RectTransform>& rect,
+		DirectX::SimpleMath::Vector2& parentRight,
+		DirectX::SimpleMath::Vector2& parentUp)
+	{
 		using namespace DirectX::SimpleMath;
-		Vector2 parentMin = Vector2::Zero;
-		Vector2 parentSize = canvasSize;
+		parentRight = Vector2::UnitX;
+		parentUp = Vector2::UnitY;
+
+		if (!rect.IsValid())
+			return;
 
 		if (auto parent = rect->GetParent())
 		{
 			if (auto parentRect = parent.Cast<RectTransform>())
 			{
-				Vector4 parentRectCanvas = parentRect->GetRectInCanvas(canvasSize);
-				parentMin = { parentRectCanvas.x, parentRectCanvas.y };
-				parentSize = { parentRectCanvas.z, parentRectCanvas.w };
+				const auto worldMat = parentRect->GetWorldMatrix();
+				parentRight = { worldMat._11, worldMat._12 };
+				parentUp = { worldMat._21, worldMat._22 };
+				const float rightLen = std::sqrt(parentRight.x * parentRight.x + parentRight.y * parentRight.y);
+				const float upLen = std::sqrt(parentUp.x * parentUp.x + parentUp.y * parentUp.y);
+				if (rightLen > 1e-6f) parentRight /= rightLen; else parentRight = Vector2::UnitX;
+				if (upLen > 1e-6f) parentUp /= upLen; else parentUp = Vector2::UnitY;
 			}
 		}
-
-		const Vector2 anchorMin = rect->GetAnchorMin();
-		const Vector2 anchorMax = rect->GetAnchorMax();
-		const Vector2 anchorMinPos = {
-			parentMin.x + parentSize.x * anchorMin.x,
-			parentMin.y + parentSize.y * anchorMin.y
-		};
-		const Vector2 anchorMaxPos = {
-			parentMin.x + parentSize.x * anchorMax.x,
-			parentMin.y + parentSize.y * anchorMax.y
-		};
-
-		anchorCenter = (anchorMinPos + anchorMaxPos) * 0.5f;
-		anchorSpan = { anchorMaxPos.x - anchorMinPos.x, anchorMaxPos.y - anchorMinPos.y };
 	}
 
 	bool PointInRect(float px, float py, float rx, float ry, float rw, float rh)
@@ -456,33 +464,72 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 	ImVec2 imageMax = ImGui::GetItemRectMax();
 	ImVec2 imageSize = ImVec2(imageMax.x - imagePos.x, imageMax.y - imagePos.y);
 	bool gizmoDrawn = false;
+	bool uiResizeHovered = false;
+	bool uiResizeUsing = false;
+	static bool s_uiDragActive = false;
+	static ObjPtr<RectTransform> s_uiDragTarget;
+	static DirectX::SimpleMath::Vector2 s_uiDragStartMouseScene;
+	static DirectX::SimpleMath::Vector2 s_uiDragStartPivotScene;
+	static DirectX::SimpleMath::Vector2 s_uiDragStartAnchorCenter;
+	static DirectX::SimpleMath::Vector2 s_uiDragParentRight;
+	static DirectX::SimpleMath::Vector2 s_uiDragParentUp;
+	static DirectX::SimpleMath::Vector2 s_uiDragScaleToScene;
+	static DirectX::SimpleMath::Vector2 s_uiDragSceneOffset;
+	static bool s_uiResizeActive = false;
+	static int s_uiResizeHandle = -1;
+	static ObjPtr<RectTransform> s_uiResizeTarget;
+	static DirectX::SimpleMath::Vector2 s_uiResizeStartSizeScene;
+	static DirectX::SimpleMath::Vector2 s_uiResizeStartPivotScene;
+	static DirectX::SimpleMath::Vector2 s_uiResizeStartAnchorCenter;
+	static DirectX::SimpleMath::Vector2 s_uiResizeStartAnchorSpan;
+	static DirectX::SimpleMath::Vector2 s_uiResizeParentRight;
+	static DirectX::SimpleMath::Vector2 s_uiResizeParentUp;
+	static DirectX::SimpleMath::Vector2 s_uiResizeRightDir;
+	static DirectX::SimpleMath::Vector2 s_uiResizeUpDir;
+	static DirectX::SimpleMath::Vector2 s_uiResizeFixedCornerScene;
+	static DirectX::SimpleMath::Vector2 s_uiResizePivot;
+	static DirectX::SimpleMath::Vector2 s_uiResizeScaleToScene;
+	static DirectX::SimpleMath::Vector2 s_uiResizeSceneOffset;
+
+	if (!m_ui2DMode || !g_selectedGameObject.IsValid())
+	{
+		s_uiResizeActive = false;
+		s_uiDragActive = false;
+	}
 	// ImGuizmo는 별도의 DrawList에 그려짐
-	if (g_selectedGameObject.IsValid() && (int)m_guizmoOperation != 0)
+	if (g_selectedGameObject.IsValid())
 	{
 		if (m_ui2DMode)
 		{
 			auto rectTr = g_selectedGameObject->GetTransform().Cast<RectTransform>();
+			if (s_uiResizeActive && (!rectTr.IsValid() || s_uiResizeTarget != rectTr))
+				s_uiResizeActive = false;
+			if (s_uiDragActive && (!rectTr.IsValid() || s_uiDragTarget != rectTr))
+				s_uiDragActive = false;
 			if (rectTr.IsValid())
 			{
 				ImGuizmo::OPERATION op = m_guizmoOperation;
 				if (op != ImGuizmo::TRANSLATE && op != ImGuizmo::SCALE && op != ImGuizmo::ROTATE)
 					op = ImGuizmo::TRANSLATE;
 
-				gizmoDrawn = true;
-				ImGuizmo::SetRect(imagePos.x, imagePos.y, imageSize.x, imageSize.y);
-
 				float snapValue[3] = { 0.f, 0.f, 0.f };
-				bool useSnap = ImGui::GetIO().KeyCtrl;
-				if (useSnap)
+				bool useSnap = false;
+				const bool hasUiGizmo = (m_guizmoOperation != (ImGuizmo::OPERATION)0);
+				if (hasUiGizmo)
 				{
-					if (op == ImGuizmo::TRANSLATE)
-						snapValue[0] = snapValue[1] = snapValue[2] = 1.0f;
-					else if (op == ImGuizmo::SCALE)
-						snapValue[0] = snapValue[1] = snapValue[2] = 1.0f;
+					gizmoDrawn = true;
+					ImGuizmo::SetRect(imagePos.x, imagePos.y, imageSize.x, imageSize.y);
+					useSnap = ImGui::GetIO().KeyCtrl;
+					if (useSnap)
+					{
+						if (op == ImGuizmo::TRANSLATE)
+							snapValue[0] = snapValue[1] = snapValue[2] = 1.0f;
+						else if (op == ImGuizmo::SCALE)
+							snapValue[0] = snapValue[1] = snapValue[2] = 1.0f;
+					}
+					ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+					ImGuizmo::SetOrthographic(true);
 				}
-
-				ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
-				ImGuizmo::SetOrthographic(true);
 
 				auto viewMat = Matrix::Identity;
 				auto projMat = Matrix::Identity;
@@ -498,40 +545,55 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 					rectCanvas.z * canvasInfo.scaleToScene.x,
 					rectCanvas.w * canvasInfo.scaleToScene.y);
 
+				const auto pivot = rectTr->GetPivot();
+				const DirectX::SimpleMath::Vector2 pivotPosScene = {
+					rectScene.x + rectScene.z * pivot.x,
+					rectScene.y + rectScene.w * pivot.y
+				};
+				const auto worldRot = rectTr->GetWorldRotation();
+				const auto right3 = DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3::UnitX, worldRot);
+				const auto up3 = DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3::UnitY, worldRot);
+				DirectX::SimpleMath::Vector2 rightDir = { right3.x, right3.y };
+				DirectX::SimpleMath::Vector2 upDir = { up3.x, up3.y };
+				const float rightLen = std::sqrt(rightDir.x * rightDir.x + rightDir.y * rightDir.y);
+				const float upLen = std::sqrt(upDir.x * upDir.x + upDir.y * upDir.y);
+				if (rightLen > 1e-6f) rightDir /= rightLen; else rightDir = { 1.0f, 0.0f };
+				if (upLen > 1e-6f) upDir /= upLen; else upDir = { 0.0f, 1.0f };
+
+				auto toScreen = [&](float localX, float localY)
+				{
+					const DirectX::SimpleMath::Vector2 offset = { localX - rectScene.z * pivot.x, localY - rectScene.w * pivot.y };
+					const DirectX::SimpleMath::Vector2 posScene = {
+						pivotPosScene.x + rightDir.x * offset.x + upDir.x * offset.y,
+						pivotPosScene.y + rightDir.y * offset.x + upDir.y * offset.y
+					};
+					return ImVec2(imagePos.x + posScene.x, imagePos.y + posScene.y);
+				};
+
+				auto toScene = [&](float localX, float localY)
+				{
+					const DirectX::SimpleMath::Vector2 offset = { localX - rectScene.z * pivot.x, localY - rectScene.w * pivot.y };
+					return DirectX::SimpleMath::Vector2{
+						pivotPosScene.x + rightDir.x * offset.x + upDir.x * offset.y,
+						pivotPosScene.y + rightDir.y * offset.x + upDir.y * offset.y
+					};
+				};
+
+				const DirectX::SimpleMath::Vector2 p0Scene = toScene(0.0f, 0.0f);
+				const DirectX::SimpleMath::Vector2 p1Scene = toScene(rectScene.z, 0.0f);
+				const DirectX::SimpleMath::Vector2 p2Scene = toScene(rectScene.z, rectScene.w);
+				const DirectX::SimpleMath::Vector2 p3Scene = toScene(0.0f, rectScene.w);
+
+				const ImVec2 p0 = toScreen(0.0f, 0.0f);
+				const ImVec2 p1 = toScreen(rectScene.z, 0.0f);
+				const ImVec2 p2 = toScreen(rectScene.z, rectScene.w);
+				const ImVec2 p3 = toScreen(0.0f, rectScene.w);
+				ImDrawList* drawList = ImGui::GetWindowDrawList();
+
 				// 선택된 UI의 RectTransform 영역 표시
 				{
-					ImDrawList* drawList = ImGui::GetWindowDrawList();
 					drawList->PushClipRect(imagePos, imageMax, true);
 					const ImU32 rectColor = IM_COL32(255, 200, 80, 255);
-					const auto pivot = rectTr->GetPivot();
-					const DirectX::SimpleMath::Vector2 pivotPosScene = {
-						rectScene.x + rectScene.z * pivot.x,
-						rectScene.y + rectScene.w * pivot.y
-					};
-					const auto worldRot = rectTr->GetWorldRotation();
-					const auto right3 = DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3::UnitX, worldRot);
-					const auto up3 = DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3::UnitY, worldRot);
-					DirectX::SimpleMath::Vector2 rightDir = { right3.x, right3.y };
-					DirectX::SimpleMath::Vector2 upDir = { up3.x, up3.y };
-					const float rightLen = std::sqrt(rightDir.x * rightDir.x + rightDir.y * rightDir.y);
-					const float upLen = std::sqrt(upDir.x * upDir.x + upDir.y * upDir.y);
-					if (rightLen > 1e-6f) rightDir /= rightLen; else rightDir = { 1.0f, 0.0f };
-					if (upLen > 1e-6f) upDir /= upLen; else upDir = { 0.0f, 1.0f };
-
-					auto toScreen = [&](float localX, float localY)
-					{
-						const DirectX::SimpleMath::Vector2 offset = { localX - rectScene.z * pivot.x, localY - rectScene.w * pivot.y };
-						const DirectX::SimpleMath::Vector2 posScene = {
-							pivotPosScene.x + rightDir.x * offset.x + upDir.x * offset.y,
-							pivotPosScene.y + rightDir.y * offset.x + upDir.y * offset.y
-						};
-						return ImVec2(imagePos.x + posScene.x, imagePos.y + posScene.y);
-					};
-
-					const ImVec2 p0 = toScreen(0.0f, 0.0f);
-					const ImVec2 p1 = toScreen(rectScene.z, 0.0f);
-					const ImVec2 p2 = toScreen(rectScene.z, rectScene.w);
-					const ImVec2 p3 = toScreen(0.0f, rectScene.w);
 					drawList->AddQuad(p0, p1, p2, p3, rectColor, 2.0f);
 
 					// 앵커 영역 표시 (부모 영역 기준)
@@ -582,13 +644,224 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 					fg->PopClipRect();
 				}
 
-				const auto pivot = rectTr->GetPivot();
-				const DirectX::SimpleMath::Vector2 pivotPosScene = {
-					rectScene.x + rectScene.z * pivot.x,
-					rectScene.y + rectScene.w * pivot.y
-				};
+				const bool isCanvas = g_selectedGameObject->GetComponent<Canvas>().IsValid();
+				const bool showUiHandles = !isCanvas && (m_guizmoOperation == (ImGuizmo::OPERATION)0);
+				if (showUiHandles)
+				{
+					const float handleRadius = 5.0f;
+					const ImU32 handleColor = IM_COL32(120, 200, 255, 255);
+					const ImU32 handleColorHot = IM_COL32(170, 230, 255, 255);
+					const ImVec2 handleScreen[4] = { p0, p1, p2, p3 };
+					const DirectX::SimpleMath::Vector2 handleScene[4] = { p0Scene, p1Scene, p2Scene, p3Scene };
 
-				if (sceneWidth > 0.0f && sceneHeight > 0.0f)
+					ImVec2 mousePos = ImGui::GetMousePos();
+					int hoveredHandle = -1;
+					for (int i = 0; i < 4; ++i)
+					{
+						const float dx = mousePos.x - handleScreen[i].x;
+						const float dy = mousePos.y - handleScreen[i].y;
+						if (dx * dx + dy * dy <= handleRadius * handleRadius)
+						{
+							hoveredHandle = i;
+							break;
+						}
+					}
+
+					if (hoveredHandle != -1)
+						uiResizeHovered = true;
+
+					if (!s_uiResizeActive && hoveredHandle != -1 && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+					{
+						s_uiResizeActive = true;
+						s_uiResizeHandle = hoveredHandle;
+						s_uiResizeTarget = rectTr;
+						s_uiResizeStartSizeScene = { rectScene.z, rectScene.w };
+						s_uiResizeStartPivotScene = pivotPosScene;
+						s_uiResizePivot = { pivot.x, pivot.y };
+						s_uiResizeRightDir = rightDir;
+						s_uiResizeUpDir = upDir;
+
+						DirectX::SimpleMath::Vector2 anchorCenter;
+						DirectX::SimpleMath::Vector2 anchorSpan;
+						ComputeAnchorData(rectTr, canvasInfo.canvasSize, anchorCenter, anchorSpan);
+						s_uiResizeStartAnchorCenter = anchorCenter;
+						s_uiResizeStartAnchorSpan = anchorSpan;
+						ComputeParentBasis(rectTr, s_uiResizeParentRight, s_uiResizeParentUp);
+						s_uiResizeScaleToScene = canvasInfo.scaleToScene;
+						s_uiResizeSceneOffset = canvasInfo.sceneOffset;
+
+						switch (hoveredHandle)
+						{
+						case 0: s_uiResizeFixedCornerScene = handleScene[2]; break; // TL -> BR
+						case 1: s_uiResizeFixedCornerScene = handleScene[3]; break; // TR -> BL
+						case 2: s_uiResizeFixedCornerScene = handleScene[0]; break; // BR -> TL
+						case 3: s_uiResizeFixedCornerScene = handleScene[1]; break; // BL -> TR
+						}
+					}
+
+					if (s_uiResizeActive && s_uiResizeTarget == rectTr)
+					{
+						uiResizeUsing = true;
+						if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+						{
+							s_uiResizeActive = false;
+						}
+						else if (sceneWidth > 0.0f && sceneHeight > 0.0f && imageSize.x > 0.0f && imageSize.y > 0.0f)
+						{
+							const float u = (mousePos.x - imagePos.x) / imageSize.x;
+							const float v = (mousePos.y - imagePos.y) / imageSize.y;
+							const float mouseSceneX = u * sceneWidth;
+							const float mouseSceneY = v * sceneHeight;
+
+							const DirectX::SimpleMath::Vector2 mouseScene = { mouseSceneX, mouseSceneY };
+							const DirectX::SimpleMath::Vector2 d = mouseScene - s_uiResizeStartPivotScene;
+							const float localX = d.x * s_uiResizeRightDir.x + d.y * s_uiResizeRightDir.y
+								+ s_uiResizeStartSizeScene.x * s_uiResizePivot.x;
+							const float localY = d.x * s_uiResizeUpDir.x + d.y * s_uiResizeUpDir.y
+								+ s_uiResizeStartSizeScene.y * s_uiResizePivot.y;
+
+							float newW = s_uiResizeStartSizeScene.x;
+							float newH = s_uiResizeStartSizeScene.y;
+					DirectX::SimpleMath::Vector2 fixedCornerLocal = {};
+							switch (s_uiResizeHandle)
+							{
+							case 0: // TL
+								newW = s_uiResizeStartSizeScene.x - localX;
+								newH = s_uiResizeStartSizeScene.y - localY;
+						fixedCornerLocal = { newW, newH };
+								break;
+							case 1: // TR
+								newW = localX;
+								newH = s_uiResizeStartSizeScene.y - localY;
+						fixedCornerLocal = { 0.0f, newH };
+								break;
+							case 2: // BR
+								newW = localX;
+								newH = localY;
+						fixedCornerLocal = { 0.0f, 0.0f };
+								break;
+							case 3: // BL
+								newW = s_uiResizeStartSizeScene.x - localX;
+								newH = localY;
+						fixedCornerLocal = { newW, 0.0f };
+								break;
+							}
+
+							const float minSizeScene = 1.0f;
+							newW = std::max(newW, minSizeScene);
+							newH = std::max(newH, minSizeScene);
+
+							const DirectX::SimpleMath::Vector2 pivotLocal = {
+								newW * s_uiResizePivot.x,
+								newH * s_uiResizePivot.y
+							};
+							const DirectX::SimpleMath::Vector2 newPivotScene =
+								s_uiResizeFixedCornerScene
+						- s_uiResizeRightDir * (fixedCornerLocal.x - pivotLocal.x)
+						- s_uiResizeUpDir * (fixedCornerLocal.y - pivotLocal.y);
+
+							const DirectX::SimpleMath::Vector2 newPivotCanvas = {
+								s_uiResizeScaleToScene.x > 0.0f ? (newPivotScene.x - s_uiResizeSceneOffset.x) / s_uiResizeScaleToScene.x : newPivotScene.x,
+								s_uiResizeScaleToScene.y > 0.0f ? (newPivotScene.y - s_uiResizeSceneOffset.y) / s_uiResizeScaleToScene.y : newPivotScene.y
+							};
+
+							const DirectX::SimpleMath::Vector2 delta = newPivotCanvas - s_uiResizeStartAnchorCenter;
+							const DirectX::SimpleMath::Vector2 anchoredPos = {
+								delta.x * s_uiResizeParentRight.x + delta.y * s_uiResizeParentRight.y,
+								delta.x * s_uiResizeParentUp.x + delta.y * s_uiResizeParentUp.y
+							};
+							rectTr->SetAnchoredPosition(anchoredPos);
+
+							DirectX::SimpleMath::Vector2 sizeCanvas = {
+								s_uiResizeScaleToScene.x > 0.0f ? (newW / s_uiResizeScaleToScene.x) : newW,
+								s_uiResizeScaleToScene.y > 0.0f ? (newH / s_uiResizeScaleToScene.y) : newH
+							};
+							const auto worldScale = rectTr->GetWorldScale();
+							if (std::abs(worldScale.x) > 1e-4f) sizeCanvas.x /= worldScale.x;
+							if (std::abs(worldScale.y) > 1e-4f) sizeCanvas.y /= worldScale.y;
+
+							rectTr->SetSizeDelta(sizeCanvas - s_uiResizeStartAnchorSpan);
+						}
+					}
+					else if (s_uiResizeActive && s_uiResizeTarget != rectTr)
+					{
+						s_uiResizeActive = false;
+					}
+
+					for (int i = 0; i < 4; ++i)
+					{
+						const bool hot = (i == hoveredHandle) || (s_uiResizeActive && s_uiResizeHandle == i && s_uiResizeTarget == rectTr);
+						const ImU32 color = hot ? handleColorHot : handleColor;
+						drawList->AddCircleFilled(handleScreen[i], handleRadius, color);
+					}
+				}
+
+				const bool allowUiDrag = showUiHandles && !s_uiResizeActive;
+				if (allowUiDrag)
+				{
+					ImVec2 mousePos = ImGui::GetMousePos();
+					const bool mouseInImage = mousePos.x >= imagePos.x && mousePos.x <= imageMax.x
+						&& mousePos.y >= imagePos.y && mousePos.y <= imageMax.y;
+					const bool mouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+
+					if (!s_uiDragActive && mouseInImage && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+					{
+						// 클릭한 지점이 선택된 UI 내부인지 확인
+						const DirectX::SimpleMath::Vector2 mouseScene = {
+							(mousePos.x - imagePos.x) * (sceneWidth / imageSize.x),
+							(mousePos.y - imagePos.y) * (sceneHeight / imageSize.y)
+						};
+						const DirectX::SimpleMath::Vector2 d = mouseScene - pivotPosScene;
+						const float localX = d.x * rightDir.x + d.y * rightDir.y;
+						const float localY = d.x * upDir.x + d.y * upDir.y;
+						const float u = (rectScene.z > 1e-6f) ? (localX / rectScene.z + pivot.x) : pivot.x;
+						const float v = (rectScene.w > 1e-6f) ? (localY / rectScene.w + pivot.y) : pivot.y;
+						const bool inside = (u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f);
+						if (inside)
+						{
+							s_uiDragActive = true;
+							s_uiDragTarget = rectTr;
+							s_uiDragStartMouseScene = mouseScene;
+							s_uiDragStartPivotScene = pivotPosScene;
+							DirectX::SimpleMath::Vector2 anchorCenter;
+							DirectX::SimpleMath::Vector2 anchorSpan;
+							ComputeAnchorData(rectTr, canvasInfo.canvasSize, anchorCenter, anchorSpan);
+							s_uiDragStartAnchorCenter = anchorCenter;
+							ComputeParentBasis(rectTr, s_uiDragParentRight, s_uiDragParentUp);
+							s_uiDragScaleToScene = canvasInfo.scaleToScene;
+							s_uiDragSceneOffset = canvasInfo.sceneOffset;
+						}
+					}
+
+					if (s_uiDragActive && s_uiDragTarget == rectTr)
+					{
+						if (!mouseDown)
+						{
+							s_uiDragActive = false;
+						}
+						else if (sceneWidth > 0.0f && sceneHeight > 0.0f && imageSize.x > 0.0f && imageSize.y > 0.0f)
+						{
+							const DirectX::SimpleMath::Vector2 mouseScene = {
+								(mousePos.x - imagePos.x) * (sceneWidth / imageSize.x),
+								(mousePos.y - imagePos.y) * (sceneHeight / imageSize.y)
+							};
+							const DirectX::SimpleMath::Vector2 deltaScene = mouseScene - s_uiDragStartMouseScene;
+							const DirectX::SimpleMath::Vector2 newPivotScene = s_uiDragStartPivotScene + deltaScene;
+							const DirectX::SimpleMath::Vector2 newPivotCanvas = {
+								s_uiDragScaleToScene.x > 0.0f ? (newPivotScene.x - s_uiDragSceneOffset.x) / s_uiDragScaleToScene.x : newPivotScene.x,
+								s_uiDragScaleToScene.y > 0.0f ? (newPivotScene.y - s_uiDragSceneOffset.y) / s_uiDragScaleToScene.y : newPivotScene.y
+							};
+							const DirectX::SimpleMath::Vector2 delta = newPivotCanvas - s_uiDragStartAnchorCenter;
+							const DirectX::SimpleMath::Vector2 anchoredPos = {
+								delta.x * s_uiDragParentRight.x + delta.y * s_uiDragParentRight.y,
+								delta.x * s_uiDragParentUp.x + delta.y * s_uiDragParentUp.y
+							};
+							rectTr->SetAnchoredPosition(anchoredPos);
+						}
+					}
+				}
+
+				if (sceneWidth > 0.0f && sceneHeight > 0.0f && hasUiGizmo)
 				{
 					// UI는 화면 좌표계(좌상단 원점)를 사용하므로 이에 맞는 투영을 사용합니다.
 					projMat = Matrix::CreateOrthographicOffCenter(
@@ -608,7 +881,8 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 				float* projPtr = &projMat.m[0][0];
 				float* modelPtr = &modelMat.m[0][0];
 
-				ImGuizmo::Manipulate(viewPtr, projPtr, op, ImGuizmo::LOCAL, modelPtr, nullptr, useSnap ? snapValue : nullptr);
+				if (hasUiGizmo)
+					ImGuizmo::Manipulate(viewPtr, projPtr, op, ImGuizmo::LOCAL, modelPtr, nullptr, useSnap ? snapValue : nullptr);
 
 				if (ImGuizmo::IsUsing())
 				{
@@ -632,37 +906,45 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 					DirectX::SimpleMath::Vector2 anchorSpan;
 					ComputeAnchorData(rectTr, canvasInfo.canvasSize, anchorCenter, anchorSpan);
 
-					rectTr->SetAnchoredPosition(newPivotCanvas - anchorCenter);
-
-					const auto newEulerRad = r.ToEuler();
-					DirectX::SimpleMath::Vector3 newEulerDeg = {
-						DirectX::XMConvertToDegrees(newEulerRad.x),
-						DirectX::XMConvertToDegrees(newEulerRad.y),
-						DirectX::XMConvertToDegrees(newEulerRad.z)
+					DirectX::SimpleMath::Vector2 parentRight;
+					DirectX::SimpleMath::Vector2 parentUp;
+					ComputeParentBasis(rectTr, parentRight, parentUp);
+					const DirectX::SimpleMath::Vector2 delta = newPivotCanvas - anchorCenter;
+					const DirectX::SimpleMath::Vector2 anchoredPos = {
+						delta.x * parentRight.x + delta.y * parentRight.y,
+						delta.x * parentUp.x + delta.y * parentUp.y
 					};
-					DirectX::SimpleMath::Vector3 appliedEuler = currentEuler;
-					appliedEuler.z = newEulerDeg.z;
-					rectTr->SetWorldEulerRotation(appliedEuler);
+					rectTr->SetAnchoredPosition(anchoredPos);
 
-					const DirectX::SimpleMath::Vector2 sizeScene = {
-						s.x,
-						s.y
-					};
+					if (op == ImGuizmo::ROTATE)
+					{
+						const auto newEulerRad = r.ToEuler();
+						DirectX::SimpleMath::Vector3 newEulerDeg = {
+							DirectX::XMConvertToDegrees(newEulerRad.x),
+							DirectX::XMConvertToDegrees(newEulerRad.y),
+							DirectX::XMConvertToDegrees(newEulerRad.z)
+						};
+						DirectX::SimpleMath::Vector3 appliedEuler = currentEuler;
+						appliedEuler.z = newEulerDeg.z;
+						rectTr->SetWorldEulerRotation(appliedEuler);
+					}
 
-					DirectX::SimpleMath::Vector2 sizeCanvas = {
-						canvasInfo.scaleToScene.x > 0.0f ? sizeScene.x / canvasInfo.scaleToScene.x : sizeScene.x,
-						canvasInfo.scaleToScene.y > 0.0f ? sizeScene.y / canvasInfo.scaleToScene.y : sizeScene.y
-					};
+					if (op == ImGuizmo::SCALE)
+					{
+						const float baseW = rectScene.z;
+						const float baseH = rectScene.w;
+						const float scaleX = (baseW > 1e-6f) ? (s.x / baseW) : 1.0f;
+						const float scaleY = (baseH > 1e-6f) ? (s.y / baseH) : 1.0f;
 
-					const auto worldScale = rectTr->GetWorldScale();
-					if (std::abs(worldScale.x) > 1e-4f) sizeCanvas.x /= worldScale.x;
-					if (std::abs(worldScale.y) > 1e-4f) sizeCanvas.y /= worldScale.y;
-
-					rectTr->SetSizeDelta(sizeCanvas - anchorSpan);
+						auto worldScale = rectTr->GetWorldScale();
+						worldScale.x *= scaleX;
+						worldScale.y *= scaleY;
+						rectTr->SetWorldScale(worldScale);
+					}
 				}
 			}
 		}
-		else
+		else if ((int)m_guizmoOperation != 0)
 		{
 			gizmoDrawn = true;
 
@@ -761,9 +1043,12 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
 
 		ImGui::SetCursorPos(scenecornerpos + padding);
-		// Hand 버튼 (Q)
+		// Hand/Rect 버튼 (Q) - UI 편집 모드에서는 Rect 표시
 		ImGui::BeginDisabled(handing);
-		if (ImGui::Button(u8"\uf256 hand", buttonsize)) // 폰트어썸 핸드 아이콘
+		const char* handLabel = u8"\uf256 hand";
+		const char* rectLabel = u8"\uf0c8 rect";
+		const char* primaryLabel = m_ui2DMode ? rectLabel : handLabel;
+		if (ImGui::Button(primaryLabel, buttonsize)) // 폰트어썸 아이콘
 		{
 			m_guizmoOperation = (ImGuizmo::OPERATION)0;
 		}
@@ -1176,9 +1461,11 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 		toolbuttonHovered = toolbuttonHovered || anyHovered || ImGui::IsMouseHoveringRect(gizmoMin, gizmoMax);
 	}
 
+	toolbuttonHovered = toolbuttonHovered || uiResizeHovered;
+
 	// 씬 뷰 픽킹 (좌클릭)
 	{
-		const bool gizmoBlocking = (gizmoDrawn && (ImGuizmo::IsOver() || ImGuizmo::IsUsing())) || viewGizmoUsing;
+	const bool gizmoBlocking = (gizmoDrawn && (ImGuizmo::IsOver() || ImGuizmo::IsUsing())) || viewGizmoUsing || uiResizeUsing || s_uiDragActive;
 		ImVec2 mousePos = ImGui::GetMousePos();
 		bool mouseInImage = mousePos.x >= imagePos.x && mousePos.x <= imageMax.x
 			&& mousePos.y >= imagePos.y && mousePos.y <= imageMax.y;
@@ -1584,35 +1871,87 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 
 							auto rt = make_rt_noscale(go->GetTransform()->GetLocalPosition(), go->GetTransform()->GetLocalRotation());
 
-							const auto& meshes = meshCol->GetMesh()->meshData;
-
-							// indexCount는 3의 배수여야 함(삼각형 리스트)
-							for (size_t i = 0; i < meshes.vertices.size(); ++i)
+							if (auto convexMesh = meshCol->GetConvexMesh(); convexMesh)
 							{
-								auto& submesh = meshes.vertices[i];
-								auto& submeshIndices = meshes.indices[i];
+								auto verts = convexMesh->getVertices();
+								auto ib = convexMesh->getIndexBuffer();
+								physx::PxU32 polyCount = convexMesh->getNbPolygons();
 
-								const auto vertexCount = submesh.size();
-								const size_t triCount = submeshIndices.size() / 3;
-								for (size_t t = 0; t < triCount; ++t)
+								for (physx::PxU32 p = 0; p < polyCount; ++p)
 								{
-									uint32_t ia = submeshIndices[t * 3 + 0];
-									uint32_t ib = submeshIndices[t * 3 + 1];
-									uint32_t ic = submeshIndices[t * 3 + 2];
+									physx::PxHullPolygon poly;
+									if (!convexMesh->getPolygonData(p, poly)) continue;
 
-									if (ia >= submesh.size() || ib >= vertexCount || ic >= vertexCount)
-										continue; // 안전장치
+									const physx::PxU32 n = poly.mNbVerts;
+									const physx::PxU32 base = poly.mIndexBase;
 
+									if (n < 3) continue;
 
-									XMVECTOR A = XMVector3TransformCoord(XMLoadFloat3(&submesh[ia].Pos), rt);
-									XMVECTOR B = XMVector3TransformCoord(XMLoadFloat3(&submesh[ib].Pos), rt);
-									XMVECTOR C = XMVector3TransformCoord(XMLoadFloat3(&submesh[ic].Pos), rt);
+									physx::PxU32 i0 = ib[base + 0];
 
-									DX::DrawTriangle(m_batch.get(), A, B, C, Colors::LightGreen);
+									for (physx::PxU32 i = 1; i + 1 < n; ++i)
+									{
+										physx::PxU32 i1 = ib[base + i];
+										physx::PxU32 i2 = ib[base + i + 1];
+
+										if (i0 >= convexMesh->getNbVertices() ||
+											i1 >= convexMesh->getNbVertices() ||
+											i2 >= convexMesh->getNbVertices())
+											continue;
+
+										// verts[i0], verts[i1], verts[i2] 변환해서 DrawTriangle
+										physx::PxVec3 v0 = verts[i0];
+										physx::PxVec3 v1 = verts[i1];
+										physx::PxVec3 v2 = verts[i2];
+
+										XMVECTOR A = XMVector3TransformCoord(
+											XMVectorSet(v0.x, v0.y, v0.z, 1.0f), rt);
+
+										XMVECTOR B = XMVector3TransformCoord(
+											XMVectorSet(v1.x, v1.y, v1.z, 1.0f), rt);
+
+										XMVECTOR C = XMVector3TransformCoord(
+											XMVectorSet(v2.x, v2.y, v2.z, 1.0f), rt);
+
+										DX::DrawTriangle(m_batch.get(), A, B, C, Colors::LightGreen);
+									}
 								}
 							}
+							else
+							{
+								if (meshCol->GetMesh() == nullptr)
+									break;
 
+								const auto& meshes = meshCol->GetMesh()->meshData;
+
+								// indexCount는 3의 배수여야 함(삼각형 리스트)
+								for (size_t i = 0; i < meshes.vertices.size(); ++i)
+								{
+									auto& submesh = meshes.vertices[i];
+									auto& submeshIndices = meshes.indices[i];
+
+									const auto vertexCount = submesh.size();
+									const size_t triCount = submeshIndices.size() / 3;
+									for (size_t t = 0; t < triCount; ++t)
+									{
+										uint32_t ia = submeshIndices[t * 3 + 0];
+										uint32_t ib = submeshIndices[t * 3 + 1];
+										uint32_t ic = submeshIndices[t * 3 + 2];
+
+										if (ia >= submesh.size() || ib >= vertexCount || ic >= vertexCount)
+											continue; // 안전장치
+
+
+										XMVECTOR A = XMVector3TransformCoord(XMLoadFloat3(&submesh[ia].Pos), rt);
+										XMVECTOR B = XMVector3TransformCoord(XMLoadFloat3(&submesh[ib].Pos), rt);
+										XMVECTOR C = XMVector3TransformCoord(XMLoadFloat3(&submesh[ic].Pos), rt);
+
+										DX::DrawTriangle(m_batch.get(), A, B, C, Colors::LightGreen);
+									}
+								}
+							}
 						}
+						break;
 					}
 					case ColliderComponent::DebugColliderType::Box:
 					{

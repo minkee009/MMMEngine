@@ -7,6 +7,10 @@
 #include "RigidBodyComponent.h"
 #include "Behaviour.h"
 #include "SerializableEvent.h"
+#include "Image.h"
+#include "Button.h"
+#include "Gage.h"
+#include "HandleGage.h"
 #include "Canvas.h"
 #include <regex>
 
@@ -1233,6 +1237,43 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
     }
 
     const std::unordered_map<std::string, bool> chainVisibility = BuildInspectorChainVisibility(inst, t);
+
+    if (t == rttr::type::get<Image>())
+    {
+        auto comp = ObjectManager::Get().GetPtr<Image>(objPtr.GetPtrID(), objPtr.GetPtrGeneration());
+        if (comp.IsValid() && comp->GetTexture())
+        {
+            if (ImGui::Button(u8"Set Native Size"))
+                comp->SetNativeSize();
+        }
+    }
+    else if (t == rttr::type::get<Button>())
+    {
+        auto comp = ObjectManager::Get().GetPtr<Button>(objPtr.GetPtrID(), objPtr.GetPtrGeneration());
+        if (comp.IsValid() && comp->GetTexture())
+        {
+            if (ImGui::Button(u8"Set Native Size"))
+                comp->SetNativeSize();
+        }
+    }
+    else if (t == rttr::type::get<Gage>())
+    {
+        auto comp = ObjectManager::Get().GetPtr<Gage>(objPtr.GetPtrID(), objPtr.GetPtrGeneration());
+        if (comp.IsValid() && (comp->GetBackgroundTexture() || comp->GetFillTexture()))
+        {
+            if (ImGui::Button(u8"Set Native Size"))
+                comp->SetNativeSize();
+        }
+    }
+    else if (t == rttr::type::get<HandleGage>())
+    {
+        auto comp = ObjectManager::Get().GetPtr<HandleGage>(objPtr.GetPtrID(), objPtr.GetPtrGeneration());
+        if (comp.IsValid() && (comp->GetBackgroundTexture() || comp->GetFillTexture() || comp->GetHandleTexture()))
+        {
+            if (ImGui::Button(u8"Set Native Size"))
+                comp->SetNativeSize();
+        }
+    }
 
     int propIndex = 0;
     for (auto& prop : t.get_properties())

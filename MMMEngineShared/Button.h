@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Export.h"
 #include "Graphic.h"
@@ -26,6 +26,10 @@ namespace MMMEngine
 	public:
 		Button() = default;
 		virtual ~Button() = default;
+
+		const ResPtr<Texture2D>& GetTexture() { return Graphic::GetTexture(); }
+		void SetTexture(const ResPtr<Texture2D>& texture);
+		void SetNativeSize();
 
 		const SerializableEvent& GetOnHoverEnter() const { return m_onHoverEnter; }
 		void SetOnHoverEnter(const SerializableEvent& ev) { m_onHoverEnter = ev; }

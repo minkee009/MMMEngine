@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Export.h"
 #include "Behaviour.h"
@@ -29,6 +29,7 @@ namespace MMMEngine
 	protected:
 		void Initialize() override;
 		void UnInitialize() override;
+		void ApplyNativeSizeFromTexture(const ResPtr<Texture2D>& texture);
 
 	public:
 		virtual ~Graphic() = default;

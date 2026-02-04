@@ -1,4 +1,4 @@
-﻿#include "HandleGage.h"
+#include "HandleGage.h"
 #include "RectTransform.h"
 #include "Canvas.h"
 #include "RenderManager.h"
@@ -28,6 +28,41 @@ RTTR_REGISTRATION
 	registration::class_<ObjPtr<HandleGage>>("ObjPtr<HandleGage>")
 		.constructor<>([]() { return Object::NewObject<HandleGage>(); })
 		.method("Inject", &ObjPtr<HandleGage>::Inject);
+}
+
+void MMMEngine::HandleGage::SetBackgroundTexture(const ResPtr<Texture2D>& tex)
+{
+	m_backgroundTexture = tex;
+	ApplyNativeSizeFromTexture(tex);
+}
+
+void MMMEngine::HandleGage::SetFillTexture(const ResPtr<Texture2D>& tex)
+{
+	m_fillTexture = tex;
+	ApplyNativeSizeFromTexture(tex);
+}
+
+void MMMEngine::HandleGage::SetHandleTexture(const ResPtr<Texture2D>& tex)
+{
+	m_handleTexture = tex;
+}
+
+void MMMEngine::HandleGage::SetNativeSize()
+{
+	if (m_backgroundTexture)
+	{
+		ApplyNativeSizeFromTexture(m_backgroundTexture);
+		return;
+	}
+	if (m_fillTexture)
+	{
+		ApplyNativeSizeFromTexture(m_fillTexture);
+		return;
+	}
+	if (m_handleTexture)
+	{
+		ApplyNativeSizeFromTexture(m_handleTexture);
+	}
 }
 
 void MMMEngine::HandleGage::SetValue(float v)

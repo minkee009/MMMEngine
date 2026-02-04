@@ -1,4 +1,4 @@
-﻿#include "Button.h"
+#include "Button.h"
 #include "RectTransform.h"
 #include "Canvas.h"
 #include "Texture2D.h"
@@ -22,6 +22,17 @@ RTTR_REGISTRATION
 	registration::class_<ObjPtr<Button>>("ObjPtr<Button>")
 		.constructor<>([]() { return Object::NewObject<Button>(); })
 		.method("Inject", &ObjPtr<Button>::Inject);
+}
+
+void MMMEngine::Button::SetTexture(const ResPtr<Texture2D>& texture)
+{
+	Graphic::SetTexture(texture);
+	ApplyNativeSizeFromTexture(texture);
+}
+
+void MMMEngine::Button::SetNativeSize()
+{
+	ApplyNativeSizeFromTexture(GetTexture());
 }
 
 static bool PointInRect(float px, float py, float rx, float ry, float rw, float rh)

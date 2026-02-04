@@ -1,4 +1,4 @@
-﻿#include "Gage.h"
+#include "Gage.h"
 #include "Canvas.h"
 #include "RectTransform.h"
 #include "RenderManager.h"
@@ -29,6 +29,31 @@ RTTR_REGISTRATION
 	registration::class_<ObjPtr<Gage>>("ObjPtr<Gage>")
 		.constructor<>([]() { return Object::NewObject<Gage>(); })
 		.method("Inject", &ObjPtr<Gage>::Inject);
+}
+
+void MMMEngine::Gage::SetBackgroundTexture(const ResPtr<Texture2D>& tex)
+{
+	m_backgroundTexture = tex;
+	ApplyNativeSizeFromTexture(tex);
+}
+
+void MMMEngine::Gage::SetFillTexture(const ResPtr<Texture2D>& tex)
+{
+	m_fillTexture = tex;
+	ApplyNativeSizeFromTexture(tex);
+}
+
+void MMMEngine::Gage::SetNativeSize()
+{
+	if (m_backgroundTexture)
+	{
+		ApplyNativeSizeFromTexture(m_backgroundTexture);
+		return;
+	}
+	if (m_fillTexture)
+	{
+		ApplyNativeSizeFromTexture(m_fillTexture);
+	}
 }
 
 void MMMEngine::Gage::SetValue(float v)

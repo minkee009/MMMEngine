@@ -19,9 +19,17 @@ namespace MMMEngine {
 			friend class SceneManager;
 			friend class Scene;
 
+		uint32_t m_width = 0;
+		uint32_t m_height = 0;
+
+		void UpdateSizeFromSRV();
+
 	public:
 		//Microsoft::WRL::ComPtr<ID3D11Texture2D1> m_pTexture = nullptr;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView1> m_pSRV = nullptr;
+
+		uint32_t GetWidth() const { return m_width; }
+		uint32_t GetHeight() const { return m_height; }
 
 		void CreateResourceView(std::filesystem::path& _path, ID3D11ShaderResourceView** _out);
 		bool LoadFromFilePath(const std::wstring& filePath) override;

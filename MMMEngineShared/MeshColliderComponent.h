@@ -31,9 +31,7 @@ namespace MMMEngine
 		bool RebuildForRigidType(MMMEngine::RigidBodyComponent::Type type);
 		bool RebuildShapeOnly(MMMEngine::RigidBodyComponent::Type type);
 
-
-
-
+		physx::PxConvexMesh* GetConvexMesh() const { return m_convex; }
 
 	private:
 		ResPtr<StaticMesh> m_mesh;

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Export.h"
 #include "Graphic.h"
@@ -36,13 +36,15 @@ namespace MMMEngine
 		virtual ~HandleGage() = default;
 
 		const ResPtr<Texture2D>& GetBackgroundTexture() const { return m_backgroundTexture; }
-		void SetBackgroundTexture(const ResPtr<Texture2D>& tex) { m_backgroundTexture = tex; }
+		void SetBackgroundTexture(const ResPtr<Texture2D>& tex);
 
 		const ResPtr<Texture2D>& GetFillTexture() const { return m_fillTexture; }
-		void SetFillTexture(const ResPtr<Texture2D>& tex) { m_fillTexture = tex; }
+		void SetFillTexture(const ResPtr<Texture2D>& tex);
 
 		const ResPtr<Texture2D>& GetHandleTexture() const { return m_handleTexture; }
-		void SetHandleTexture(const ResPtr<Texture2D>& tex) { m_handleTexture = tex; }
+		void SetHandleTexture(const ResPtr<Texture2D>& tex);
+
+		void SetNativeSize();
 
 		const DirectX::SimpleMath::Vector2& GetHandleSize() const { return m_handleSize; }
 		void SetHandleSize(const DirectX::SimpleMath::Vector2& size) { m_handleSize = size; }
