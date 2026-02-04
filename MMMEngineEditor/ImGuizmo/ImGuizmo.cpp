@@ -733,7 +733,6 @@ namespace ImGuizmo
       float mGizmoSizeClipSpace = 0.1f;
    };
 
-
    static Context gContext;
 
    static const vec_t directionUnary[3] = { makeVect(1.f, 0.f, 0.f), makeVect(0.f, 1.f, 0.f), makeVect(0.f, 0.f, 1.f) };

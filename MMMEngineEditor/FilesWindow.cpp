@@ -1,9 +1,10 @@
-#include "FilesWindow.h"
+﻿#include "FilesWindow.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
 #include <cstring>
 #include <algorithm>
+#include <sstream>
 
 #include "EditorRegistry.h"
 #include "ProjectManager.h"
@@ -12,6 +13,46 @@
 #include "SceneManager.h"
 
 using namespace MMMEngine::EditorRegistry;
+
+namespace
+{
+    static std::string NormalizeToCrlf(std::string text)
+    {
+        std::string out;
+        out.reserve(text.size() + text.size() / 16);
+        for (size_t i = 0; i < text.size(); ++i)
+        {
+            char c = text[i];
+            if (c == '\r')
+            {
+                if (i + 1 < text.size() && text[i + 1] == '\n')
+                    ++i;
+                out += "\r\n";
+            }
+            else if (c == '\n')
+            {
+                out += "\r\n";
+            }
+            else
+            {
+                out += c;
+            }
+        }
+        return out;
+    }
+
+    static bool WriteUtf8BomFile(const fs::path& path, const std::string& text)
+    {
+        std::ofstream out(path, std::ios::binary);
+        if (!out)
+            return false;
+        static const unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
+        out.write(reinterpret_cast<const char*>(bom), sizeof(bom));
+        const std::string normalized = NormalizeToCrlf(text);
+        out.write(normalized.data(), static_cast<std::streamsize>(normalized.size()));
+        return static_cast<bool>(out);
+    }
+}
 
 void MMMEngine::Editor::FilesWindow::Render()
 {
@@ -650,11 +691,10 @@ void MMMEngine::Editor::FilesWindow::CreateNewScript(const std::string& parentDi
 
     // Create .h file
     fs::path headerPath = MakeFileUnique(scriptsDir, scriptName, ".h");
-    std::ofstream headerFile(headerPath, std::ios::binary);
-    if (headerFile.is_open())
     {
-        headerFile <<
-			R"(#pragma once
+        std::ostringstream headerStream;
+        headerStream <<
+            R"(#pragma once
 #include "rttr/type"
 #include "ScriptBehaviour.h"
 #include "UserScriptsCommon.h"
@@ -679,15 +719,14 @@ namespace MMMEngine
     };
 }
 )";
-        headerFile.close();
+        WriteUtf8BomFile(headerPath, headerStream.str());
     }
 
     // Create .cpp file
     fs::path cppPath = MakeFileUnique(scriptsDir, scriptName, ".cpp");
-    std::ofstream cppFile(cppPath, std::ios::binary);
-    if (cppFile.is_open())
     {
-        cppFile <<
+        std::ostringstream cppStream;
+        cppStream <<
             R"(#include "Export.h"
 #include "ScriptBehaviour.h"
 #include ")" << scriptName << R"(.h"
@@ -700,7 +739,7 @@ void MMMEngine::)" << scriptName << R"(::Update()
 {
 }
 )";
-        cppFile.close();
+        WriteUtf8BomFile(cppPath, cppStream.str());
     }
 
     ProjectManager::Get().RefreshUserScriptsIDEFiles();

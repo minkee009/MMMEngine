@@ -4,6 +4,8 @@
 #include <array>
 #include <thread>
 #include <sstream>
+#include <unordered_set>
+#include <cctype>
 
 namespace fs = std::filesystem;
 
@@ -698,15 +700,67 @@ namespace MMMEngine::Editor
     bool BuildManager::HasFilesChanged(const fs::path& scriptsPath) {
         bool changed = false;
 
-        for (const auto& entry : fs::recursive_directory_iterator(scriptsPath)) {
-            if (entry.path().extension() == ".cpp" || entry.path().extension() == ".h") {
-                auto lastWriteTime = fs::last_write_time(entry.path());
-                auto& cachedTime = m_fileTimestamps[entry.path().string()];
+        if (!fs::exists(scriptsPath) || !fs::is_directory(scriptsPath))
+        {
+            if (!m_fileTimestamps.empty())
+            {
+                m_fileTimestamps.clear();
+                return true;
+            }
+            return false;
+        }
 
-                if (cachedTime != lastWriteTime) {
-                    changed = true;
-                    cachedTime = lastWriteTime;
-                }
+        std::unordered_set<std::string> seen;
+        std::error_code ec;
+        auto dirIt = fs::recursive_directory_iterator(
+            scriptsPath,
+            fs::directory_options::skip_permission_denied,
+            ec);
+        if (ec)
+            return true;
+
+        for (const auto& entry : dirIt)
+        {
+            std::error_code ecFile;
+            if (!entry.is_regular_file(ecFile) || ecFile)
+                continue;
+
+            std::string ext = entry.path().extension().string();
+            for (char& c : ext)
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+            if (ext != ".cpp" && ext != ".h" && ext != ".hpp")
+                continue;
+
+            std::error_code ecTime;
+            auto lastWriteTime = fs::last_write_time(entry.path(), ecTime);
+            if (ecTime)
+            {
+                changed = true;
+                continue;
+            }
+
+            const std::string key = entry.path().string();
+            seen.insert(key);
+
+            auto itCache = m_fileTimestamps.find(key);
+            if (itCache == m_fileTimestamps.end() || itCache->second != lastWriteTime)
+            {
+                changed = true;
+                m_fileTimestamps[key] = lastWriteTime;
+            }
+        }
+
+        for (auto itCache = m_fileTimestamps.begin(); itCache != m_fileTimestamps.end();)
+        {
+            if (seen.find(itCache->first) == seen.end())
+            {
+                changed = true;
+                itCache = m_fileTimestamps.erase(itCache);
+            }
+            else
+            {
+                ++itCache;
             }
         }
 
@@ -715,8 +769,7 @@ namespace MMMEngine::Editor
 
     BuildOutput BuildManager::BuildUserScripts(
         const fs::path& projectRootDir,
-        BuildConfiguration config
-    )
+        BuildConfiguration config)
     {
         BuildOutput output;
 
@@ -732,28 +785,29 @@ namespace MMMEngine::Editor
                 m_progressCallbackString(std::string(u8"[UserScriptsGenerator] ") + e.what());
         }
 
-        // 1. vcxproj 파일 경로
         fs::path vcxprojPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.vcxproj";
-        if (!fs::exists(vcxprojPath))
-        {
-            output.result = BuildResult::NotFound;
-            output.errorLog = "UserScripts.vcxproj not found at: " + vcxprojPath.string();
-            return output;
+        fs::path dllPath = projectRootDir / "Binaries" / "Win64" / "UserScripts.dll";
+        fs::path scriptsPath = projectRootDir / "Source" / "UserScripts" / "Scripts";
+
+        // 1. 실제 파일 변경 여부 확인 (메모리 맵 기반)
+        bool scriptsChanged = HasFilesChanged(scriptsPath);
+
+        // DLL이 없거나 프로젝트 파일보다 이전 것이라면 빌드 필요
+        bool dllOutdated = true;
+        if (fs::exists(dllPath)) {
+            auto dllTime = fs::last_write_time(dllPath);
+            auto vcxTime = fs::last_write_time(vcxprojPath);
+            if (dllTime > vcxTime) dllOutdated = false;
         }
 
-        // 2. MSBuild 찾기
+        if (!scriptsChanged && !dllOutdated)
+        {
+            // 빌드 스킵 로직
+            return { BuildResult::Success, "Build skipped: No changes detected.","",0};
+        }
+
+        // 2. MSBuild 실행
         fs::path msbuildPath = FindMSBuild();
-        if (msbuildPath.empty())
-        {
-            output.result = BuildResult::MSBuildNotFound;
-            output.errorLog = "MSBuild.exe not found. Please install Visual Studio 2019 or later.";
-            return output;
-        }
-
-        if (m_progressCallbackString)
-            m_progressCallbackString(u8"MSBuild 경로: " + msbuildPath.string());
-
-        // 3. 빌드 실행
         return ExecuteBuild(msbuildPath, vcxprojPath, config);
     }
 
