@@ -135,7 +135,7 @@ namespace MMMEngine
 		void ApplyMaterial();
 		void EnsureMaterial();
 
-		
+		void SetTriggerQueryEnabled(bool on);
 
 	protected:
 		physx::PxShape* m_Shape = nullptr;
@@ -174,6 +174,7 @@ namespace MMMEngine
 
 		bool Child_value = false;
 
+		bool m_TriggerQueryEnabled = false;
 	//콜리더 shape return 가상함수
 	public:
 

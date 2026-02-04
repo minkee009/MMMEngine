@@ -43,6 +43,12 @@ void MMMEngine::ColliderComponent::EnsureMaterial()
 	}
 }
 
+void MMMEngine::ColliderComponent::SetTriggerQueryEnabled(bool on)
+{
+    m_TriggerQueryEnabled = on;
+    ApplySceneQueryFlag();
+}
+
 void MMMEngine::ColliderComponent::RegisterToPhysics()
 {
     if (m_IsRegistered || !m_Shape) return;
@@ -104,6 +110,7 @@ void MMMEngine::ColliderComponent::ApplySceneQueryFlag()
 
     if (m_Mode == ShapeMode::Disabled) query = false;
     if (m_Mode == ShapeMode::QueryOnly) query = true;
+    if (m_Mode == ShapeMode::Trigger) query = m_TriggerQueryEnabled;
 
     m_Shape->setFlag(physx::PxShapeFlag::eSCENE_QUERY_SHAPE, query);
 }
