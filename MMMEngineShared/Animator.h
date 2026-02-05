@@ -44,6 +44,7 @@ namespace MMMEngine {
 		bool IsInSubTree(const NodeTreeAsset& tree, int root, int node);
 		void UpdateBoneMatrix();
 		void NormalizeWeight();
+		void NormalizeWeightExcept(const std::string& fixedName);
 	public:
 		void Initialize() override;
 		void UnInitialize() override;

@@ -83,30 +83,6 @@ float CalculateShadowPCF(float4 LightPos)
     shadow /= 9.0f;
 
     return shadow;
-  
-    ////쉐도우맵 처리
-    //float currentShadowDepth = LightPos.z / LightPos.w; // 쉐도우맵 기준 NDC Z좌표
-    //float2 shadowUV = LightPos.xy / LightPos.w;
-
-    //shadowUV.y *= -1.0f;
-    //shadowUV = (shadowUV * 0.5f) + 0.5f;
-
-    //float shadowFactor = 1.0f;
-
-    //if (shadowUV.x >= 0.0f && shadowUV.x <= 1.0f && shadowUV.y >= 0.0f && shadowUV.y <= 1.0f)
-    //{
-    // Normal
-    //{
-    //        float sampleShadowDepth = _shadowmap.Sample(_sp0, shadowUV).r;
-    
-    //        if (currentShadowDepth > sampleShadowDepth + 0.001f)
-    //        {
-    //            shadowFactor = 0.0f;
-    //        }
-    //    }
-    //}
-    
-    //return shadowFactor;
 }
 
 float4 main(PS_INPUT input) : SV_TARGET

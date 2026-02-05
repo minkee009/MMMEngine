@@ -97,8 +97,8 @@ namespace MMMEngine {
 		_context->IASetInputLayout(_material->GetVShader()->m_pInputLayout.Get());
 
 		// TODO::샘플러 ShaderInfo 사용해 자동등록화 시키기 (UpdateProperty 사용, 프로퍼티로 샘플러 관리하기)
-		_context->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
-		_context->PSSetSamplers(1, 1, m_pCompareSampler.GetAddressOf());
+		ID3D11SamplerState* samplers[] = { m_pLinearSampler.Get(), m_pCompareSampler.Get(), m_pPointSampler.Get() };
+		m_pDeviceContext->PSSetSamplers(0, 3, samplers);
 
 
 		// 메테리얼
@@ -319,7 +319,7 @@ namespace MMMEngine {
 		context->PSSetShader(m_pUIPShader->m_pPShader.Get(), nullptr, 0);
 		context->VSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
 		context->PSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
-		context->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+		context->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
 
 		float blendFactor[4] = { 0,0,0,0 };
 		context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
@@ -350,7 +350,7 @@ namespace MMMEngine {
 			0, nullptr, 0, D3D11_SDK_VERSION,
 			device.GetAddressOf(), &featureLevel, nullptr);
 
-		HR_T(device.As(&m_pDevice));
+		HR_T(device.As(&m_pDevice), "Device::");
 
 		// hWnd 등록
 		assert(_hwnd != nullptr && "RenderPipe::Initialize : hWnd must not be nullptr!!");
@@ -390,13 +390,13 @@ namespace MMMEngine {
 		// 스왑체인 생성
 		Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
 		HR_T(dxgiFactory->CreateSwapChainForHwnd(m_pDevice.Get(), m_hWnd, &swapDesc,
-			nullptr, nullptr, swapChain.GetAddressOf()));
-		HR_T(swapChain.As(&m_pSwapChain));
+			nullptr, nullptr, swapChain.GetAddressOf()), "CreateSwapChain");
+		HR_T(swapChain.As(&m_pSwapChain), "CreateSwapChain");
 
 		// 컨텍스트 생성
 		ComPtr<ID3D11DeviceContext3> context;
 		m_pDevice->GetImmediateContext3(context.GetAddressOf());
-		HR_T(context.As(&m_pDeviceContext));
+		HR_T(context.As(&m_pDeviceContext), "GetImmediateContext3");
 
 		// 스왑체인 렌더타겟 생성
 		ID3D11Texture2D1* backBuffer;
@@ -511,7 +511,7 @@ namespace MMMEngine {
 		sampDesc.MinLOD = 0;
 		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pDafaultSampler.GetAddressOf()));
+		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pLinearSampler.GetAddressOf()));
 		
 		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; // 비교 필터
 		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -523,13 +523,23 @@ namespace MMMEngine {
 
 		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pCompareSampler.GetAddressOf()));
 
+		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		sampDesc.MinLOD = 0;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pPointSampler.GetAddressOf()));
+
 		// === Scene 렌더타겟 초기화 ===
 		D3D11_TEXTURE2D_DESC1 sceneColorDesc = {};
 		sceneColorDesc.Width = m_clientWidth;
 		sceneColorDesc.Height = m_clientHeight;
 		sceneColorDesc.MipLevels = 1;
 		sceneColorDesc.ArraySize = 1;
-		sceneColorDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // HDR 지원 포맷
+		sceneColorDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		sceneColorDesc.SampleDesc.Count = 1;
 		sceneColorDesc.SampleDesc.Quality = 0;
 		sceneColorDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -758,7 +768,7 @@ namespace MMMEngine {
 		colorDesc.Height = _sceneHeight;
 		colorDesc.MipLevels = 1;
 		colorDesc.ArraySize = 1;
-		colorDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // HDR 지원 포맷
+		colorDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // HDR 지원 포맷X
 		colorDesc.SampleDesc.Count = 1;
 		colorDesc.SampleDesc.Quality = 0;
 		colorDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -916,6 +926,9 @@ namespace MMMEngine {
 		}
 		lightDir.Normalize();
 
+		if (lightDir == Vector3::Zero)
+			return;
+
 		// 라이트 정보
 		DirectX::XMMATRIX invView = XMMatrixInverse(nullptr, _camView);
 		DirectX::XMVECTOR camPos = invView.r[3];
@@ -924,6 +937,9 @@ namespace MMMEngine {
 		DirectX::SimpleMath::Vector3 lightPos = camPos;
 		auto offset = (-lightDir * 500.0f);
 		lightPos += offset;
+
+		// 그림자 프로퍼티 전달
+		ShaderInfo::Get().AddAllGlobalPropVal(L"mLightPos", lightPos);
 
 		DirectX::SimpleMath::Vector3 up{ 0.0f, 1.0f, 0.0f };
 
@@ -966,7 +982,7 @@ namespace MMMEngine {
 		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
 
 		m_pDeviceContext->RSSetViewports(1, &m_shadowVP);
-		m_pDeviceContext->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+		m_pDeviceContext->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
 		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
 
 		// 리소스 업데이트
@@ -1155,8 +1171,9 @@ namespace MMMEngine {
 
 			ID3D11ShaderResourceView* sceneSRV = m_pSceneSRV.Get();
 			m_pDeviceContext->PSSetShaderResources(0, 1, &sceneSRV);
-			m_pDeviceContext->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
-			m_pDeviceContext->PSSetSamplers(1, 1, m_pCompareSampler.GetAddressOf());
+			
+			ID3D11SamplerState* samplers[] = { m_pLinearSampler.Get(), m_pCompareSampler.Get(), m_pPointSampler.Get() };
+			m_pDeviceContext->PSSetSamplers(0, 3, samplers);
 
 			// 씬 뷰포트 설정
 			float sceneAspect = static_cast<float>(m_sceneWidth) / static_cast<float>(m_sceneHeight);
@@ -1542,7 +1559,7 @@ void RenderManager::EndCanvas()
 		ID3D11RasterizerState* uiRs = m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get();
 		m_uiSpriteBatch->Begin(DirectX::SpriteSortMode_Deferred,
 			m_pUIBlendState.Get(),
-			m_pDafaultSampler.Get(),
+			m_pLinearSampler.Get(),
 			m_pUIDepthState.Get(),
 			uiRs,
 			nullptr,
@@ -1566,7 +1583,7 @@ void RenderManager::EndCanvas()
 			context->PSSetShader(m_pUIPShader->m_pPShader.Get(), nullptr, 0);
 			context->VSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
 			context->PSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
-			context->PSSetSamplers(0, 1, m_pDafaultSampler.GetAddressOf());
+			context->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
 
 			float blendFactor[4] = { 0,0,0,0 };
 			context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);

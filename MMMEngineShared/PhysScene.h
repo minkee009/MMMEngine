@@ -100,6 +100,18 @@ namespace MMMEngine
 		void TransferCollider(MMMEngine::RigidBodyComponent* oldRb, MMMEngine::RigidBodyComponent* newRb, MMMEngine::ColliderComponent* col, const CollisionMatrix& matrix);
 
 		void ForgetCollider(MMMEngine::ColliderComponent* col);
+
+
+		//PxSweep 함수
+		bool Sweep(const physx::PxGeometry& geom, const physx::PxTransform& pose,
+			const Vector3& dir, float maxDist,
+			physx::PxSweepHit& outHit,
+			const physx::PxFilterData& filter,
+			const physx::PxShape* ignoreShape = nullptr,
+			const physx::PxRigidActor* ignoreActor = nullptr,
+			bool includeTrigger = false,
+			physx::PxQueryFlags flags = physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::eDYNAMIC,
+			float inflation = 0.0f);
 	private:
 		PhysSceneDesc m_desc;
 
@@ -120,5 +132,7 @@ namespace MMMEngine
 
 		// Rigid가 죽거나 제거할때 일괄적으로 detach처리하기 위한 컨테이너 ( 임시 보관 컨테이너 )
 		std::unordered_map<MMMEngine::RigidBodyComponent*, std::vector<MMMEngine::ColliderComponent*>> m_collidersByRigid;
+
+		struct QueryFilterCB;
 	};
 }

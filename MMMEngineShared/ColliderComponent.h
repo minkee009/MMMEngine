@@ -116,6 +116,8 @@ namespace MMMEngine
 
 		ObjPtr<Transform> m_parent;
 
+		void SetTriggerQueryEnabled(bool on);
+
 	protected:
 		// 파생 클래스가 shape 생성 후 반드시 호출
 		void SetShape(physx::PxShape* shape, bool owned = true);
@@ -174,6 +176,7 @@ namespace MMMEngine
 
 		bool Child_value = false;
 
+		bool m_TriggerQueryEnabled = false;
 	//콜리더 shape return 가상함수
 	public:
 

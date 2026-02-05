@@ -24,6 +24,11 @@ MMMEngine::PropertyValue MMMEngine::MaterialSerializer::property_from_json(const
 		auto arr = j.at("value");
 		return DirectX::SimpleMath::Vector3(arr[0], arr[1], arr[2]);
 	}
+	else if (type == "Vector4")
+	{
+		auto arr = j.at("value");
+		return DirectX::SimpleMath::Vector4(arr[0], arr[1], arr[2], arr[3]);
+	}
 	else if (type == "Matrix")
 	{
 		auto arr = j.at("value");
@@ -56,6 +61,8 @@ void MMMEngine::MaterialSerializer::to_json(json& j, const MMMEngine::PropertyVa
 			j = { {"type", "float"}, {"value", arg} };
 		else if constexpr (std::is_same_v<T, DirectX::SimpleMath::Vector3>)
 			j = { {"type", "Vector3"}, {"value", {arg.x, arg.y, arg.z}} };
+		else if constexpr (std::is_same_v<T, DirectX::SimpleMath::Vector4>)
+			j = { {"type", "Vector4"}, {"value", {arg.x, arg.y, arg.z, arg.w}} };
 		else if constexpr (std::is_same_v<T, DirectX::SimpleMath::Matrix>)
 			j = { {"type", "Matrix"}, {"value", {
 				arg._11,arg._12,arg._13,arg._14,
@@ -99,9 +106,15 @@ std::filesystem::path MMMEngine::MaterialSerializer::Serialize(Material* _materi
 	fs::path savePath(ResourceManager::Get().GetCurrentRootPath());
 
 	fs::path p(_path);
-	p = p / (_name + L"_Material" + std::to_wstring(_index) + L".material");
+	if (_index < 0)
+		p = p / (_name);
+	else
+		p = p / (_name + L"_Material" + std::to_wstring(_index) + L".material");
 
-	savePath = savePath / p;
+	if (p.is_relative())
+		savePath = savePath / p;
+	else
+		savePath = p;
 
 	if (savePath.has_parent_path() && !fs::exists(savePath.parent_path())) {
 		fs::create_directories(savePath.parent_path());
@@ -123,7 +136,11 @@ void MMMEngine::MaterialSerializer::DeSerialize(Material* _material, std::wstrin
 {
 	// 경로 만들기
 	fs::path loadPath(ResourceManager::Get().GetCurrentRootPath());
-	loadPath = loadPath / _path;
+	fs::path fPath(_path);
+	if (fPath.is_relative())
+		loadPath = loadPath / fPath;
+	else
+		loadPath = fPath;
 
 	// 파일 읽기
 	//std::ifstream inFile(loadPath.wstring(), std::ios::binary);

@@ -49,6 +49,16 @@ namespace MMMEngine
 		TriggerPhase phase = TriggerPhase::Enter;
 	};
 
+	struct SweepHit
+	{
+		bool hit = false;
+		Vector3 point{};
+		Vector3 normal{};
+		float distance = 0.f;
+		ObjPtr<ColliderComponent> collider;
+		ObjPtr<GameObject> gameObject;
+	};
+
 	class MMMENGINE_API PhysxManager : public Utility::ExportSingleton<PhysxManager>
 	{
 	public:
@@ -96,6 +106,15 @@ namespace MMMEngine
 		void NotifyCompoundColliderAdded(ObjPtr<GameObject> nextParent, ObjPtr<GameObject> curParent, ObjPtr<GameObject> Child);
 
 		void CollectCollidersInSubtree(ObjPtr<GameObject> root, std::vector<ColliderComponent*>& out);
+
+
+		bool SweepSphere(const Vector3& center, float radius,
+			const Vector3& dir, float maxDist,
+			SweepHit& out, uint32_t layer,
+			ObjPtr<ColliderComponent> ignoreCol = nullptr,
+			ObjPtr<RigidBodyComponent> ignoreRb = nullptr,
+			bool includeTrigger = false);
+
 
 	private:
 		// 내부에서만 쓰는 헬퍼

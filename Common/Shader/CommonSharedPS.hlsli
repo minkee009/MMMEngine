@@ -1,4 +1,4 @@
-// 공용 1~19
+// 공용 0~9
 Texture2D _albedo : register(t0);
 Texture2D _normal: register(t1);
 Texture2D _emissive : register(t2);
@@ -7,6 +7,7 @@ Texture2D _opacity : register(t4);
 
 SamplerState _sp0 : register(s0);
 SamplerComparisonState _cmpsp0 : register(s1);
+SamplerState _samPoint : register(s2);
 
 // 카메라버퍼
 cbuffer Cambuffer : register(b0)
@@ -22,8 +23,11 @@ cbuffer LightBuffer : register(b1)
 {
     float3 mLightDir;
     float  mLightPadding;
+
     float3 mLightColor;
     float  mIntensity;
+
+    float4 mLightPos;
 }
 
 // PP 버퍼 10~14

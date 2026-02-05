@@ -342,7 +342,19 @@ void MMMEngine::PhysxManager::NotifyCompoundColliderAdded(ObjPtr<GameObject> nex
 
     // 나올 때는 먼저 actor 생성/등록 (TransferCol 전에 있어야 함)
     if (toRoot)
+    {
+        m_PendingUnreg.erase(selfRb);
+
+        // 이미 큐에 들어간 UnregRigid도 제거
+        for (auto it = m_Commands.begin(); it != m_Commands.end(); )
+        {
+            if (it->type == CmdType::UnregRigid && it->new_rb == selfRb)
+                it = m_Commands.erase(it);
+            else
+                ++it;
+        }
         RequestRegisterRigid(selfRb);
+    }
 
     std::vector<ColliderComponent*> cols;
     CollectCollidersInSubtree(child, cols);
@@ -388,6 +400,39 @@ void MMMEngine::PhysxManager::CollectCollidersInSubtree(ObjPtr<GameObject> root,
     }
 }
 
+bool MMMEngine::PhysxManager::SweepSphere(const Vector3& center, float radius,
+    const Vector3& dir, float maxDist,
+    SweepHit& out, uint32_t layer,
+    ObjPtr<ColliderComponent> ignoreCol,
+    ObjPtr<RigidBodyComponent> ignoreRb,
+    bool includeTrigger)
+{
+    physx::PxSphereGeometry geom(radius);
+    physx::PxTransform pose(ToPxVec(center));
+    physx::PxSweepHit hit{};
+
+    const auto filter = m_CollisionMatrix.MakeQueryFilter(layer);
+
+    const physx::PxShape* ignoreShape = ignoreCol ? ignoreCol->GetPxShape() : nullptr;
+    const physx::PxRigidActor* ignoreActor = ignoreRb ? ignoreRb->GetPxActor() : nullptr;
+
+    if (!m_PhysScene.Sweep(geom, pose, dir, maxDist, hit, filter,
+        ignoreShape, ignoreActor, includeTrigger))
+        return false;
+
+    out.hit = true;
+    out.point = ToVec(hit.position);
+    out.normal = ToVec(hit.normal);
+    out.distance = hit.distance;
+
+    auto col = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(
+        hit.shape ? hit.shape->userData : nullptr);
+    out.collider = col;
+    out.gameObject = col.IsValid() ? col->GetGameObject() : nullptr;
+    return true;
+}
+
+
 //물리 시뮬레이션을 돌리기 직전(simulate하기전)에 큐에 쌓인 명령 중 지금 해도 안전한것을 physScene에 실행함
 // actor생성 및 acotr를 추가하는 작업 / shape생성 밑 붙이는 작업 / shape 교체등을 여기서 한다
 void MMMEngine::PhysxManager::FlushCommands_PreStep()
@@ -403,16 +448,22 @@ void MMMEngine::PhysxManager::FlushCommands_PreStep()
         else ++it;
     }
 
+    // 그다음 RegRigid를 먼저 처리 (actor 보장)
+    for (auto it = m_Commands.begin(); it != m_Commands.end(); )
+    {
+        if (it->type == CmdType::RegRigid)
+        {
+            m_PhysScene.RegisterRigid(it->new_rb);
+            it = m_Commands.erase(it);
+        }
+        else ++it;
+    }
+
 
     for (auto it = m_Commands.begin(); it != m_Commands.end(); )
     {
         switch (it->type)
         {
-        case CmdType::RegRigid:
-            m_PhysScene.RegisterRigid(it->new_rb);
-            it = m_Commands.erase(it);
-            break;
-
         case CmdType::AttachCol:
             m_PhysScene.AttachCollider(it->new_rb, it->col, m_CollisionMatrix);
             it = m_Commands.erase(it);

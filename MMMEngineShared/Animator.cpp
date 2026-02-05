@@ -147,8 +147,6 @@ void MMMEngine::Animator::UpdateBoneMatrix()
 	if (!mesh)
 		return;
 
-	auto& boneMat = mAnimBuffer.BoneMat;
-
 	// 재생 중인 clip이 없으면 그냥 identity/bind 유지
 	bool anyPlaying = false;
 	for (auto& [name, info] : mCurrentPlayingMap)
@@ -361,6 +359,64 @@ void MMMEngine::Animator::NormalizeWeight()
 	}
 }
 
+void MMMEngine::Animator::NormalizeWeightExcept(const std::string& fixedName)
+{
+	// fixed clip이 없으면 기존 NormalizeWeight와 동일 처리
+	auto itFixed = mCurrentPlayingMap.find(fixedName);
+	if (itFixed == mCurrentPlayingMap.end())
+	{
+		NormalizeWeight();
+		return;
+	}
+
+	float fixedW = itFixed->second.bufferWeight;
+	if (fixedW < 0.0f) fixedW = 0.0f;
+	if (fixedW > 1.0f) fixedW = 1.0f;
+
+	// 나머지 합
+	float othersSum = 0.0f;
+	for (auto& [name, anim] : mCurrentPlayingMap)
+	{
+		if (name == fixedName) continue;
+		if (anim.bufferWeight <= 0.0f) continue;
+		othersSum += anim.bufferWeight;
+	}
+
+	// 남은 예산
+	float remain = 1.0f - fixedW;
+	if (remain < 0.0f) remain = 0.0f;
+
+	// fixed만 남기고 나머지 0 처리
+	if (remain == 0.0f)
+	{
+		for (auto& [name, anim] : mCurrentPlayingMap)
+		{
+			if (name == fixedName) continue;
+			anim.bufferWeight = 0.0f;
+		}
+		itFixed->second.bufferWeight = fixedW;
+		return;
+	}
+
+	// 나머지가 없으면 fixed만 유지
+	if (othersSum <= 0.00001f)
+	{
+		itFixed->second.bufferWeight = fixedW;
+		return;
+	}
+
+	// 나머지들을 remain에 맞게 비율 스케일
+	float scale = remain / othersSum;
+	for (auto& [name, anim] : mCurrentPlayingMap)
+	{
+		if (name == fixedName) continue;
+		anim.bufferWeight *= scale;
+	}
+
+	// 고정값 다시 보장
+	itFixed->second.bufferWeight = fixedW;
+}
+
 void MMMEngine::Animator::Initialize()
 {
 	mSkinComp = GetComponent<SkinRenderer>();
@@ -371,7 +427,7 @@ void MMMEngine::Animator::Initialize()
 	if (!mIsReal)
 		Destroy(SelfPtr(this));
 
-	auto clip = ResourceManager::Get().Load<AnimationClip>(L"Assets/SkinningTest_0.animclip");
+	auto clip = ResourceManager::Get().Load<AnimationClip>(L"Assets/Test/Player_Idle_0.animclip");
 	AddAnimClip(clip);
 	PlayClip(clip->mName, true);
 }
@@ -513,8 +569,8 @@ void MMMEngine::Animator::PlayBlendClip(std::string _name, float _blendWeight, b
 	info.nodeIdx = _rootIdx;
 	info.bufferWeight = _blendWeight;
 
-	// Weight 정규화
-	NormalizeWeight();
+	// 추가된 클립제외 Weight 정규화
+	NormalizeWeightExcept(_name);
 
 	mIsPlaying = true;
 }

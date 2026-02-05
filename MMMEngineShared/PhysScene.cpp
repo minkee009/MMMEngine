@@ -6,6 +6,50 @@
 #include "GameObject.h"
 #include "PhysX.h"
 
+struct MMMEngine::PhysScene::QueryFilterCB final : physx::PxQueryFilterCallback
+{
+	const physx::PxShape* ignoreShape = nullptr;
+	const physx::PxRigidActor* ignoreActor = nullptr;
+	bool includeTrigger = false;
+
+	QueryFilterCB(const physx::PxShape* s, const physx::PxRigidActor* a, bool trigger)
+		: ignoreShape(s), ignoreActor(a), includeTrigger(trigger) {
+	}
+
+	physx::PxQueryHitType::Enum preFilter(const physx::PxFilterData& q,
+		const physx::PxShape* shape,
+		const physx::PxRigidActor* actor,
+		physx::PxHitFlags&) override
+	{
+		if (ignoreShape && shape == ignoreShape) return physx::PxQueryHitType::eNONE;
+		if (ignoreActor && actor == ignoreActor) return physx::PxQueryHitType::eNONE;
+
+		if (!includeTrigger)
+		{
+			if (shape->getFlags() & physx::PxShapeFlag::eTRIGGER_SHAPE)
+				return physx::PxQueryHitType::eNONE;
+		}
+
+		// 양방향 레이어 필터
+		const physx::PxFilterData s = shape->getQueryFilterData();
+		const bool allow = (q.word0 & s.word1) != 0 && (s.word0 & q.word1) != 0;
+		if (!allow) return physx::PxQueryHitType::eNONE;
+
+		return physx::PxQueryHitType::eBLOCK;
+	}
+
+	physx::PxQueryHitType::Enum postFilter(const physx::PxFilterData&,
+		const physx::PxQueryHit&,
+		const physx::PxShape*,
+		const physx::PxRigidActor*) override
+	{
+		return physx::PxQueryHitType::eBLOCK;
+	}
+};
+
+
+
+
 bool MMMEngine::PhysScene::Create(const PhysSceneDesc& desc)
 {
 	m_desc = desc;
@@ -698,3 +742,29 @@ void MMMEngine::PhysScene::ForgetCollider(MMMEngine::ColliderComponent* col)
 	}
 }
 
+bool MMMEngine::PhysScene::Sweep(const physx::PxGeometry& geom, const physx::PxTransform& pose, const Vector3& dir, float maxDist, physx::PxSweepHit& outHit, const physx::PxFilterData& filter, const physx::PxShape* ignoreShape, const physx::PxRigidActor* ignoreActor, bool includeTrigger, physx::PxQueryFlags flags, float inflation)
+{
+	if (!m_scene) return false;
+
+	physx::PxVec3 d = ToPxVec(dir);
+	if (d.isZero()) return false;
+	d.normalize();
+
+	physx::PxSweepBuffer buf;
+	QueryFilterCB cb(ignoreShape, ignoreActor, includeTrigger);
+
+	physx::PxQueryFilterData qfd(filter, flags | physx::PxQueryFlag::ePREFILTER);
+
+	const bool hit = m_scene->sweep(
+		geom, pose, d, maxDist, buf,
+		physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL,
+		qfd, &cb, nullptr, inflation
+	);
+
+	if (hit && buf.hasBlock)
+	{
+		outHit = buf.block;
+		return true;
+	}
+	return false;
+}
