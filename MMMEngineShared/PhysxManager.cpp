@@ -403,9 +403,9 @@ void MMMEngine::PhysxManager::CollectCollidersInSubtree(ObjPtr<GameObject> root,
 bool MMMEngine::PhysxManager::SweepSphere(const Vector3& center, float radius,
     const Vector3& dir, float maxDist,
     SweepHit& out, uint32_t layer,
-    ObjPtr<ColliderComponent> ignoreCol = nullptr,
-    ObjPtr<RigidBodyComponent> ignoreRb = nullptr,
-    bool includeTrigger = false)
+    ObjPtr<ColliderComponent> ignoreCol,
+    ObjPtr<RigidBodyComponent> ignoreRb,
+    bool includeTrigger)
 {
     physx::PxSphereGeometry geom(radius);
     physx::PxTransform pose(ToPxVec(center));
