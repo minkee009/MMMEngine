@@ -1,0 +1,23 @@
+﻿#pragma once
+///// 엔진안에 자주쓰이는 코어 컴포넌트들 헤더 모음
+#include <Transform.h>
+#include <Animator.h>
+#include <AnimatorController.h>
+#include <Camera.h>
+#include <MeshRenderer.h>
+#include <SkinRenderer.h>
+#include <Light.h>
+#include <SkyRenderer.h>
+#include <BoxColliderComponent.h>
+#include <SphereColliderComponent.h>
+#include <CapsuleColliderComponent.h>
+#include <MeshColliderComponent.h>
+#include <Canvas.h>
+#include <RectTransform.h>
+#include <Button.h>
+#include <Text.h>
+#include <Image.h>
+#include <Gage.h>
+#include <HandleGage.h>
+//#include <AudioSource.h>
+//#include <AudioListener.h>

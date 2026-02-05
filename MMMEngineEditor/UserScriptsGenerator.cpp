@@ -129,14 +129,20 @@ namespace MMMEngine::Editor
 
         // ObjPtr<T> 패턴을 찾아 의존성 리스트에 추가하는 로직
         static void ExtractDependencies(const std::string& classBody, MMMEngine::Editor::ScriptInfo& info) {
-            // ObjPtr<ClassName> 형태를 캡처
-            std::regex ptrRegex(R"re(ObjPtr<\s*(\w+)\s*>)re");
+            // ObjPtr<Type> 패턴을 찾아 Type을 추출
+                // 공백(\s*) 처리를 포함하여 정확하게 클래스명만 캡처합니다.
+            std::regex ptrRegex(R"re(ObjPtr\s*<\s*([A-Za-z0-9_]+)\s*>)re");
+
             auto words_begin = std::sregex_iterator(classBody.begin(), classBody.end(), ptrRegex);
             auto words_end = std::sregex_iterator();
 
-            for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+            for (std::sregex_iterator i = words_begin; i != words_end; ++i)
+            {
                 std::string tType = (*i)[1].str();
-                if (tType != info.className) {
+
+                // 자기 자신은 인클루드할 필요 없으므로 제외
+                if (tType != info.className)
+                {
                     info.dependencies.insert(tType);
                 }
             }
@@ -616,6 +622,8 @@ namespace MMMEngine::Editor
             os << "#include \"ScriptBehaviour.h\"\n";
             os << "#include \"UserScriptsCommon.h\"\n";
             os << "#include \"Object.h\"\n";
+            os << "#include \"GameObject.h\"\n";
+            os << "#include \"CoreComponents.h\"\n";
             os << "#include \"rttr/registration\"\n";
             os << "#include \"rttr/detail/policies/ctor_policies.h\"\n\n";
 

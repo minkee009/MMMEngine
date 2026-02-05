@@ -300,6 +300,18 @@ void MMMEngine::ObjectManager::DontDestroyOnLoad(const ObjPtrBase& objPtr)
             }
         }
     }
+
+    //Component인 경우 소유자 GameObject를 씬에게 넘기기
+    else if (auto comp = ObjectManager::Get().GetPtr<Object>(objPtr.GetPtrID(), objPtr.GetPtrGeneration()).Cast<Component>())
+    {
+        auto go = comp->GetGameObject();
+        if (comp->IsDestroyed()
+            || go->IsDestroyed()
+            || go->GetScene().id_DDOL)
+            return;
+
+        DontDestroyOnLoad(go);
+    }
 }
 
 MMMEngine::ObjPtr<MMMEngine::GameObject> MMMEngine::ObjectManager::Instantiate(const ObjPtr<GameObject>& original)
