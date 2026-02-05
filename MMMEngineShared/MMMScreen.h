@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "GlobalRegistry.h"
 #include "DisplayMode.h"
 #include "SimpleMath.h"
@@ -8,23 +8,23 @@
 
 namespace MMMEngine::Screen
 {
-	inline void SetResolution(int width, int height) { assert(GlobalRegistry::g_pApp && "±Û·Î¹ú ·¹Áö½ºÆ®¸®¿¡ ApplicationÀÌ µî·ÏµÇ¾îÀÖÁö ¾Ê½À´Ï´Ù!");  GlobalRegistry::g_pApp->SetWindowSize(width, height); }
+	inline void SetResolution(int width, int height) { assert(GlobalRegistry::g_pApp && "ê¸€ë¡œë²Œ ë ˆì§€ìŠ¤íŠ¸ë¦¬ì— Applicationì´ ë“±ë¡ë˜ì–´ìžˆì§€ ì•ŠìŠµë‹ˆë‹¤!");  GlobalRegistry::g_pApp->SetWindowSize(width, height); }
 	inline void SetResolution(int width, int height, DisplayMode mode)
 	{
-		assert(GlobalRegistry::g_pApp && "±Û·Î¹ú ·¹Áö½ºÆ®¸®¿¡ ApplicationÀÌ µî·ÏµÇ¾îÀÖÁö ¾Ê½À´Ï´Ù!");
-		RenderManager::Get().ResizeSceneSize(width, height, width, height);
+		assert(GlobalRegistry::g_pApp && "ê¸€ë¡œë²Œ ë ˆì§€ìŠ¤íŠ¸ë¦¬ì— Applicationì´ ë“±ë¡ë˜ì–´ìžˆì§€ ì•ŠìŠµë‹ˆë‹¤!");
+		RenderManager::Get().ResizeSceneSize(width, height);
 		GlobalRegistry::g_pApp->SetDisplayMode(mode);
 	}
 
 	inline std::vector<Resolution> GetResolutions()
 	{
-		assert(GlobalRegistry::g_pApp && "±Û·Î¹ú ·¹Áö½ºÆ®¸®¿¡ ApplicationÀÌ µî·ÏµÇ¾îÀÖÁö ¾Ê½À´Ï´Ù!");
+		assert(GlobalRegistry::g_pApp && "ê¸€ë¡œë²Œ ë ˆì§€ìŠ¤íŠ¸ë¦¬ì— Applicationì´ ë“±ë¡ë˜ì–´ìžˆì§€ ì•ŠìŠµë‹ˆë‹¤!");
 		return GlobalRegistry::g_pApp->GetCurrentMonitorResolutions();
 	}
 
 	inline void SetResizable(bool isResizable)
 	{
-		assert(GlobalRegistry::g_pApp && "±Û·Î¹ú ·¹Áö½ºÆ®¸®¿¡ ApplicationÀÌ µî·ÏµÇ¾îÀÖÁö ¾Ê½À´Ï´Ù!");
+		assert(GlobalRegistry::g_pApp && "ê¸€ë¡œë²Œ ë ˆì§€ìŠ¤íŠ¸ë¦¬ì— Applicationì´ ë“±ë¡ë˜ì–´ìžˆì§€ ì•ŠìŠµë‹ˆë‹¤!");
 		GlobalRegistry::g_pApp->SetResizable(isResizable);
 	}
 }

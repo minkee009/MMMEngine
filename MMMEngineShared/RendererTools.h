@@ -31,11 +31,12 @@ namespace MMMEngine {
 		HRESULT result;
 	};
 
-	inline void HR_T(HRESULT hr)
+	inline void HR_T(HRESULT hr, std::string&& _who = "")
 	{
 		if (FAILED(hr))
 		{
-			throw com_exception(hr);
+			std::cerr << _who << "::" << "HRESULT: 0x" << std::hex << hr << std::endl;
+			//throw com_exception(hr);
 		}
 	}
 }

@@ -14,7 +14,8 @@ VS_OUTPUT main(VS_INPUT input)
         0, 0, 0, 1
     };
     
-    Matrix tempMat[4] =
+    if (input.BoneIdx[0] != -1) {
+         Matrix tempMat[4] =
         {
             mul(mBoneOffsetMat[input.BoneIdx.x], mBoneMat[input.BoneIdx.x]),
             mul(mBoneOffsetMat[input.BoneIdx.y], mBoneMat[input.BoneIdx.y]),
@@ -29,6 +30,10 @@ VS_OUTPUT main(VS_INPUT input)
         
         skinMat = mul(skinMat, mWorld);
         output.Pos = mul(worldPos, skinMat);
+    }
+   else {
+        output.Pos = mul(worldPos, skinMat);
+   }
     
     output.W_Pos = output.Pos;
     output.Pos = mul(output.Pos, mView);

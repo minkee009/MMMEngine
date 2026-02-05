@@ -772,6 +772,9 @@ namespace MMMEngine::Editor
         BuildConfiguration config)
     {
         BuildOutput output;
+        
+
+        // ForceSyncScriptsToDisk(scriptsPath);
 
         // 0. 유저 스크립트 헤더 분석 + gen.cpp / 생성자 주입
         try
@@ -784,10 +787,9 @@ namespace MMMEngine::Editor
             if (m_progressCallbackString)
                 m_progressCallbackString(std::string(u8"[UserScriptsGenerator] ") + e.what());
         }
-
+        fs::path scriptsPath = projectRootDir / "Source" / "UserScripts" / "Scripts";
         fs::path vcxprojPath = projectRootDir / "Source" / "UserScripts" / "UserScripts.vcxproj";
         fs::path dllPath = projectRootDir / "Binaries" / "Win64" / "UserScripts.dll";
-        fs::path scriptsPath = projectRootDir / "Source" / "UserScripts" / "Scripts";
 
         // 1. 실제 파일 변경 여부 확인 (메모리 맵 기반)
         bool scriptsChanged = HasFilesChanged(scriptsPath);

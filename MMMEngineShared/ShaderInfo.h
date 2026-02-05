@@ -39,8 +39,11 @@ namespace MMMEngine {
 	struct Render_LightBuffer {
 		DirectX::SimpleMath::Vector3 mLightDir = { .0f, .0f, 1.0f };
 		float mLightPadding = 0.0f;
+
 		DirectX::SimpleMath::Vector3 mLightColor = { 1.0f, .0f, 1.0f };
 		float mIntensity = 1.0f;
+
+		DirectX::SimpleMath::Vector4 mLightPos = { 0.0f, 0.0f, 0.0f, 1.0f };
 	};
 
 	struct Render_ShadowBuffer
@@ -57,6 +60,24 @@ namespace MMMEngine {
 		float mRoughnessFactor = 0.0f;
 		float mAoFactor = 1.0f;
 		float mEmissiveFactor = 1.0f;
+	};
+
+	struct TOON_MaterialBuffer
+	{
+		DirectX::SimpleMath::Vector4 mBaseColor;
+
+		float mAmbientStr;
+		float mDiffuseStr;
+		float mSpecularStr;
+		float mRoughness;
+
+		float mLowLut;
+		float mDiffGradientDistHalf;
+		float mDiffGradientDepth;
+		float mRimLightStr;
+
+		float mEmissive;
+		DirectX::SimpleMath::Vector3 mPadding;
 	};
 	// ----
 

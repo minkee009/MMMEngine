@@ -743,39 +743,6 @@ void MMMEngine::)" << scriptName << R"(::Update()
     }
 
     ProjectManager::Get().RefreshUserScriptsIDEFiles();
-
-#ifdef _WIN32
-    // 새 스크립트 생성 직후 VS 솔루션에 바로 반영
-    fs::path fileToOpen;
-    if (fs::exists(cppPath))
-        fileToOpen = cppPath;
-    else if (fs::exists(headerPath))
-        fileToOpen = headerPath;
-
-    if (!fileToOpen.empty() && ProjectManager::Get().HasActiveProject())
-    {
-        const auto& project = ProjectManager::Get().GetActiveProject();
-        fs::path projectRoot = fs::path(project.rootPath);
-        fs::path slnPath = projectRoot / "Source" / "UserScripts" / "UserScripts.sln";
-        fs::path vcxprojPath = projectRoot / "Source" / "UserScripts" / "UserScripts.vcxproj";
-        fs::path devenvPath = BuildManager::Get().FindDevEnv();
-
-        std::string cmd;
-        if (!devenvPath.empty() && fs::exists(slnPath))
-        {
-            cmd = "start \"\" \"" + devenvPath.string() + "\" \"" + slnPath.string() + "\" \"" + fileToOpen.string() + "\"";
-        }
-        else if (!devenvPath.empty() && fs::exists(vcxprojPath))
-        {
-            cmd = "start \"\" \"" + devenvPath.string() + "\" \"" + vcxprojPath.string() + "\" \"" + fileToOpen.string() + "\"";
-        }
-
-        if (!cmd.empty())
-        {
-            system(cmd.c_str());
-        }
-    }
-#endif
 }
 
 void MMMEngine::Editor::FilesWindow::OpenFileInEditor(const fs::path& filePath)

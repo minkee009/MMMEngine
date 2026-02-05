@@ -63,6 +63,8 @@ namespace MMMEngine::Editor
         std::filesystem::path FindDevEnv() const;
 
     private:
+        void ForceSyncScriptsToDisk(const std::filesystem::path& scriptsPath);
+
         // MSBuild.exe 경로 찾기
         std::filesystem::path FindMSBuild() const;
 

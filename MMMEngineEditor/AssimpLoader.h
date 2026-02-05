@@ -48,10 +48,11 @@ namespace MMMEngine {
 		};
 
 		enum class TextureSemantic {
-			Albedo, Normal, Metallic, Roughness, AO, Emissive, Opacity
+			Albedo, Normal, Metallic, Roughness, AO, Emissive, Opacity, BaseColor
 		};
 		struct TextureRef {
 			std::string path; // resolve된 경로(또는 embedded 표기)
+			DirectX::SimpleMath::Vector4 color;	// Color 저장용
 			bool srgb = false;
 		};
 

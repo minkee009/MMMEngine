@@ -225,7 +225,6 @@
     <ClInclude Include="AnimationCurve.h" />
     <ClInclude Include="Resolution.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="MMMMathF.h" />
     <ClInclude Include="MMMTime.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="ObjectManager.h" />
@@ -483,6 +482,9 @@
     <ClInclude Include="MeshColliderComponent.h">
       <Filter>헤더 파일\Core\Physics API</Filter>
     </ClInclude>
+    <ClInclude Include="MMMMathF.h">
+      <Filter>헤더 파일\Core\MathF API</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Object.h">
@@ -520,9 +522,6 @@
     </ClInclude>
     <ClInclude Include="MMMInput.h">
       <Filter>헤더 파일\Core\Input API</Filter>
-    </ClInclude>
-    <ClInclude Include="MMMathF.h">
-      <Filter>헤더 파일\Core\MathF API</Filter>
     </ClInclude>
     <ClInclude Include="TimeManager.h">
       <Filter>헤더 파일\Core\Time API</Filter>

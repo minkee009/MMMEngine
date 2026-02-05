@@ -589,6 +589,7 @@ namespace MMMEngine::Editor
             fs::path genPath = scriptsDir / "UserScripts.gen.cpp";
             std::ostringstream os;
             os << "// Auto-generated. Do not edit.\n";
+            os << "#pragma optimize(\"\", off)\n";
             os << "#include \"Export.h\"\n";
             os << "#include \"ScriptBehaviour.h\"\n";
             os << "#include \"UserScriptsCommon.h\"\n";
@@ -605,7 +606,7 @@ namespace MMMEngine::Editor
             }
             os << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
 
-            for (const auto* s : toGen)
+            for (const auto& s : toGen)
             {
                 os << "\tregistration::class_<" << s->className << ">(\"" << s->className << "\")\n";
                 os << "\t\t(rttr::metadata(\"wrapper_type_name\", \"ObjPtr<" << s->className << ">\"))";
@@ -780,7 +781,6 @@ namespace MMMEngine::Editor
 
         fs::path genPath = scriptsDir / "UserScripts.gen.cpp";
 
-        // [반례 해결] structureChanged가 false여도 gen.cpp 파일 자체가 삭제되었다면 재생성해야 함
         if (!structureChanged && fs::exists(genPath)) {
             return true; // 진짜 아무것도 안 해도 되는 상태
         }

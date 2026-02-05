@@ -27,6 +27,12 @@ void MMMEngine::ShaderInfo::CreatePShaderReflection(std::wstring&& _filePath)
 		throw std::runtime_error("ShaderInfo::CreateShaderReflection : Shader File not found !!");
 
 	auto res = ResourceManager::Get().Load<PShader>(_filePath);
+
+	if (!res) {
+		std::cerr << "ShaderInfo::CreateShaderReflection : Shader Load Fail !!" << std::endl;
+		return;
+	}
+
 	auto _byteCode = res->m_pBlob;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflection;
@@ -93,16 +99,20 @@ void MMMEngine::ShaderInfo::StartUp()
 	// --- JSON 템플릿 ---
 	// 쉐이더 타입정보정의
 	m_typeInfoMap[L"Shader/PBR/PS/BRDFShader.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY };
+	m_typeInfoMap[L"Shader/TOON/ToonPS.hlsl"] = { ShaderType::S_TOON, RenderType::R_GEOMETRY };
 	m_typeInfoMap[L"Shader/SkyBox/SkyBoxPixelShader.hlsl"] = { ShaderType::S_SKYBOX, RenderType::R_SKYBOX };
-	//m_typeInfoMap[L"Shader/SkyBox/SkyBoxPixelShader.hlsl"] = { ShaderType::S_PP, RenderType::R_NONE };
 
 	// 구조체별 이름 등록 (쉐이더 이름과같게)
 	m_CBBufferMap[L"MatBuffer"] = CreateConstantBuffer<PBR_MaterialBuffer>();
 	m_CBBufferMap[L"LightBuffer"] = CreateConstantBuffer<Render_LightBuffer>();
+	m_CBBufferMap[L"ToonMatBuffer"] = CreateConstantBuffer<TOON_MaterialBuffer>();
 
 	// 사용 상수버퍼 등록
 	m_typeBufferMap[ShaderType::S_PBR].push_back({ L"MatBuffer" , 3 });
 	m_typeBufferMap[ShaderType::S_PBR].push_back({ L"LightBuffer" , 1 });
+
+	m_typeBufferMap[ShaderType::S_TOON].push_back({ L"LightBuffer" , 1 });
+	m_typeBufferMap[ShaderType::S_TOON].push_back({ L"ToonMatBuffer" , 3 });
 
 	// 타입별 레지스터 번호 등록
 	m_propertyInfoMap[ShaderType::S_PBR][L"_albedo"] = { PropertyType::Texture, 0 };
@@ -122,12 +132,44 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_PBR][L"mLightPadding"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mLightColor"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mIntensity"] = { PropertyType::Constant, 1 };
+	m_propertyInfoMap[ShaderType::S_PBR][L"mLightPos"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mBaseColor"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mMetallic"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mRoughness"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mAoStrength"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mEmissive"] = { PropertyType::Constant, 3 };
 
+	//
+	m_propertyInfoMap[ShaderType::S_TOON][L"_albedo"] = { PropertyType::Texture, 0 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_normal"] = { PropertyType::Texture, 1 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_emissive"] = { PropertyType::Texture, 2 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_shadowmap"] = { PropertyType::Texture, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_opacity"] = { PropertyType::Texture, 4 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_lutMap"] = { PropertyType::Texture, 10 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_roughness"] = { PropertyType::Texture, 11 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_ambientOcclusion"] = { PropertyType::Texture, 12 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_specular"] = { PropertyType::Texture, 20 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_irradiance"] = { PropertyType::Texture, 21 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_brdflut"] = { PropertyType::Texture, 22 };
+
+	m_propertyInfoMap[ShaderType::S_TOON][L"mLightDir"] = { PropertyType::Constant, 1 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mLightPadding"] = { PropertyType::Constant, 1 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mLightColor"] = { PropertyType::Constant, 1 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mIntensity"] = { PropertyType::Constant, 1 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mLightPos"] = { PropertyType::Constant, 1 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mBaseColor"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mAoStrength"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffuseStr"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mSpecularStr"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mRoughness"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mLowLut"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDistHalf"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDepth"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mRimLightStr"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mEmissive"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mPadding"] = { PropertyType::Constant, 3 };
+	
+	//
 	m_propertyInfoMap[ShaderType::S_SKYBOX][L"_cubemap"]	= { PropertyType::Texture, 0 };
 	//m_propertyInfoMap[ShaderType::S_SKYBOX][L"_sp0"]		= { PropertyType::Sampler, 0 };
 
@@ -135,6 +177,7 @@ void MMMEngine::ShaderInfo::StartUp()
 	// 쉐이더 리플렉션 등록 (상수버퍼 개별업데이트 사용하기 위함) (!! 순서중요)
 	CreatePShaderReflection(L"Shader/PBR/PS/BRDFShader.hlsl");
 	CreatePShaderReflection(L"Shader/SkyBox/SkyBoxPixelShader.hlsl");
+	CreatePShaderReflection(L"Shader/TOON/ToonPS.hlsl");
 
 	// 기본 쉐이더 정의
 	m_pDefaultVShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/StaticVertexShader.hlsl");

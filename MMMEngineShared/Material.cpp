@@ -1,4 +1,6 @@
-﻿#include "Material.h"
+﻿
+
+#include "Material.h"
 #include "VShader.h"
 #include "PShader.h"
 #include "Texture2D.h"
@@ -55,8 +57,16 @@ RTTR_REGISTRATION
 // 프로퍼티 생성
 void MMMEngine::Material::AddProperty(const std::wstring _name, const PropertyValue& _value)
 {
-	// 없으면 생성, 있으면 갱신
-	m_properties[_name] = _value;
+	// 있으면 타입 비교후 갱신
+	auto it = m_properties.find(_name);
+	if (it != m_properties.end()) {
+		if(_value.index() == it->second.index())
+			it->second = _value;
+	}
+	else {
+		// 없으면 생성, 있으면 갱신
+		m_properties[_name] = _value;
+	}
 }
 
 // 프로퍼티 갱신
@@ -134,10 +144,20 @@ bool MMMEngine::Material::LoadFromFilePath(const std::wstring& _filePath)
 	}
 
 	MaterialSerializer::Get().DeSerialize(this, _filePath);
+	int prevPropSize = (int)m_properties.size();
 
 	// 타입에 따라 프로퍼티 생성, 삭제
 	auto type = ShaderInfo::Get().GetShaderType(m_pPShader->GetFilePath());
 	ShaderInfo::Get().ConvertMaterialType(type, this);
+	int currPropSize = (int)m_properties.size();
+
+	// 프로퍼티 변경 감지시 자동으로 재직렬화
+	if (currPropSize > prevPropSize) {
+		std::wstring fileName = fPath.filename().wstring();
+		std::wstring parentPath = fPath.parent_path().wstring();
+
+		MaterialSerializer::Get().Serialize(this, parentPath, fileName, -1);
+	}
 
 	return true;
 }

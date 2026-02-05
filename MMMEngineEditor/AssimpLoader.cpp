@@ -204,7 +204,8 @@ bool MMMEngine::AssimpLoader::ConvertMaterial(const TextureSemantic _sementic, c
 	{TextureSemantic::Roughness, L"_roughness"},
 	{TextureSemantic::AO,        L"_ambientOcclusion"},
 	{TextureSemantic::Emissive,  L"_emissive"},
-	{TextureSemantic::Opacity,   L"_opacity"}
+	{TextureSemantic::Opacity,   L"_opacity"},
+	{TextureSemantic::BaseColor, L"mBaseColor" }
 	};
 
 	auto it = semanticMap.find(_sementic);
@@ -215,7 +216,11 @@ bool MMMEngine::AssimpLoader::ConvertMaterial(const TextureSemantic _sementic, c
 	if (!resource)
 		return false;
 
-	_out->AddProperty(it->second, resource);
+	if (_sementic != TextureSemantic::BaseColor)
+		_out->AddProperty(it->second, resource);
+	else
+		_out->AddProperty(it->second, _ref->color);
+
 	return true;
 }
 
@@ -458,12 +463,15 @@ bool MMMEngine::AssimpLoader::ExtractMaterials(const aiScene* scene, const std::
 		const aiMaterial* mat = scene->mMaterials[mi];
 		MaterialAsset& dst = outMaterials[mi];
 
-		auto put = [&](TextureSemantic sem, const std::string& rawPath, bool srgb)
+		auto put = [&](TextureSemantic sem, const std::string& rawPath, bool srgb, aiColor4D* color = nullptr)
 			{
 				if (rawPath.empty()) return;
 				TextureRef ref;
 				ref.path = ResolveTexturePath(textureDir, rawPath);
 				ref.srgb = srgb;
+				if (color != nullptr) {
+					ref.color = { color->r, color->g, color->b, color->a };
+				}
 				dst.textures[sem] = std::move(ref);
 			};
 
@@ -502,6 +510,16 @@ bool MMMEngine::AssimpLoader::ExtractMaterials(const aiScene* scene, const std::
 		raw.clear();
 		if (GetTexturePath(mat, aiTextureType_OPACITY, raw))
 			put(TextureSemantic::Opacity, raw, false);
+
+		// BaseColor
+		// 베이스 컬러
+		aiColor4D baseColor;
+		if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, baseColor) == AI_SUCCESS) {
+			put(TextureSemantic::BaseColor, raw, false, &baseColor);
+		}
+		else if (mat->Get(AI_MATKEY_BASE_COLOR, baseColor) == AI_SUCCESS) {
+			put(TextureSemantic::BaseColor, raw, false, &baseColor);
+		}
 	}
 	return true;
 }
