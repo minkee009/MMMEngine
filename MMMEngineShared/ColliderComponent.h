@@ -116,6 +116,8 @@ namespace MMMEngine
 
 		ObjPtr<Transform> m_parent;
 
+		void SetTriggerQueryEnabled(bool on);
+
 	protected:
 		// 파생 클래스가 shape 생성 후 반드시 호출
 		void SetShape(physx::PxShape* shape, bool owned = true);
@@ -135,7 +137,7 @@ namespace MMMEngine
 		void ApplyMaterial();
 		void EnsureMaterial();
 
-		void SetTriggerQueryEnabled(bool on);
+		
 
 	protected:
 		physx::PxShape* m_Shape = nullptr;

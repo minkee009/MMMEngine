@@ -111,8 +111,8 @@ namespace MMMEngine
 		bool SweepSphere(const Vector3& center, float radius,
 			const Vector3& dir, float maxDist,
 			SweepHit& out, uint32_t layer,
-			ColliderComponent* ignoreCol = nullptr,
-			RigidBodyComponent* ignoreRb = nullptr,
+			ObjPtr<ColliderComponent> ignoreCol = nullptr,
+			ObjPtr<RigidBodyComponent> ignoreRb = nullptr,
 			bool includeTrigger = false);
 
 
