@@ -1840,6 +1840,12 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 		{
 			auto& go = g_selectedGameObject;
 
+			auto GetWorldRT = [](GameObject* go) -> Matrix {
+				return Matrix::CreateFromQuaternion(go->GetTransform()->GetLocalRotation()) * Matrix::CreateTranslation(go->GetTransform()->GetLocalPosition());
+				};
+
+			Matrix rt = GetWorldRT(go.operator->());
+
 			if (go->IsActiveInHierarchy())
 			{
 				auto& ColliderComponents = go->GetComponents<ColliderComponent>();
@@ -1861,16 +1867,6 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 					{
 						if (auto& meshCol = col.Cast<MeshColliderComponent>(); meshCol.IsValid())
 						{
-							auto make_rt_noscale = [](const Vector3& translation,
-								const Quaternion& rotation) -> Matrix
-								{
-									return
-										Matrix::CreateFromQuaternion(rotation) *
-										Matrix::CreateTranslation(translation);
-								};
-
-							auto rt = make_rt_noscale(go->GetTransform()->GetLocalPosition(), go->GetTransform()->GetLocalRotation());
-
 							if (auto convexMesh = meshCol->GetConvexMesh(); convexMesh)
 							{
 								auto verts = convexMesh->getVertices();
@@ -1960,7 +1956,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 						box.Extents = desc.halfExtents;
 						BoundingOrientedBox obb;
 						obb.CreateFromBoundingBox(obb, box);
-						obb.Transform(obb, go->GetTransform()->GetWorldMatrix());
+						obb.Transform(obb, rt);
 						DX::Draw(m_batch.get(), obb, Colors::LightGreen);
 						break;
 					}
@@ -1969,20 +1965,18 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 						BoundingSphere sphere;
 						sphere.Center = desc.localCenter;
 						sphere.Radius = desc.sphereRadius;
-						DX::Draw(m_batch.get(), sphere, go->GetTransform()->GetWorldMatrix(), Colors::LightGreen);
+						DX::Draw(m_batch.get(), sphere, rt, Colors::LightGreen);
 						break;
 					}
 					case ColliderComponent::DebugColliderType::Capsule:
 					{
-						const auto& wm = go->GetTransform()->GetWorldMatrix();
-
-						const Vector3 upV = wm.Up();
-						const Vector3 rightV = wm.Right();
-						const Vector3 forwardV = wm.Forward();
+						const Vector3 upV = rt.Up();
+						const Vector3 rightV = rt.Right();
+						const Vector3 forwardV = rt.Forward();
 
 						const float r = desc.radius;
 
-						const Vector3 worldPos = go->GetTransform()->GetWorldPosition() + desc.localCenter;
+						const Vector3 worldPos = go->GetTransform()->GetLocalPosition() + desc.localCenter;
 						const Vector3 p0 = worldPos + upV * desc.halfHeight; // 상단 구 중심
 						const Vector3 p1 = worldPos - upV * desc.halfHeight; // 하단 구 중심
 

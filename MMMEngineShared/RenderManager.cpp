@@ -308,6 +308,18 @@ namespace MMMEngine {
 		if (!m_pUIVShader || !m_pUIPShader || !m_pUIBuffer)
 			return;
 
+		std::sort(m_canvases.begin(), m_canvases.end(), [](Canvas* a, Canvas* b) {
+			return a->GetSortOrder() < b->GetSortOrder();
+			});
+
+		for (auto* canvas : m_canvases) // 정렬 없이 등록된 순서대로 렌더링 중
+		{
+			if (!canvas) continue;
+			BeginCanvas(canvas);
+			canvas->RenderUI(*this);
+			EndCanvas();
+		}
+
 		auto context = m_pDeviceContext.Get();
 
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1490,14 +1502,14 @@ namespace MMMEngine {
 		m_canvases.pop_back();
 	}
 
-void RenderManager::BeginCanvas(Canvas* canvas)
-{
+	void RenderManager::BeginCanvas(Canvas* canvas)
+	{
 		(void)canvas;
-}
+	}
 
-void RenderManager::EndCanvas()
-{
-}
+	void RenderManager::EndCanvas()
+	{
+	}
 
 	void RenderManager::DrawUIElement(const Vector4& rect, const Vector4& uvRect,
 		const Color& color, const ResPtr<Texture2D>& texture,
