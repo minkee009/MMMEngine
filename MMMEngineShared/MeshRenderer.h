@@ -19,8 +19,8 @@ namespace MMMEngine {
 		void UnInitialize() override;
 		void Render() override;
 	public:
-		ResPtr<StaticMesh>& GetMesh() { return mesh; }
-		void SetMesh(ResPtr<StaticMesh>& _mesh);
+		ResPtr<StaticMesh> GetMesh() { return mesh; }
+		void SetMesh(ResPtr<StaticMesh> _mesh);
 
 		void SetCastShadow(bool _val);
 		bool GetCastShadow();

@@ -6,6 +6,7 @@
 #include "ObjectManager.h"
 #include "Transform.h"
 #include "RectTransform.h"
+#include "Graphic.h"
 #include "SceneManager.h"
 #include "ResourceManager.h"
 #include "SerializableEvent.h"
@@ -1250,6 +1251,7 @@ namespace MMMEngine
 
         PrefabDeserializeContext ctx;
         std::unordered_map<std::string, std::string> pendingParent;
+        std::vector<ObjPtr<GameObject>> createdGameObjects;
 
         std::string rootMuid = gameObjects[0].contains("MUID")
             ? gameObjects[0]["MUID"].get<std::string>()
@@ -1270,6 +1272,7 @@ namespace MMMEngine
             go->SetLayer(goLayer);
             go->SetTag(goTag);
             go->SetActive(active);
+            createdGameObjects.push_back(go);
 
             if (!goMUID.empty())
             {
@@ -1397,6 +1400,22 @@ namespace MMMEngine
             auto childTr = itChild->second.Cast<Transform>();
             auto parentTr = itParent->second.Cast<Transform>();
             childTr->SetParent(parentTr, false);
+        }
+
+        // UI 그래픽은 부모 체인을 기준으로 Canvas를 다시 찾는다.
+        for (auto& go : createdGameObjects)
+        {
+            if (!go.IsValid())
+                continue;
+
+            for (auto& comp : go->GetAllComponents())
+            {
+                if (!comp.IsValid() || comp->IsDestroyed())
+                    continue;
+
+                if (auto graphic = comp.Cast<Graphic>(); graphic.IsValid())
+                    graphic->RefreshCanvasNow();
+            }
         }
 
         SerializableEvent::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });

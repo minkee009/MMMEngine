@@ -52,13 +52,14 @@ namespace MMMEngine {
 
 		void AddAnimClip(ResPtr<AnimationClip> _clip);
 		ResPtr<AnimationClip> GetAnimClip(std::string name) { return mAnimClips[mCurrentPlayingMap[name].clipIdx]; }
+		ResPtr<AnimationClip> GetAnimClip(int _animIdx) { return mAnimClips[_animIdx]; }
 		void RemoveAnimClip(ResPtr<AnimationClip> _clip);
 
 		std::vector<ResPtr<AnimationClip>>& GetAnimClips() { return mAnimClips; }
 		void SetAnimClips(std::vector<ResPtr<AnimationClip>>& _clips) { mAnimClips = _clips; }
 	
 		void PlayClip(std::string _name, bool _isLoop = false, int _rootIdx = -1);
-		void PlayBlendClip(std::string _name, float _blendWeight, bool _isLoop = false, int _rootIdx = -1);
+		void PlayBlendClip(std::string _name, float _blendWeight, bool _isLoop = false, int _rootIdx = -1, bool _normalizeOthers = true);
 		void StopClip();
 		void PauseClip();
 		void ResumeClip();

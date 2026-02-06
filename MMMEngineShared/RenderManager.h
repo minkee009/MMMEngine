@@ -60,13 +60,21 @@ namespace MMMEngine
 		// UI
 		std::vector<Canvas*> m_canvases;
 		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pUIBlendState;
+		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pUIBlendStateNoColor;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pUIDepthState;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pUIStencilTestState;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pUIStencilWriteState;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pUIStencilClearState;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pUIBuffer = nullptr;
 		ResPtr<VShader> m_pUIVShader;
 		ResPtr<PShader> m_pUIPShader;
 		std::unique_ptr<DirectX::SpriteBatch> m_uiSpriteBatch;
 		std::unordered_map<std::wstring, std::unique_ptr<DirectX::SpriteFont>> m_uiSpriteFontCache;
 		bool isOrtho = false;
+		bool m_uiMaskEnabled = false;
+		float m_uiMaskAlphaThreshold = 0.001f;
+		ID3D11DepthStencilState* m_uiActiveDepthState = nullptr;
+		UINT m_uiStencilRef = 0;
 		
 		// 라이트 저장
 		std::vector<Light*> m_lights;
@@ -112,6 +120,7 @@ namespace MMMEngine
 		Microsoft::WRL::ComPtr<ID3D11Texture2D1> m_pDepthStencilBuffer;			// 뎊스스텐실 텍스쳐버퍼
 
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pLinearSampler;		// 기본 샘플러
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pLinearWarpSampler;	// 기본 샘플러
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pCompareSampler;		// 비교 샘플러
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pPointSampler;			// 포인트 샘플러
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pDefaultRS;		// 기본 RS
@@ -204,7 +213,7 @@ namespace MMMEngine
 
 		int AddLight(Light* _obj);
 		void RemoveLight(int _idx);
-		void InitCache();
+		void ClearCache();
 
 		UINT GetSceneWidth() { return m_sceneWidth; }
 		UINT GetSceneHeight() { return m_sceneHeight; }
@@ -220,6 +229,12 @@ namespace MMMEngine
 		void UnRegisterCanvas(Canvas* canvas);
 		void BeginCanvas(Canvas* canvas);
 		void EndCanvas();
+		void SetUIStencilDisabled();
+		void SetUIStencilTest(UINT stencilRef);
+		void SetUIStencilWriteIncrement(UINT stencilRef);
+		void SetUIStencilWriteDecrement(UINT stencilRef);
+		void SetUIColorWriteEnabled(bool enabled);
+		void SetUIMaskParams(bool enabled, float alphaThreshold);
 		void DrawUIElement(const DirectX::SimpleMath::Vector4& rect,
 			const DirectX::SimpleMath::Vector4& uvRect,
 			const DirectX::SimpleMath::Color& color,

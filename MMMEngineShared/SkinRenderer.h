@@ -9,6 +9,7 @@ namespace MMMEngine {
 	class SkeletalMesh;
 	class Material;
 	class Animator;
+	class AnimatorController;
 	class MMMENGINE_API SkinRenderer : public Renderer
 	{
 		RTTR_ENABLE(Renderer)
@@ -17,7 +18,8 @@ namespace MMMEngine {
 	private:
 		// GPU 버퍼
 		ResPtr<SkeletalMesh> mesh = nullptr;
-		Animator* mAnimator = nullptr;
+		ObjPtr<Animator> mAnimator = nullptr;
+		ObjPtr<AnimatorController> mAnimController = nullptr;
 		Mesh_BoneBuffer* mAnimBuffer = nullptr;
 		Mesh_BoneBuffer mDefaultBoneBuffer;
 
@@ -25,16 +27,15 @@ namespace MMMEngine {
 		void UnInitialize() override;
 		void Render() override;
 	public:
-		ResPtr<SkeletalMesh>& GetMesh() { return mesh; }
-		void SetMesh(ResPtr<SkeletalMesh>& _mesh);
+		ResPtr<SkeletalMesh> GetMesh() { return mesh; }
+		void SetMesh(ResPtr<SkeletalMesh> _mesh);
 
 		void SetCastShadow(bool _val);
 		bool GetCastShadow();
 		void SetReceiveShadow(bool _val);
 		bool GetReceiveShadow();
 
-		bool SetAnimatior(Animator* _animator);
-		void RemoveAnimator() { mAnimator = nullptr; }
+		bool SetAnimatior(ObjPtr<Animator> _animator);
 
 		//void SetMaterial(std::vector<ResPtr<Material>> _materials);
 		//std::vector<ResPtr<Material>> GetMaterial();

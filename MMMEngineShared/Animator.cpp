@@ -423,22 +423,17 @@ void MMMEngine::Animator::Initialize()
 	if (!mSkinComp)
 		Destroy(SelfPtr(this));
 		
-	mIsReal = mSkinComp->SetAnimatior(this);
+	mIsReal = mSkinComp->SetAnimatior(SelfPtr(this));
 	if (!mIsReal)
 		Destroy(SelfPtr(this));
-
-	auto clip = ResourceManager::Get().Load<AnimationClip>(L"Assets/Test/Player_Idle_0.animclip");
-	AddAnimClip(clip);
-	PlayClip(clip->mName, true);
 }
 
 void MMMEngine::Animator::UnInitialize()
 {
-	if (mIsReal)
-		mSkinComp->RemoveAnimator();
-	mSkinComp->mAnimBuffer = nullptr;
+	if (mSkinComp) {
+		mSkinComp->mAnimBuffer = nullptr;
+	}
 
-	mSkinComp.Reset();
 	mCurrentPlayingMap.clear();
 }
 
@@ -546,27 +541,41 @@ void MMMEngine::Animator::PlayClip(std::string _name, bool _isLoop /*= false*/, 
 	mIsPlaying = true;
 }
 
-void MMMEngine::Animator::PlayBlendClip(std::string _name, float _blendWeight, bool _isLoop /*= false*/, int _rootIdx /*= -1*/)
+void MMMEngine::Animator::PlayBlendClip(std::string _name, float _blendWeight, bool _isLoop /*= false*/, int _rootIdx /*= -1*/, bool _normalizeOthers /*= true*/)
 {
-	// weight clamp
+	// weight clamp 
 	if (_blendWeight < 0.0f) _blendWeight = 0.0f;
 	if (_blendWeight > 1.0f) _blendWeight = 1.0f;
 
 	auto it = mCurrentPlayingMap.find(_name);
-	if (it == mCurrentPlayingMap.end())
-		return;
+	if (it == mCurrentPlayingMap.end()) {
+		auto itIdx = mAnimClipIdx.find(_name);
+		if (itIdx == mAnimClipIdx.end())
+			return;
+
+		AnimInfo info;
+		info.clipIdx = itIdx->second;
+		info.elipsedTime = 0.0f;
+		info.nodeIdx = _rootIdx;
+		info.bufferWeight = 0.0f;
+		info.isLoop = _isLoop;
+
+		it = mCurrentPlayingMap.emplace(_name, info).first;
+	}
 
 	AnimInfo& info = it->second;
 
 	if (info.clipIdx < 0 || info.clipIdx >= (int)mAnimClips.size())
 		return;
 
+	info.isLoop = _isLoop;
+	info.nodeIdx = _rootIdx;
+
 	// 블렌드로 재생: 시간은 유지하거나 새로 시작 정책을 선택 가능
 	// 여기서는 "처음 블렌드 시작이면 0초부터 시작" 정책
 	if (info.bufferWeight <= 0.0f && _blendWeight > 0.0f)
 		info.elipsedTime = 0.0f;
 
-	info.nodeIdx = _rootIdx;
 	info.bufferWeight = _blendWeight;
 
 	// 추가된 클립제외 Weight 정규화

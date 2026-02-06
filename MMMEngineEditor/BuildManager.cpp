@@ -249,6 +249,7 @@ namespace MMMEngine::Editor
             fs::path shaderSource = projectRootDir / "Shader";
             fs::path shaderDest = dataDir / "Shader";
 
+
             if (fs::exists(shaderSource))
             {
                 fs::copy(shaderSource, shaderDest,

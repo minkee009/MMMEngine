@@ -116,7 +116,7 @@ void MMMEngine::ShaderInfo::StartUp()
 
 	// 타입별 레지스터 번호 등록
 	m_propertyInfoMap[ShaderType::S_PBR][L"_albedo"] = { PropertyType::Texture, 0 };
-	m_propertyInfoMap[ShaderType::S_PBR][L"_normal"] = { PropertyType::Texture, 1 };
+	m_propertyInfoMap[ShaderType::S_PBR][L"_normal"] = { PropertyType::Texture, 1, ResourceManager::Get().Load<Texture2D>(L"Shader/Resource/Default_Texture/Default_Normal.png") };
 	m_propertyInfoMap[ShaderType::S_PBR][L"_emissive"] = { PropertyType::Texture, 2 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"_shadowmap"] = { PropertyType::Texture, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"_opacity"] = { PropertyType::Texture, 4 };
@@ -133,19 +133,19 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_PBR][L"mLightColor"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mIntensity"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mLightPos"] = { PropertyType::Constant, 1 };
-	m_propertyInfoMap[ShaderType::S_PBR][L"mBaseColor"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_PBR][L"mBaseColor"] = { PropertyType::Constant, 3, DirectX::SimpleMath::Vector4{1.0f, 1.0f, 1.0f, 1.0f} };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mMetallic"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mRoughness"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_PBR][L"mAoStrength"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_PBR][L"mAoStrength"] = { PropertyType::Constant, 3, 0.5f };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mEmissive"] = { PropertyType::Constant, 3 };
 
 	//
 	m_propertyInfoMap[ShaderType::S_TOON][L"_albedo"] = { PropertyType::Texture, 0 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"_normal"] = { PropertyType::Texture, 1 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_normal"] = { PropertyType::Texture, 1, ResourceManager::Get().Load<Texture2D>(L"Shader/Resource/Default_Texture/Default_Normal.png") };
 	m_propertyInfoMap[ShaderType::S_TOON][L"_emissive"] = { PropertyType::Texture, 2 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"_shadowmap"] = { PropertyType::Texture, 3 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"_opacity"] = { PropertyType::Texture, 4 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"_lutMap"] = { PropertyType::Texture, 10 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"_lutMap"] = { PropertyType::Texture, 10, ResourceManager::Get().Load<Texture2D>(L"Shader/Resource/Default_Texture/Toon_Lut.png") };
 	m_propertyInfoMap[ShaderType::S_TOON][L"_roughness"] = { PropertyType::Texture, 11 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"_ambientOcclusion"] = { PropertyType::Texture, 12 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"_specular"] = { PropertyType::Texture, 20 };
@@ -157,15 +157,15 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_TOON][L"mLightColor"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mIntensity"] = { PropertyType::Constant, 1 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mLightPos"] = { PropertyType::Constant, 1 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mBaseColor"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mAoStrength"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffuseStr"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mSpecularStr"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mBaseColor"] = { PropertyType::Constant, 3, DirectX::SimpleMath::Vector4{1.0f, 1.0f, 1.0f, 1.0f} };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mAoStrength"] = { PropertyType::Constant, 3, 0.5f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffuseStr"] = { PropertyType::Constant, 3, 0.5f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mSpecularStr"] = { PropertyType::Constant, 3, 0.1f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mRoughness"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mLowLut"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDistHalf"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDepth"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mRimLightStr"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mLowLut"] = { PropertyType::Constant, 3, 0.5f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDistHalf"] = { PropertyType::Constant, 3, 0.15625f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDepth"] = { PropertyType::Constant, 3, 68.3263f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mRimLightStr"] = { PropertyType::Constant, 3, 0.5f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mEmissive"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mPadding"] = { PropertyType::Constant, 3 };
 	
@@ -406,26 +406,54 @@ void AddProperty(MMMEngine::Material* _mat, const std::wstring& propName, const 
 		{
 		case D3D_SVT_FLOAT:
 			if (pInfo.columns == 1 && pInfo.rows == 1) {
-				val = 0.0f;
+				auto getted = std::get_if<float>(&pInfo.defaultValue);
+				if (getted == nullptr)
+					val = 0.0f;
+				else
+					val = *getted;
 			}
 			else if (pInfo.columns == 3 && pInfo.rows == 1) {
-				val = DirectX::SimpleMath::Vector3::Zero;
+				auto getted = std::get_if<DirectX::SimpleMath::Vector3>(&pInfo.defaultValue);
+				if (getted == nullptr)
+					val = DirectX::SimpleMath::Vector3::Zero;
+				else
+					val = *getted;
 			}
 			else if (pInfo.columns == 4 && pInfo.rows == 1) {
-				val = DirectX::SimpleMath::Vector4::Zero;
+				auto getted = std::get_if<DirectX::SimpleMath::Vector4>(&pInfo.defaultValue);
+				if (getted == nullptr)
+					val = DirectX::SimpleMath::Vector4::Zero;
+				else
+					val = *getted;
 			}
 			else if (pInfo.columns == 4 && pInfo.rows == 4) {
-				val = DirectX::SimpleMath::Matrix::Identity;
+				auto getted = std::get_if<DirectX::SimpleMath::Matrix>(&pInfo.defaultValue);
+				if (getted == nullptr)
+					val = DirectX::SimpleMath::Matrix::Identity;
+				else
+					val = *getted;
 			}
 			break;
 
 		case D3D_SVT_INT:
-			val = 0;
+		{
+			auto getted = std::get_if<int>(&pInfo.defaultValue);
+			if (getted == nullptr)
+				val = 0;
+			else
+				val = *getted;
 			break;
+		}
 
 		case D3D_SVT_BOOL:
-			val = false;
+		{
+			auto getted = std::get_if<int>(&pInfo.defaultValue);
+			if (getted == nullptr)
+				val = false;
+			else
+				val = *getted;
 			break;
+		}
 
 		default:
 			// 기타 타입은 기본값 없음
@@ -437,12 +465,22 @@ void AddProperty(MMMEngine::Material* _mat, const std::wstring& propName, const 
 	case MMMEngine::PropertyType::Texture:
 	{
 		MMMEngine::ResPtr<MMMEngine::Texture2D> tex;
-		if(propName == L"_normal")
+
+		auto texture = std::get_if<MMMEngine::ResPtr<MMMEngine::Texture2D>>(&pInfo.defaultValue);
+
+		if (texture == nullptr) {
+			tex = MMMEngine::ResourceManager::Get()
+				.Load<MMMEngine::Texture2D>(L"Shader/Resource/Default_Texture/Solid_White.png");
+		}
+		else {
+			tex = *texture;
+		}
+		/*if(propName == L"_normal")
 			tex = MMMEngine::ResourceManager::Get()
 			.Load<MMMEngine::Texture2D>(L"Shader/Resource/Default_Texture/Default_Normal.png");
 		else
 			tex = MMMEngine::ResourceManager::Get()
-			.Load<MMMEngine::Texture2D>(L"Shader/Resource/Default_Texture/Solid_White.png");
+			.Load<MMMEngine::Texture2D>(L"Shader/Resource/Default_Texture/Solid_White.png");*/
 		val = tex; // 기본 텍스처
 	}
 	break;

@@ -161,6 +161,20 @@ Vector4 MMMEngine::RectTransform::GetRectInCanvas(const Vector2& canvasSize) con
 	return Vector4(rectMin.x, rectMin.y, size.x, size.y);
 }
 
+Vector2 MMMEngine::RectTransform::GetPivotPositionInCanvas(const Vector2& canvasSize) const
+{
+	const auto rect = GetRectInCanvas(canvasSize);
+	return {
+		rect.x + rect.z * m_pivot.x,
+		rect.y + rect.w * m_pivot.y
+	};
+}
+
+Vector2 MMMEngine::RectTransform::GetAnchoredPositionInCanvas(const Vector2& canvasSize) const
+{
+	return GetPivotPositionInCanvas(canvasSize);
+}
+
 void MMMEngine::RectTransform::GetAnchorData(const Vector2& canvasSize,
 	Vector2& anchorCenter,
 	Vector2& anchorSpan) const

@@ -46,6 +46,7 @@ namespace MMMEngine
 
 		ObjPtr<Canvas> GetCanvas() const { return m_canvas; }
 		ObjPtr<RectTransform> GetRectTransform();
+		void RefreshCanvasNow();
 
 		virtual DirectX::SimpleMath::Vector4 GetUVRect() const { return { 0.0f, 0.0f, 1.0f, 1.0f }; }
 		virtual void RenderUI(RenderManager& renderer);

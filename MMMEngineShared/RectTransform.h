@@ -42,6 +42,10 @@ namespace MMMEngine
 
 		// Returns rect in canvas space (x, y, width, height) using pixel coordinates.
 		DirectX::SimpleMath::Vector4 GetRectInCanvas(const DirectX::SimpleMath::Vector2& canvasSize) const;
+		// Returns pivot position in canvas space (pixel coordinates).
+		DirectX::SimpleMath::Vector2 GetPivotPositionInCanvas(const DirectX::SimpleMath::Vector2& canvasSize) const;
+		// Returns anchored (pivot) position in canvas space (pixel coordinates).
+		DirectX::SimpleMath::Vector2 GetAnchoredPositionInCanvas(const DirectX::SimpleMath::Vector2& canvasSize) const;
 
 		// Anchor helpers (parent rect in canvas space)
 		void GetAnchorData(const DirectX::SimpleMath::Vector2& canvasSize,

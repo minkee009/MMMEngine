@@ -84,7 +84,7 @@ void Update()
 		ObjectManager::Get().UpdateInternalTimer(dt);
 		BehaviourManager::Get().DisableBehaviours();
 		ObjectManager::Get().ProcessPendingDestroy();
-		RenderManager::Get().InitCache();
+		RenderManager::Get().ClearCache();
 		BehaviourManager::Get().AllSortBehaviours();
 		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
 	}

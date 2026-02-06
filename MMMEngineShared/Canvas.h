@@ -53,6 +53,8 @@ namespace MMMEngine
 		DirectX::SimpleMath::Vector2 GetScaleToScene() const;
 		/// ScaleWithScreenSize일 때 씬 내 여백(레터박스) 오프셋
 		DirectX::SimpleMath::Vector2 GetSceneOffset() const;
+		/// 씬 픽셀 좌표 -> 캔버스 좌표 변환
+		DirectX::SimpleMath::Vector2 ScreenToCanvas(const DirectX::SimpleMath::Vector2& screenPos) const;
 
 		void RegisterGraphic(ObjPtr<Graphic> graphic);
 		void UnregisterGraphic(ObjPtr<Graphic> graphic);

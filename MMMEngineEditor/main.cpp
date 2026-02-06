@@ -137,7 +137,7 @@ void Update()
 		ObjectManager::Get().UpdateInternalTimer(dt);
 		BehaviourManager::Get().DisableBehaviours();
 		ObjectManager::Get().ProcessPendingDestroy();
-		RenderManager::Get().InitCache(); // todo : -> InitCache()로 바꾸기
+		RenderManager::Get().ClearCache(); // todo : -> InitCache()로 바꾸기
 		BehaviourManager::Get().AllSortBehaviours();
 		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
 	}
