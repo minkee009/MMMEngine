@@ -418,7 +418,7 @@ std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::
 	if (m_dontDestroyOnLoadScene)
 		return m_dontDestroyOnLoadScene->GetGameObjects();
 	else
-		std::vector<ObjPtr<GameObject>>();
+	 	return std::vector<ObjPtr<GameObject>>();
 }
 
 std::vector<MMMEngine::ObjPtr< MMMEngine::GameObject>> MMMEngine::SceneManager::FindGameObjectsWithTagFromAllScenes(const std::string& tag)

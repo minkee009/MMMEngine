@@ -1,4 +1,4 @@
-#include "App.h"
+ï»¿#include "App.h"
 #include <wrl/client.h>
 #include <algorithm>
 
@@ -123,10 +123,10 @@ void MMMEngine::Utility::App::SetWindowSize(int width, int height)
 
 		::SetWindowPos(
 			m_hWnd,
-			NULL,               // Z-Order º¯°æ ¾È ÇÔ
-			0, 0,               // SWP_NOMOVE ÇÃ·¡±×¸¦ »ç¿ëÇÏ¹Ç·Î X, Y´Â ¹«½ÃµÊ
-			adjustedWidth,      // °è»êµÈ ÀüÃ¼ Æø
-			adjustedHeight,     // °è»êµÈ ÀüÃ¼ ³ôÀÌ
+			NULL,               // Z-Order ë³€ê²½ ì•ˆ í•¨
+			0, 0,               // SWP_NOMOVE í”Œë˜ê·¸ë¥¼ ì‚¬ìš©í•˜ë¯€ë¡œ X, YëŠ” ë¬´ì‹œë¨
+			adjustedWidth,      // ê³„ì‚°ëœ ì „ì²´ í­
+			adjustedHeight,     // ê³„ì‚°ëœ ì „ì²´ ë†’ì´
 			SWP_NOZORDER | SWP_NOMOVE | SWP_FRAMECHANGED
 		);
 	}
@@ -136,30 +136,30 @@ void MMMEngine::Utility::App::SetWindowSize(int width, int height)
 void MMMEngine::Utility::App::SetResizable(bool isResizable)
 {
 	if (m_isResizable == isResizable)
-		return; // º¯°æ »çÇ×ÀÌ ¾øÀ¸¸é Á¾·á
+		return; // ë³€ê²½ ì‚¬í•­ì´ ì—†ìœ¼ë©´ ì¢…ë£Œ
 
 	m_isResizable = isResizable;
 
 	if (m_hWnd && m_currentDisplayMode == DisplayMode::Windowed)
 	{
-		// ÇöÀç À©µµ¿ì ½ºÅ¸ÀÏÀ» °¡Á®¿É´Ï´Ù.
+		// í˜„ì¬ ìœˆë„ìš° ìŠ¤íƒ€ì¼ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
 		DWORD currentStyle = GetWindowLong(m_hWnd, GWL_STYLE);
 
 		if (isResizable)
 		{
-			// Å©±â Á¶ÀıÀ» Çã¿ëÇÏ·Á¸é WS_THICKFRAME ÇÃ·¡±×¸¦ Ãß°¡ÇÕ´Ï´Ù.
+			// í¬ê¸° ì¡°ì ˆì„ í—ˆìš©í•˜ë ¤ë©´ WS_THICKFRAME í”Œë˜ê·¸ë¥¼ ì¶”ê°€í•©ë‹ˆë‹¤.
 			currentStyle |= WS_THICKFRAME;
 		}
 		else
 		{
-			// Å©±â Á¶ÀıÀ» ¸·À¸·Á¸é WS_THICKFRAME ÇÃ·¡±×¸¦ Á¦°ÅÇÕ´Ï´Ù.
+			// í¬ê¸° ì¡°ì ˆì„ ë§‰ìœ¼ë ¤ë©´ WS_THICKFRAME í”Œë˜ê·¸ë¥¼ ì œê±°í•©ë‹ˆë‹¤.
 			currentStyle &= ~WS_THICKFRAME;
 		}
 
-		// »õ·Î¿î ½ºÅ¸ÀÏÀ» Àû¿ëÇÕ´Ï´Ù.
+		// ìƒˆë¡œìš´ ìŠ¤íƒ€ì¼ì„ ì ìš©í•©ë‹ˆë‹¤.
 		SetWindowLong(m_hWnd, GWL_STYLE, currentStyle);
 
-		// º¯°æ »çÇ×À» Àû¿ëÇÏ°í Ã¢ÀÇ ºñÅ¬¶óÀÌ¾ğÆ® ¿µ¿ªÀ» ´Ù½Ã ±×¸®µµ·Ï ÇÕ´Ï´Ù.
+		// ë³€ê²½ ì‚¬í•­ì„ ì ìš©í•˜ê³  ì°½ì˜ ë¹„í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ì„ ë‹¤ì‹œ ê·¸ë¦¬ë„ë¡ í•©ë‹ˆë‹¤.
 		SetWindowPos(
 			m_hWnd,
 			NULL,
@@ -182,18 +182,18 @@ std::vector<MMMEngine::Resolution> MMMEngine::Utility::App::GetMonitorResolution
 	if (!hWnd)
 		return resolutions;
 
-	// 1) ÇöÀç À©µµ¿ì°¡ À§Ä¡ÇÑ ¸ğ´ÏÅÍ
+	// 1) í˜„ì¬ ìœˆë„ìš°ê°€ ìœ„ì¹˜í•œ ëª¨ë‹ˆí„°
 	HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
 	if (!hMonitor)
 		return resolutions;
 
-	// 2) ¸ğ´ÏÅÍ µğ¹ÙÀÌ½º ÀÌ¸§ ¾ò±â
+	// 2) ëª¨ë‹ˆí„° ë””ë°”ì´ìŠ¤ ì´ë¦„ ì–»ê¸°
 	MONITORINFOEXW mi{};
 	mi.cbSize = sizeof(mi);
 	if (!GetMonitorInfoW(hMonitor, &mi))
 		return resolutions;
 
-	// 3) µğ½ºÇÃ·¹ÀÌ ¸ğµå ¿­°Å
+	// 3) ë””ìŠ¤í”Œë ˆì´ ëª¨ë“œ ì—´ê±°
 	DEVMODEW dm{};
 	dm.dmSize = sizeof(dm);
 
@@ -204,14 +204,14 @@ std::vector<MMMEngine::Resolution> MMMEngine::Utility::App::GetMonitorResolution
 			static_cast<int>(dm.dmPelsHeight)
 		};
 
-		// Áßº¹ Á¦°Å
+		// ì¤‘ë³µ ì œê±°
 		if (std::find(resolutions.begin(), resolutions.end(), r) == resolutions.end())
 		{
 			resolutions.push_back(r);
 		}
 	}
 
-	// 4) Á¤·Ä (°¡·Î ¡æ ¼¼·Î)
+	// 4) ì •ë ¬ (ê°€ë¡œ â†’ ì„¸ë¡œ)
 	std::sort(resolutions.begin(), resolutions.end(),
 		[](const Resolution& a, const Resolution& b)
 		{
@@ -231,23 +231,23 @@ LRESULT MMMEngine::Utility::App::HandleWindowMessage(HWND hWnd, UINT uMsg, WPARA
 
 	switch (uMsg) {
 	//case WM_SETCURSOR:
-	//	// Å¬¶óÀÌ¾ğÆ® ¿µ¿ª¿¡¼­ ±âº» È­»ìÇ¥ Ä¿¼­ ¼³Á¤
+	//	// í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ì—ì„œ ê¸°ë³¸ í™”ì‚´í‘œ ì»¤ì„œ ì„¤ì •
 	//	if (LOWORD(lParam) == HTCLIENT)
 	//	{
 	//		SetCursor(LoadCursor(NULL, IDC_ARROW));
 	//		return TRUE;
 	//	}
-	//	// ºñÅ¬¶óÀÌ¾ğÆ® ¿µ¿ªÀº ±âº» Ã³¸®
+	//	// ë¹„í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ì€ ê¸°ë³¸ ì²˜ë¦¬
 	//	result = DefWindowProc(hWnd, uMsg, wParam, lParam);
 	//	break;
 	case WM_MOUSEWHEEL:
 		OnMouseWheelUpdate(this, wParam, lParam);
 		return 0;
-	case WM_SYSKEYDOWN:  // Alt + ´Ù¸¥ Å° Á¶ÇÕ
+	case WM_SYSKEYDOWN:  // Alt + ë‹¤ë¥¸ í‚¤ ì¡°í•©
 		if (wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000)  // Alt+Enter
 		{
 			ToggleFullscreen();
-			break; // ¸Ş½ÃÁö Ã³¸® ¿Ï·á
+			break; // ë©”ì‹œì§€ ì²˜ë¦¬ ì™„ë£Œ
 		}
 		break;
 	case WM_CLOSE:
@@ -265,7 +265,7 @@ LRESULT MMMEngine::Utility::App::HandleWindowMessage(HWND hWnd, UINT uMsg, WPARA
 			LONG newWidth = clientRect.right - clientRect.left;
 			LONG newHeight = clientRect.bottom - clientRect.top;
 
-			// ¸®»çÀÌÁî ·ÎÁ÷À» D3DContext¿¡ À§ÀÓ
+			// ë¦¬ì‚¬ì´ì¦ˆ ë¡œì§ì„ D3DContextì— ìœ„ì„
 			if (newWidth != m_windowInfo.width || newHeight != m_windowInfo.height) {
 				m_windowInfo.width = newWidth;
 				m_windowInfo.height = newHeight;
@@ -285,19 +285,22 @@ LRESULT MMMEngine::Utility::App::HandleWindowMessage(HWND hWnd, UINT uMsg, WPARA
 
 bool MMMEngine::Utility::App::CreateMainWindow()
 {
-	// À©µµ¿ì Å¬·¡½º Á¤ÀÇ
+	// ìœˆë„ìš° í´ë˜ìŠ¤ ì •ì˜
 	WNDCLASSEX wc = { sizeof(WNDCLASSEX) };
 	wc.lpfnWndProc = WindowProc;
 	wc.hInstance = m_hInstance;
-	wc.lpszClassName = L"MMMEngineClass";
+	wc.lpszClassName = L"MMMEngineClass";	
+	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wc.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
 	ATOM a = RegisterClassExW(&wc);
 	if (a == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
-	// Å¬¶óÀÌ¾ğÆ® ¿µ¿ª¿¡ ¸ÂÃç À©µµ¿ì ÀüÃ¼ Å©±â °è»ê
+
+	// í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ì— ë§ì¶° ìœˆë„ìš° ì „ì²´ í¬ê¸° ê³„ì‚°
 	RECT clientRect = { 0, 0, m_windowInfo.width, m_windowInfo.height };
 	AdjustWindowRect(&clientRect, WS_OVERLAPPEDWINDOW, FALSE);
 
-	// À©µµ¿ì »ı¼º
+	// ìœˆë„ìš° ìƒì„±
 	m_hWnd = CreateWindowEx(
 		0,
 		wc.lpszClassName,
@@ -321,7 +324,7 @@ void MMMEngine::Utility::App::SetWindowTitle(const std::wstring& title)
 {
 	m_windowInfo.title = title;
 
-	// À©µµ¿ì°¡ ÀÌ¹Ì »ı¼ºµÇ¾î ÀÖÀ¸¸é Áï½Ã Á¦¸ñ º¯°æ
+	// ìœˆë„ìš°ê°€ ì´ë¯¸ ìƒì„±ë˜ì–´ ìˆìœ¼ë©´ ì¦‰ì‹œ ì œëª© ë³€ê²½
 	if (m_hWnd)
 	{
 		SetWindowTextW(m_hWnd, m_windowInfo.title.c_str());
@@ -400,12 +403,12 @@ void MMMEngine::Utility::App::SetWindowed()
 
 	if (m_currentDisplayMode != DisplayMode::Windowed)
 	{
-		// ÀÌÀü »óÅÂ º¹¿ø
+		// ì´ì „ ìƒíƒœ ë³µì›
 		RestoreWindowedState();
 	}
 	else
 	{
-		// ÀÏ¹İ Ã¢ ½ºÅ¸ÀÏ ¼³Á¤
+		// ì¼ë°˜ ì°½ ìŠ¤íƒ€ì¼ ì„¤ì •
 		DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
 		SetWindowLong(m_hWnd, GWL_STYLE, style);
 

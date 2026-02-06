@@ -1473,7 +1473,6 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
                             if (fvar.is_valid() && fvar.is_type<bool>() && fvar.get_value<bool>())
                             {
                                 prop.set_value(inst, var);
-                                break;
                             }
                         }
                     }
