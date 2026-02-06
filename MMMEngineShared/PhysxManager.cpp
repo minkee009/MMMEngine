@@ -137,10 +137,18 @@ void MMMEngine::PhysxManager::NotifyColliderAdded(ColliderComponent* col)
 
 void MMMEngine::PhysxManager::NotifyColliderRemoved(ColliderComponent* col)
 {
-    if (!col) return;
+    /*if (!col) return;
 
     auto go = col->GetGameObject();
     if (!go.IsValid()) return;
+
+    EraseCommandsForCollider(col);
+    m_DirtyColliders.erase(col);
+    m_FilterDirtyColliders.erase(col);
+
+    m_PhysScene.ForgetCollider(col);*/
+
+    if (!col) return;
 
     EraseCommandsForCollider(col);
     m_DirtyColliders.erase(col);

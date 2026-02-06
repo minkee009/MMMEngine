@@ -418,7 +418,7 @@ void MMMEngine::ColliderComponent::UnInitialize()
         UnregisterFromPhysics();
     }
 
-    PhysxManager::Get().NotifyColliderRemoved(this);
+    //PhysxManager::Get().NotifyColliderRemoved(this);
     if (m_Shape)
     {
         if (auto* actor = m_Shape->getActor())
