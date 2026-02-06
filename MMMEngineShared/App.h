@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Export.h"
 #include <Windows.h>
 #include <string>
@@ -13,7 +13,7 @@
 namespace MMMEngine::Utility
 {
 	/// <summary>
-	/// À©µµ¿ì ÇÏ³ªÀÇ ´ëÇÑ ÇÚµé°ú ·çÇÁ¸¦ Á¦°øÇÕ´Ï´Ù.
+	/// ìœˆë„ìš° í•˜ë‚˜ì˜ ëŒ€í•œ í•¸ë“¤ê³¼ ë£¨í”„ë¥¼ ì œê³µí•©ë‹ˆë‹¤.
 	/// </summary>
 	class MMMENGINE_API App
 	{
@@ -34,17 +34,17 @@ namespace MMMEngine::Utility
 			bool  valid = false;
 		};
 
-		App();
-		App(HINSTANCE hInstance);
-		App(LPCWSTR title, LONG width, LONG height);
-		App(HINSTANCE hInstance,LPCWSTR title, LONG width, LONG height);
+		App(bool useDefaultCursor = false);
+		App(HINSTANCE hInstance, bool useDefaultCursor = false);
+		App(LPCWSTR title, LONG width, LONG height, bool useDefaultCursor = false);
+		App(HINSTANCE hInstance,LPCWSTR title, LONG width, LONG height, bool useDefaultCursor = false);
 
 		~App();
 
 		int Run();
 		void Quit();
 
-		void ToggleFullscreen(); // Windowed <-> Fullscreen Åä±Û
+		void ToggleFullscreen(); // Windowed <-> Fullscreen í† ê¸€
 
 		Event<App, void(void)> OnInitialize{ this };
 		Event<App, void(void)> OnRelease{ this };
@@ -77,7 +77,7 @@ namespace MMMEngine::Utility
 		DisplayMode m_currentDisplayMode;
 		DisplayMode m_previousDisplayMode;
 		bool m_isResizable = true;
-
+		bool m_useDefaultCursor;
 		bool m_windowSizeDirty;
 
 		HINSTANCE m_hInstance;

@@ -69,79 +69,21 @@ namespace MMMEngine
 		ResPtr<T> Load(std::wstring filePath)
 		{
 			static_assert(std::is_base_of_v<Resource, T>, "T must inherit from Resource");
-
-			std::wstring root = m_rootPath.generic_wstring();
-			if (!root.empty() && root.back() != L'/' && root.back() != L'\\')
-				root += L'/';
-
-			std::wstring truePath = m_rootPath.generic_wstring() + filePath;
-
-			ResKey key{ rttr::type::get<T>().get_name().to_string(), truePath };
-
-			auto it = m_cache.find(key);
-			if (it != m_cache.end())
-			{
-				if (auto sp = it->second.lock())
-					return std::dynamic_pointer_cast<T>(sp);
-
-				std::weak_ptr<Resource> temp = std::move(it->second);
-
-				m_cache.erase(it);
-			}
-
-
-			auto res = std::make_shared<T>();
-			res->SetFilePath(filePath);
-			if (!res->LoadFromFilePath(truePath))
-			{
-				std::cout << u8"유효하지 않은 파일패스" << std::endl;
+			rttr::variant loaded = Load(rttr::type::get<T>(), filePath);
+			if (!loaded.is_valid())
 				return nullptr;
-			}
 
-			m_cache[key] = res;
-			return res;
-		}
-
-		rttr::variant Load(rttr::type resourceType, const std::wstring& filePath)
-		{
-			if (!resourceType.is_valid())
-				return rttr::variant();
-
-			std::wstring root = m_rootPath.generic_wstring();
-			if (!root.empty() && root.back() != L'/' && root.back() != L'\\')
-				root += L'/';
-
-			std::wstring truePath = m_rootPath.generic_wstring() + filePath;
-
-			std::string typeName = resourceType.get_name().to_string();
-			ResKey key{ typeName, truePath };
-
-			auto it = m_cache.find(key);
-			if (it != m_cache.end())
+			if (loaded.is_type<ResPtr<Resource>>())
 			{
-				if (auto sp = it->second.lock())
-					return rttr::variant(sp);
-
-				std::weak_ptr<Resource> temp = std::move(it->second);
-
-				m_cache.erase(it);
+				return std::dynamic_pointer_cast<T>(loaded.get_value<ResPtr<Resource>>());
 			}
+			if (loaded.is_type<ResPtr<T>>())
+				return loaded.get_value<ResPtr<T>>();
 
-			rttr::variant resource = resourceType.create();
-			if (!resource.is_valid())
-				return rttr::variant();
-
-			std::shared_ptr<Resource> resPtr = resource.get_value<std::shared_ptr<Resource>>();
-			if (!resPtr)
-				return rttr::variant();
-
-			resPtr->SetFilePath(filePath);
-			if (!resPtr->LoadFromFilePath(truePath))
-				return rttr::variant();
-
-			m_cache[key] = resPtr;
-			return rttr::variant(resPtr);
+			return nullptr;
 		}
+
+		rttr::variant Load(rttr::type resourceType, const std::wstring& filePath);
 
 		bool Contains(const std::string& typeString, const std::wstring& filePath)
 		{

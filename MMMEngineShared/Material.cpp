@@ -147,6 +147,10 @@ bool MMMEngine::Material::LoadFromFilePath(const std::wstring& _filePath)
 	int prevPropSize = (int)m_properties.size();
 
 	// 타입에 따라 프로퍼티 생성, 삭제
+	if (!m_pPShader) {
+		m_pPShader = ShaderInfo::Get().GetDefaultPShader();
+	}
+
 	auto type = ShaderInfo::Get().GetShaderType(m_pPShader->GetFilePath());
 	ShaderInfo::Get().ConvertMaterialType(type, this);
 	int currPropSize = (int)m_properties.size();

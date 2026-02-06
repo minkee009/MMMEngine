@@ -174,7 +174,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
 {
-	App app{ hInstance,L"MMMPlayer",1280,720 };
+	App app{ hInstance,L"MMMPlayer",1280,720,true };
 	GlobalRegistry::g_pApp = &app;
 
 	app.OnInitialize.AddListener<&Initialize>();

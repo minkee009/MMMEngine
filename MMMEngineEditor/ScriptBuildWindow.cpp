@@ -11,6 +11,7 @@
 #include "EditorRegistry.h"
 #include "InspectorWindow.h"
 #include "PhysxManager.h"
+#include "ResourceManager.h"
 
 #include <filesystem>
 
@@ -49,6 +50,8 @@ namespace MMMEngine::Editor
             PhysxManager::Get().UnbindScene();
             SceneManager::Get().ShutDown();
             ObjectManager::Get().ShutDown();
+            // Clear cache before unloading user DLL to avoid stale weak_ptr control blocks.
+            ResourceManager::Get().ClearCache();
 
             BehaviourManager::Get().UnloadUserScripts();
         }
