@@ -430,6 +430,7 @@ void MMMEngine::RigidBodyComponent::PushWakeUp()
 	m_WakeRequested = false;
 
 	if (m_Desc.type != Type::Dynamic) return;
+	if (m_Desc.isKinematic) return;
 	if (auto* t_dynamic = m_Actor->is<physx::PxRigidDynamic>()) t_dynamic->wakeUp();
 }
 

@@ -401,7 +401,7 @@ MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::Find(const std::st
 
 		for (const auto& child : current->m_childs)
 		{
-			if (child && child->GetName() == token)
+			if (child.IsValid() && child->GetGameObject().IsValid() && child->GetGameObject()->GetName() == token)
 			{
 				// 일치하는 자식 발견
 				current = child;

@@ -135,7 +135,26 @@ bool MMMEngine::MeshColliderComponent::TryBuildAndRegister()
 
 bool MMMEngine::MeshColliderComponent::UpdateShapeGeometry()
 {
-    ClearGeometryDirty();
+
+    if (!m_Shape) return false;
+
+    Vector3 s = GetTransform()->GetWorldScale();
+    physx::PxMeshScale scale(ToPxVec(s), physx::PxQuat(physx::PxIdentity));
+
+    if (m_convex)
+    {
+        physx::PxConvexMeshGeometry geom(m_convex, scale);
+        if (!geom.isValid()) return false;
+        m_Shape->setGeometry(geom);
+        return true;
+    }
+    if (m_tri)
+    {
+        physx::PxTriangleMeshGeometry geom(m_tri, scale);
+        if (!geom.isValid()) return false;
+        m_Shape->setGeometry(geom);
+        return true;
+    }
     return false;
 }
 
