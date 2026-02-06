@@ -745,6 +745,10 @@ std::filesystem::path MMMEngine::ResourceSerializer::Serialize_Animation(const A
 
 	fs::path finalPath = rootPath / outPath;
 
+	if (finalPath.has_parent_path() && !fs::exists(finalPath.parent_path())) {
+		fs::create_directories(finalPath.parent_path());
+	}
+
 	// JSON 파일 저장
 	std::ofstream ofs(finalPath);
 	ofs << j.dump(4);

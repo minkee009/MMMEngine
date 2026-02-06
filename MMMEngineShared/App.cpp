@@ -2,46 +2,50 @@
 #include <wrl/client.h>
 #include <algorithm>
 
-MMMEngine::Utility::App::App()
+MMMEngine::Utility::App::App(bool useDefaultCursor)
 	: m_hInstance(GetModuleHandle(NULL))
 	, m_hWnd(NULL)
 	, m_isRunning(false)
 	, m_windowSizeDirty(false)
 	, m_currentDisplayMode(DisplayMode::Windowed)
 	, m_previousDisplayMode(DisplayMode::Windowed)
+	, m_useDefaultCursor(useDefaultCursor)
 	, m_windowInfo({ L"MMM Engine Application",1600,900,WS_OVERLAPPEDWINDOW})
 {
 }
 
-MMMEngine::Utility::App::App(HINSTANCE hInstance)
+MMMEngine::Utility::App::App(HINSTANCE hInstance, bool useDefaultCursor)
 	: m_hInstance(hInstance)
 	, m_hWnd(NULL)
 	, m_isRunning(false)
 	, m_windowSizeDirty(false)
 	, m_currentDisplayMode(DisplayMode::Windowed)
 	, m_previousDisplayMode(DisplayMode::Windowed)
+	, m_useDefaultCursor(useDefaultCursor)
 	, m_windowInfo({ L"MMM Engine Application",1600,900,WS_OVERLAPPEDWINDOW})
 {
 }
 
-MMMEngine::Utility::App::App(LPCWSTR title, LONG width, LONG height)
+MMMEngine::Utility::App::App(LPCWSTR title, LONG width, LONG height, bool useDefaultCursor)
 	: m_hInstance(GetModuleHandle(NULL))
 	, m_hWnd(NULL)
 	, m_isRunning(false)
 	, m_windowSizeDirty(false)
 	, m_currentDisplayMode(DisplayMode::Windowed)
 	, m_previousDisplayMode(DisplayMode::Windowed)
+	, m_useDefaultCursor(useDefaultCursor)
 	, m_windowInfo({ title,width,height,WS_OVERLAPPEDWINDOW })
 {
 }
 
-MMMEngine::Utility::App::App(HINSTANCE hInstance, LPCWSTR title, LONG width, LONG height)
+MMMEngine::Utility::App::App(HINSTANCE hInstance, LPCWSTR title, LONG width, LONG height, bool useDefaultCursor)
 	: m_hInstance(hInstance)
 	, m_hWnd(NULL)
 	, m_isRunning(false)
 	, m_windowSizeDirty(false)
 	, m_currentDisplayMode(DisplayMode::Windowed)
 	, m_previousDisplayMode(DisplayMode::Windowed)
+	, m_useDefaultCursor(useDefaultCursor)
 	, m_windowInfo({ title,width,height,WS_OVERLAPPEDWINDOW })
 {
 }
@@ -290,7 +294,7 @@ bool MMMEngine::Utility::App::CreateMainWindow()
 	wc.lpfnWndProc = WindowProc;
 	wc.hInstance = m_hInstance;
 	wc.lpszClassName = L"MMMEngineClass";	
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wc.hCursor = m_useDefaultCursor ? LoadCursor(nullptr, IDC_ARROW) : NULL;
 	wc.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
 	ATOM a = RegisterClassExW(&wc);
 	if (a == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;

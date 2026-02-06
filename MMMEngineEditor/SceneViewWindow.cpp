@@ -1841,7 +1841,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 			auto& go = g_selectedGameObject;
 
 			auto GetWorldRT = [](GameObject* go) -> Matrix {
-				return Matrix::CreateFromQuaternion(go->GetTransform()->GetLocalRotation()) * Matrix::CreateTranslation(go->GetTransform()->GetLocalPosition());
+				return Matrix::CreateFromQuaternion(go->GetTransform()->GetWorldRotation()) * Matrix::CreateTranslation(go->GetTransform()->GetWorldPosition());
 				};
 
 			Matrix rt = GetWorldRT(go.operator->());

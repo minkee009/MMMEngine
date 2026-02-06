@@ -57,6 +57,8 @@ namespace MMMEngine {
 
 		std::vector<ResPtr<AnimationClip>>& GetAnimClips() { return mAnimClips; }
 		void SetAnimClips(std::vector<ResPtr<AnimationClip>>& _clips) { mAnimClips = _clips; }
+
+		int GetBoneIdx(std::string _boneName);
 	
 		void PlayClip(std::string _name, bool _isLoop = false, int _rootIdx = -1);
 		void PlayBlendClip(std::string _name, float _blendWeight, bool _isLoop = false, int _rootIdx = -1, bool _normalizeOthers = true);
