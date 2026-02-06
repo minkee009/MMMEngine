@@ -78,9 +78,17 @@ namespace MMMEngine
 
 			ResKey key{ rttr::type::get<T>().get_name().to_string(), truePath };
 
-			if (auto it = m_cache.find(key); it != m_cache.end())
+			auto it = m_cache.find(key);
+			if (it != m_cache.end())
+			{
 				if (auto sp = it->second.lock())
 					return std::dynamic_pointer_cast<T>(sp);
+
+				std::weak_ptr<Resource> temp = std::move(it->second);
+
+				m_cache.erase(it);
+			}
+
 
 			auto res = std::make_shared<T>();
 			res->SetFilePath(filePath);
@@ -114,6 +122,8 @@ namespace MMMEngine
 				if (auto sp = it->second.lock())
 					return rttr::variant(sp);
 
+				std::weak_ptr<Resource> temp = std::move(it->second);
+
 				m_cache.erase(it);
 			}
 
@@ -144,6 +154,8 @@ namespace MMMEngine
 				auto res_shared = resource_iter->second.lock();
 				if (res_shared)
 					return true;
+
+				std::weak_ptr<Resource> temp = std::move(resource_iter->second);
 
 				m_cache.erase(resource_iter);
 			}

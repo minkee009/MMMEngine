@@ -1,4 +1,4 @@
-#include "Button.h"
+﻿#include "Button.h"
 #include "RectTransform.h"
 #include "Canvas.h"
 #include "Texture2D.h"
@@ -27,7 +27,6 @@ RTTR_REGISTRATION
 void MMMEngine::Button::SetTexture(const ResPtr<Texture2D>& texture)
 {
 	Graphic::SetTexture(texture);
-	ApplyNativeSizeFromTexture(texture);
 }
 
 void MMMEngine::Button::SetNativeSize()

@@ -4,6 +4,7 @@ cbuffer UIElementBuffer : register(b0)
     float4 gUvRect;
     float4 gColor;
     float4 gScreenParams; // x=width, y=height, z=useTexture, w=unused
+    float4 gMaskParams; // x=maskEnabled, y=alphaThreshold, z=unused, w=unused
     float4 gTransformParams0; // x=pivotX, y=pivotY, z=rightX, w=rightY
     float4 gTransformParams1; // x=upX, y=upY, z=unused, w=unused
     float4x4 gViewProj;   // reserved

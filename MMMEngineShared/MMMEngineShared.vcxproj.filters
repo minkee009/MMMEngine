@@ -151,9 +151,6 @@
     <ClCompile Include="Button.cpp">
       <Filter>소스 파일\Core\Render API\UI\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Font.cpp">
-      <Filter>소스 파일\Core\Render API\UI\Component</Filter>
-    </ClCompile>
     <ClCompile Include="Gage.cpp">
       <Filter>소스 파일\Core\Render API\UI\Component</Filter>
     </ClCompile>
@@ -174,6 +171,9 @@
     </ClCompile>
     <ClCompile Include="MeshColliderComponent.cpp">
       <Filter>소스 파일\Core\Physcis API</Filter>
+    </ClCompile>
+    <ClCompile Include="Font.cpp">
+      <Filter>소스 파일\Core\Render API\UI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -458,9 +458,6 @@
     <ClInclude Include="Button.h">
       <Filter>헤더 파일\Core\Render API\UI\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Font.h">
-      <Filter>헤더 파일\Core\Render API\UI\Component</Filter>
-    </ClInclude>
     <ClInclude Include="Text.h">
       <Filter>헤더 파일\Core\Render API\UI\Component</Filter>
     </ClInclude>
@@ -484,6 +481,12 @@
     </ClInclude>
     <ClInclude Include="MMMMathF.h">
       <Filter>헤더 파일\Core\MathF API</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreComponents.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Font.h">
+      <Filter>헤더 파일\Core\Render API\UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

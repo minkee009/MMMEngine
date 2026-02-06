@@ -184,6 +184,7 @@
     <ClInclude Include="ColliderComponent.h" />
     <ClInclude Include="CollisionMatrix.h" />
     <ClInclude Include="Component.h" />
+    <ClInclude Include="CoreComponents.h" />
     <ClInclude Include="Delegates.hpp" />
     <ClInclude Include="DisplayMode.h" />
     <ClInclude Include="Export.h" />
@@ -259,6 +260,7 @@
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="TimeManager.h" />
     <ClInclude Include="Transform.h" />
+    <ClInclude Include="UIMask.h" />
     <ClInclude Include="ResourceManager.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -343,6 +345,7 @@
     <ClCompile Include="StringHelper.cpp" />
     <ClCompile Include="Text.cpp" />
     <ClCompile Include="Texture2D.cpp" />
+    <ClCompile Include="UIMask.cpp" />
     <ClCompile Include="UserScriptMessageSignatures.cpp" />
     <ClCompile Include="TimeManager.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>

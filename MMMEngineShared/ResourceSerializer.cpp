@@ -305,11 +305,10 @@ void MMMEngine::ResourceSerializer::DeSerialize_StaticMesh(StaticMesh* _out, std
 
 			matPath = matPath.lexically_relative(basePath);
 
-			auto mat = std::make_shared<Material>();
-			mat = ResourceManager::Get().Load<Material>(matPath.wstring());
+			auto mat = ResourceManager::Get().Load<Material>(matPath.wstring());
 			mats.push_back(mat);
 		}
-		_out->materials = std::move(mats);
+		_out->materials.swap(mats);
 	}
 
 	// Mesh 복원

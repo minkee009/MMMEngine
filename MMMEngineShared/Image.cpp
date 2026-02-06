@@ -1,4 +1,4 @@
-#include "Image.h"
+﻿#include "Image.h"
 #include "Texture2D.h"
 #include "rttr/registration"
 
@@ -28,7 +28,6 @@ void MMMEngine::Image::SetAlpha(float a)
 void MMMEngine::Image::SetTexture(const ResPtr<Texture2D>& texture)
 {
 	Graphic::SetTexture(texture);
-	ApplyNativeSizeFromTexture(texture);
 }
 
 void MMMEngine::Image::SetNativeSize()

@@ -112,6 +112,12 @@ MMMEngine::ObjPtr<MMMEngine::RectTransform> MMMEngine::Graphic::GetRectTransform
 	return tr.Cast<RectTransform>();
 }
 
+void MMMEngine::Graphic::RefreshCanvasNow()
+{
+	auto tr = GetTransform();
+	RefreshCanvas(tr.IsValid() ? tr->GetParent() : ObjPtr<Transform>());
+}
+
 void MMMEngine::Graphic::RenderUI(RenderManager& renderer)
 {
 	if (!m_canvas.IsValid())

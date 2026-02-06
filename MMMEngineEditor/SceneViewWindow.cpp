@@ -1836,9 +1836,15 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 
 
 		// 전체보기는 성능이 문제로 픽한게임오브젝트만
-		if(g_selectedGameObject.IsValid())
+		if(g_selectedGameObject.IsValid() && !g_selectedGameObject->IsDestroyed())
 		{
 			auto& go = g_selectedGameObject;
+
+			auto GetWorldRT = [](GameObject* go) -> Matrix {
+				return Matrix::CreateFromQuaternion(go->GetTransform()->GetLocalRotation()) * Matrix::CreateTranslation(go->GetTransform()->GetLocalPosition());
+				};
+
+			Matrix rt = GetWorldRT(go.operator->());
 
 			if (go->IsActiveInHierarchy())
 			{
@@ -1861,16 +1867,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 					{
 						if (auto& meshCol = col.Cast<MeshColliderComponent>(); meshCol.IsValid())
 						{
-							auto make_rt_noscale = [](const Vector3& translation,
-								const Quaternion& rotation) -> Matrix
-								{
-									return
-										Matrix::CreateFromQuaternion(rotation) *
-										Matrix::CreateTranslation(translation);
-								};
-
-							auto rt = make_rt_noscale(go->GetTransform()->GetLocalPosition(), go->GetTransform()->GetLocalRotation());
-
+							auto srt = go->GetTransform()->GetWorldMatrix();
 							if (auto convexMesh = meshCol->GetConvexMesh(); convexMesh)
 							{
 								auto verts = convexMesh->getVertices();
@@ -1905,13 +1902,13 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 										physx::PxVec3 v2 = verts[i2];
 
 										XMVECTOR A = XMVector3TransformCoord(
-											XMVectorSet(v0.x, v0.y, v0.z, 1.0f), rt);
+											XMVectorSet(v0.x, v0.y, v0.z, 1.0f), srt);
 
 										XMVECTOR B = XMVector3TransformCoord(
-											XMVectorSet(v1.x, v1.y, v1.z, 1.0f), rt);
+											XMVectorSet(v1.x, v1.y, v1.z, 1.0f), srt);
 
 										XMVECTOR C = XMVector3TransformCoord(
-											XMVectorSet(v2.x, v2.y, v2.z, 1.0f), rt);
+											XMVectorSet(v2.x, v2.y, v2.z, 1.0f), srt);
 
 										DX::DrawTriangle(m_batch.get(), A, B, C, Colors::LightGreen);
 									}
@@ -1942,9 +1939,9 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 											continue; // 안전장치
 
 
-										XMVECTOR A = XMVector3TransformCoord(XMLoadFloat3(&submesh[ia].Pos), rt);
-										XMVECTOR B = XMVector3TransformCoord(XMLoadFloat3(&submesh[ib].Pos), rt);
-										XMVECTOR C = XMVector3TransformCoord(XMLoadFloat3(&submesh[ic].Pos), rt);
+										XMVECTOR A = XMVector3TransformCoord(XMLoadFloat3(&submesh[ia].Pos), srt);
+										XMVECTOR B = XMVector3TransformCoord(XMLoadFloat3(&submesh[ib].Pos), srt);
+										XMVECTOR C = XMVector3TransformCoord(XMLoadFloat3(&submesh[ic].Pos), srt);
 
 										DX::DrawTriangle(m_batch.get(), A, B, C, Colors::LightGreen);
 									}
@@ -1960,7 +1957,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 						box.Extents = desc.halfExtents;
 						BoundingOrientedBox obb;
 						obb.CreateFromBoundingBox(obb, box);
-						obb.Transform(obb, go->GetTransform()->GetWorldMatrix());
+						obb.Transform(obb, rt);
 						DX::Draw(m_batch.get(), obb, Colors::LightGreen);
 						break;
 					}
@@ -1969,20 +1966,18 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 						BoundingSphere sphere;
 						sphere.Center = desc.localCenter;
 						sphere.Radius = desc.sphereRadius;
-						DX::Draw(m_batch.get(), sphere, go->GetTransform()->GetWorldMatrix(), Colors::LightGreen);
+						DX::Draw(m_batch.get(), sphere, rt, Colors::LightGreen);
 						break;
 					}
 					case ColliderComponent::DebugColliderType::Capsule:
 					{
-						const auto& wm = go->GetTransform()->GetWorldMatrix();
-
-						const Vector3 upV = wm.Up();
-						const Vector3 rightV = wm.Right();
-						const Vector3 forwardV = wm.Forward();
+						const Vector3 upV = rt.Up();
+						const Vector3 rightV = rt.Right();
+						const Vector3 forwardV = rt.Forward();
 
 						const float r = desc.radius;
 
-						const Vector3 worldPos = go->GetTransform()->GetWorldPosition() + desc.localCenter;
+						const Vector3 worldPos = go->GetTransform()->GetLocalPosition() + desc.localCenter;
 						const Vector3 p0 = worldPos + upV * desc.halfHeight; // 상단 구 중심
 						const Vector3 p1 = worldPos - upV * desc.halfHeight; // 하단 구 중심
 
@@ -2072,7 +2067,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	}
 
 	// Stencil 기반 마스크 생성 (선택된 오브젝트, 깊이 무시)
-	if (g_selectedGameObject.IsValid() && !g_selectedGameObject->IsDestroyed()
+	if (!m_ui2DMode && g_selectedGameObject.IsValid() && !g_selectedGameObject->IsDestroyed()
 		&& m_pPickingVS && m_pMaskPS && m_pStencilWriteState && m_pStencilTestState)
 	{
 		std::vector<uint32_t> selectedIds;
@@ -2125,7 +2120,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	}
 
 	// 아웃라인 렌더링 (씬 뷰 전용)
-	if (g_selectedGameObject.IsValid() && !g_selectedGameObject->IsDestroyed()
+	if (!m_ui2DMode && g_selectedGameObject.IsValid() && !g_selectedGameObject->IsDestroyed()
 		&& m_pOutlinePS && m_pFullScreenVS && m_pOutlineCBuffer && m_pMaskSRV)
 	{
 		if (m_width > 0 && m_height > 0)
@@ -2159,6 +2154,10 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 			ID3D11ShaderResourceView* nullSRV2 = nullptr;
 			context->PSSetShaderResources(0, 1, &nullSRV2);
 		}
+	}
+	else
+	{
+		context->OMSetRenderTargets(1, &rtv, dsv);
 	}
 
 	if (m_ui2DMode)

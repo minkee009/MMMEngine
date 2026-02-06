@@ -1846,7 +1846,7 @@ void MMMEngine::Editor::InspectorWindow::Render()
            // auto ss = comp->get_type();
 
             std::string duplicatePrevantName = typeName + "##" + std::to_string(compCount++);
-            if (typeName != "Transform")
+            if (typeName != "Transform" && typeName != "RectTransform")
             {
                 bool headerOpen = ImGui::CollapsingHeader(duplicatePrevantName.c_str(), &visible, ImGuiTreeNodeFlags_DefaultOpen);
                 if (visible)

@@ -9,6 +9,7 @@
 #include "MissingScriptBehaviour.h"
 #include "SerializableEvent.h"
 #include "ObjectManager.h"
+#include "Graphic.h"
 #include "AnimationCurve.h"
 
 #include <fstream>
@@ -1005,10 +1006,26 @@ void MMMEngine::SceneSerializer::Deserialize(Scene& scene, const SnapShot& snaps
         if (itChild == g_objectTable.end() || itParent == g_objectTable.end())
             continue; // 또는 로그
 
-        auto childTr = itChild->second.get_value<ObjPtr<Transform>>();
-        auto parentTr = itParent->second.get_value<ObjPtr<Transform>>();
-        childTr->SetParent(parentTr, false);
-    }
+		auto childTr = itChild->second.get_value<ObjPtr<Transform>>();
+		auto parentTr = itParent->second.get_value<ObjPtr<Transform>>();
+		childTr->SetParent(parentTr, false);
+	}
+
+	// 부모 체인이 완성된 뒤 UI Graphic의 Canvas 참조 갱신
+	for (auto& goPtr : scene.m_gameObjects)
+	{
+		if (!goPtr.IsValid())
+			continue;
+
+		for (auto& comp : goPtr->GetAllComponents())
+		{
+			if (!comp.IsValid() || comp->IsDestroyed())
+				continue;
+
+			if (auto graphic = comp.Cast<Graphic>(); graphic.IsValid())
+				graphic->RefreshCanvasNow();
+		}
+	}
 
     // SerializableEvent 리졸버는 ObjectManager의 MUID 테이블을 사용한다.
     SerializableEvent::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });

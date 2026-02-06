@@ -9,6 +9,7 @@
 #include "PShader.h"
 #include "Material.h"
 #include "Animator.h"
+#include "AnimatorController.h"
 #include "TimeManager.h"
 
 #include "SkeletalMesh.h"
@@ -35,7 +36,7 @@ RTTR_REGISTRATION
 }
 
 namespace MMMEngine {
-	void SkinRenderer::SetMesh(ResPtr<SkeletalMesh>& _mesh)
+	void SkinRenderer::SetMesh(ResPtr<SkeletalMesh> _mesh)
 	{
 		mesh = _mesh;
 	}
@@ -72,9 +73,9 @@ namespace MMMEngine {
 		return receiveShadows;
 	}
 
-	bool SkinRenderer::SetAnimatior(Animator* _animator)
+	bool SkinRenderer::SetAnimatior(ObjPtr<Animator> _animator)
 	{
-		if (mAnimator != nullptr)
+		if (mAnimator)
 			return false;
 
 		mAnimator = _animator;
@@ -89,6 +90,8 @@ namespace MMMEngine {
 	void SkinRenderer::UnInitialize()
 	{
 		RenderManager::Get().RemoveRenderer(renderIndex);
+		mAnimator.Reset();
+		mAnimBuffer = nullptr;
 	}
 
 	void SkinRenderer::Render()
@@ -97,8 +100,13 @@ namespace MMMEngine {
 		if (!mesh || !GetTransform())
 			return;
 
-		if (mAnimator != nullptr)
-			mAnimator->Update(TimeManager::Get().GetDeltaTime());
+		float dt = TimeManager::Get().GetDeltaTime();
+
+		if (mAnimator)
+			mAnimator->Update(dt);
+
+		if (mAnimController)
+			mAnimController->Update(dt);
 
 		for (auto& [matIdx, meshIndices] : mesh->meshGroupData) {
 			if (mesh->materials.empty())

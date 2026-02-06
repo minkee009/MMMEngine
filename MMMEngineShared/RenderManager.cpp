@@ -36,6 +36,7 @@ namespace
 		Vector4 uvRect;
 		Vector4 color;
 		Vector4 screenParams; // x=width, y=height, z=useTexture, w=unused
+		Vector4 maskParams; // x=maskEnabled, y=alphaThreshold, z=unused, w=unused
 		Vector4 transformParams0; // x=pivotX, y=pivotY, z=rightX, w=rightY
 		Vector4 transformParams1; // x=upX, y=upY, z=unused, w=unused
 		Matrix viewProj;     // reserved
@@ -96,11 +97,6 @@ namespace MMMEngine {
 		// TODO::인풋레이아웃 ShaderInfo 사용해 자동등록 시키기
 		_context->IASetInputLayout(_material->GetVShader()->m_pInputLayout.Get());
 
-		// TODO::샘플러 ShaderInfo 사용해 자동등록화 시키기 (UpdateProperty 사용, 프로퍼티로 샘플러 관리하기)
-		ID3D11SamplerState* samplers[] = { m_pLinearSampler.Get(), m_pCompareSampler.Get(), m_pPointSampler.Get() };
-		m_pDeviceContext->PSSetSamplers(0, 3, samplers);
-
-
 		// 메테리얼
 		for (auto& [prop, val] : _material->GetProperties()) {
 			UpdateProperty(prop, val, type);
@@ -151,7 +147,7 @@ namespace MMMEngine {
 			Mesh_BoneBuffer* lastAnim = nullptr;
 			for (auto& cmd : commands)
 			{
-				if (!cmd.material)
+				if (cmd.material == nullptr)
 					continue;
 
 				if (cmd.material != lastMaterial)
@@ -205,7 +201,7 @@ namespace MMMEngine {
 		}
 	}
 
-	void RenderManager::InitCache()
+	void RenderManager::ClearCache()
 	{
 		// 캐싱 컨테이너 초기화
 		m_objWorldMatMap.clear();
@@ -308,7 +304,11 @@ namespace MMMEngine {
 		if (!m_pUIVShader || !m_pUIPShader || !m_pUIBuffer)
 			return;
 
-		auto context = m_pDeviceContext.Get();
+	std::sort(m_canvases.begin(), m_canvases.end(), [](Canvas* a, Canvas* b) {
+		return a->GetSortOrder() < b->GetSortOrder();
+		});
+
+	auto context = m_pDeviceContext.Get();
 
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		context->IASetInputLayout(nullptr);
@@ -321,13 +321,16 @@ namespace MMMEngine {
 		context->PSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
 		context->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
 
-		float blendFactor[4] = { 0,0,0,0 };
-		context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
-		context->OMSetDepthStencilState(m_pUIDepthState.Get(), 0);
-		context->RSSetState(m_pDefaultRS.Get());
+	float blendFactor[4] = { 0,0,0,0 };
+	context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
+	context->OMSetDepthStencilState(m_pUIDepthState.Get(), 0);
+	context->RSSetState(m_pDefaultRS.Get());
+	m_uiActiveDepthState = m_pUIDepthState.Get();
+	m_uiStencilRef = 0;
+	m_uiMaskEnabled = false;
 
-		for (auto* canvas : m_canvases)
-		{
+	for (auto* canvas : m_canvases)
+	{
 			if (!canvas)
 				continue;
 			BeginCanvas(canvas);
@@ -473,6 +476,11 @@ namespace MMMEngine {
 	uiBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	HR_T(m_pDevice->CreateBlendState1(&uiBlendDesc, m_pUIBlendState.GetAddressOf()));
 
+	// UI 마스크용 컬러 미작성 블렌드 스테이트
+	D3D11_BLEND_DESC1 uiBlendNoColorDesc = uiBlendDesc;
+	uiBlendNoColorDesc.RenderTarget[0].RenderTargetWriteMask = 0;
+	HR_T(m_pDevice->CreateBlendState1(&uiBlendNoColorDesc, m_pUIBlendStateNoColor.GetAddressOf()));
+
 	// 레스터라이저 스테이트 생성
 	D3D11_RASTERIZER_DESC2 rsDesc = {};
 	rsDesc.FillMode = D3D11_FILL_SOLID;
@@ -500,6 +508,30 @@ namespace MMMEngine {
 	uiDepthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
 	uiDepthDesc.StencilEnable = FALSE;
 	HR_T(m_pDevice->CreateDepthStencilState(&uiDepthDesc, m_pUIDepthState.GetAddressOf()));
+
+	// UI 스텐실 스테이트 생성
+	D3D11_DEPTH_STENCIL_DESC uiStencilTestDesc = uiDepthDesc;
+	uiStencilTestDesc.StencilEnable = TRUE;
+	uiStencilTestDesc.StencilReadMask = 0xFF;
+	uiStencilTestDesc.StencilWriteMask = 0x00;
+	uiStencilTestDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	uiStencilTestDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	uiStencilTestDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	uiStencilTestDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	uiStencilTestDesc.BackFace = uiStencilTestDesc.FrontFace;
+	HR_T(m_pDevice->CreateDepthStencilState(&uiStencilTestDesc, m_pUIStencilTestState.GetAddressOf()));
+
+	D3D11_DEPTH_STENCIL_DESC uiStencilWriteDesc = uiStencilTestDesc;
+	uiStencilWriteDesc.StencilWriteMask = 0xFF;
+	uiStencilWriteDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
+	uiStencilWriteDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
+	HR_T(m_pDevice->CreateDepthStencilState(&uiStencilWriteDesc, m_pUIStencilWriteState.GetAddressOf()));
+
+	D3D11_DEPTH_STENCIL_DESC uiStencilClearDesc = uiStencilTestDesc;
+	uiStencilClearDesc.StencilWriteMask = 0xFF;
+	uiStencilClearDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
+	uiStencilClearDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
+	HR_T(m_pDevice->CreateDepthStencilState(&uiStencilClearDesc, m_pUIStencilClearState.GetAddressOf()));
 	
 		// 샘플러 만들기
 		D3D11_SAMPLER_DESC sampDesc = {};
@@ -512,6 +544,17 @@ namespace MMMEngine {
 		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pLinearSampler.GetAddressOf()));
+
+		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		sampDesc.MinLOD = 0;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pLinearWarpSampler.GetAddressOf()));
+		
 		
 		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; // 비교 필터
 		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -647,16 +690,155 @@ namespace MMMEngine {
 	}
 	void RenderManager::ShutDown()
 	{
-		// COM객체 초기화
-		m_pDevice->Release();
-		m_pDeviceContext->Release();
-		m_pSwapChain->Release();
+		// 1) 렌더가 돌고 있을 수 있으니, 가능하면 외부에서 Render loop를 멈춘 뒤 호출하는 게 정석
+	//    여기서는 내부에서 최대한 안전하게 정리.
 
+	// 2) 컨텍스트 바인딩 해제 (가장 중요!)
+		if (m_pDeviceContext)
+		{
+			// RenderTargets / Depth
+			ID3D11RenderTargetView* nullRTV[8] = {};
+			m_pDeviceContext->OMSetRenderTargets(8, nullRTV, nullptr);
 
-		//// 변수 초기화
-		m_worldMatrix = Matrix::Identity;
-		m_viewMatrix = Matrix::Identity;
-		m_projMatrix = Matrix::Identity;
+			// ShaderResourceView (VS/PS/GS/HS/DS/CS)
+			ID3D11ShaderResourceView* nullSRV[16] = {};
+			m_pDeviceContext->VSSetShaderResources(0, 16, nullSRV);
+			m_pDeviceContext->PSSetShaderResources(0, 16, nullSRV);
+			m_pDeviceContext->GSSetShaderResources(0, 16, nullSRV);
+			m_pDeviceContext->HSSetShaderResources(0, 16, nullSRV);
+			m_pDeviceContext->DSSetShaderResources(0, 16, nullSRV);
+			m_pDeviceContext->CSSetShaderResources(0, 16, nullSRV);
+
+			// Sampler
+			ID3D11SamplerState* nullSamp[16] = {};
+			m_pDeviceContext->VSSetSamplers(0, 16, nullSamp);
+			m_pDeviceContext->PSSetSamplers(0, 16, nullSamp);
+			m_pDeviceContext->CSSetSamplers(0, 16, nullSamp);
+
+			// ConstantBuffer
+			ID3D11Buffer* nullCB[16] = {};
+			m_pDeviceContext->VSSetConstantBuffers(0, 16, nullCB);
+			m_pDeviceContext->PSSetConstantBuffers(0, 16, nullCB);
+			m_pDeviceContext->GSSetConstantBuffers(0, 16, nullCB);
+			m_pDeviceContext->HSSetConstantBuffers(0, 16, nullCB);
+			m_pDeviceContext->DSSetConstantBuffers(0, 16, nullCB);
+			m_pDeviceContext->CSSetConstantBuffers(0, 16, nullCB);
+
+			// Shaders
+			m_pDeviceContext->VSSetShader(nullptr, nullptr, 0);
+			m_pDeviceContext->PSSetShader(nullptr, nullptr, 0);
+			m_pDeviceContext->GSSetShader(nullptr, nullptr, 0);
+			m_pDeviceContext->HSSetShader(nullptr, nullptr, 0);
+			m_pDeviceContext->DSSetShader(nullptr, nullptr, 0);
+			m_pDeviceContext->CSSetShader(nullptr, nullptr, 0);
+
+			// Input Assembler
+			m_pDeviceContext->IASetInputLayout(nullptr);
+			m_pDeviceContext->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+			m_pDeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+			m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED);
+
+			// States
+			m_pDeviceContext->RSSetState(nullptr);
+			m_pDeviceContext->OMSetBlendState(nullptr, nullptr, 0xFFFFFFFF);
+			m_pDeviceContext->OMSetDepthStencilState(nullptr, 0);
+
+			// 뭔가 남아있으면 정리
+			//m_pDeviceContext->ClearState();
+			//m_pDeviceContext->Flush();
+		}
+
+		// 3) 스왑체인(전체화면 가능성 대비)
+		if (m_pSwapChain)
+		{
+			// fullscreen 상태면 창모드로 돌려놓는 게 안전
+			BOOL fs = FALSE;
+			Microsoft::WRL::ComPtr<IDXGIOutput> out;
+			if (SUCCEEDED(m_pSwapChain->GetFullscreenState(&fs, out.GetAddressOf())) && fs)
+			{
+				m_pSwapChain->SetFullscreenState(FALSE, nullptr);
+			}
+		}
+
+		// 4) CPU측 캐시/참조 정리 (소유 X -> clear만)
+		m_renderCommands.clear();
+		m_objWorldMatMap.clear();
+		m_renderers.clear();
+		m_rendererIdMap.clear();
+		m_rObjIdx = 0;
+		m_nextRendererId = 1;
+
+		m_canvases.clear();
+		m_lights.clear();
+		m_pSkyboxMaterial.reset();
+
+		// 5) UI 리소스
+		m_uiSpriteFontCache.clear();
+		m_uiSpriteBatch.reset();
+
+		m_pUIBlendState.Reset();
+		m_pUIBlendStateNoColor.Reset();
+		m_pUIDepthState.Reset();
+		m_pUIStencilTestState.Reset();
+		m_pUIStencilWriteState.Reset();
+		m_pUIStencilClearState.Reset();
+		m_pUIBuffer.Reset();
+		m_pUIVShader.reset();
+		m_pUIPShader.reset();
+
+		// 6) 트랜스폼/카메라/스킨/쉐도우 버퍼
+		m_pTransbuffer.Reset();
+		m_pCambuffer.Reset();
+
+		m_pOffsetBuffer.Reset();
+		m_pAnimBuffer.Reset();
+
+		m_pShadowBuffer.Reset();
+		m_pShadowDSV.Reset();
+		m_pShadowTexture.Reset();
+		m_pShadowSRV.reset();   // ResPtr<Texture2D>
+		// (쉐도우 viewport는 값형이니 굳이 안 해도 되지만)
+		ZeroMemory(&m_shadowVP, sizeof(m_shadowVP));
+
+		// 7) 씬 렌더 타겟들
+		m_pSceneRTV.Reset();
+		m_pSceneSRV.Reset();
+		m_pSceneDSV.Reset();
+		m_pSceneDSB.Reset();
+		m_pSceneTexture.Reset();
+		ZeroMemory(&m_sceneViewport, sizeof(m_sceneViewport));
+
+		// 8) 백버퍼 타겟/DS
+		m_pRenderTargetView.Reset();
+		m_pDepthStencilView.Reset();
+		m_pDepthStencilBuffer.Reset();
+		ZeroMemory(&m_swapViewport, sizeof(m_swapViewport));
+
+		// 9) 공용 상태들
+		m_pLinearSampler.Reset();
+		m_pCompareSampler.Reset();
+		m_pPointSampler.Reset();
+		m_pDefaultRS.Reset();
+		m_pUIRS.Reset();
+		m_pDefaultBS.Reset();
+		m_DefaultRS.Reset();
+
+		// 10) 카메라/행렬/윈도우/사이즈 값 초기화
+		m_pMainCamera.Reset();
+		m_worldMatrix = DirectX::SimpleMath::Matrix::Identity;
+		m_viewMatrix = DirectX::SimpleMath::Matrix::Identity;
+		m_projMatrix = DirectX::SimpleMath::Matrix::Identity;
+
+		m_hWnd = nullptr;
+		m_clientWidth = m_clientHeight = 0;
+		m_sceneWidth = m_sceneHeight = 0;
+		useBackBuffer = false;
+		isOrtho = false;
+
+		// 11) 디바이스/컨텍스트/스왑체인 해제는 맨 마지막
+		m_pSwapChain.Reset();
+		m_pDeviceContext.Reset();
+		m_pDevice.Reset();
 	}
 	void RenderManager::Start()
 	{
@@ -982,7 +1164,8 @@ namespace MMMEngine {
 		m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, sampleMask);
 
 		m_pDeviceContext->RSSetViewports(1, &m_shadowVP);
-		m_pDeviceContext->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
+		ID3D11SamplerState* samplers[] = { m_pLinearSampler.Get(), m_pCompareSampler.Get(), m_pPointSampler.Get() };
+		m_pDeviceContext->PSSetSamplers(0, 3, samplers);
 		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
 
 		// 리소스 업데이트
@@ -1172,7 +1355,7 @@ namespace MMMEngine {
 			ID3D11ShaderResourceView* sceneSRV = m_pSceneSRV.Get();
 			m_pDeviceContext->PSSetShaderResources(0, 1, &sceneSRV);
 			
-			ID3D11SamplerState* samplers[] = { m_pLinearSampler.Get(), m_pCompareSampler.Get(), m_pPointSampler.Get() };
+			ID3D11SamplerState* samplers[] = { m_pLinearWarpSampler.Get(), m_pCompareSampler.Get(), m_pPointSampler.Get() };
 			m_pDeviceContext->PSSetSamplers(0, 3, samplers);
 
 			// 씬 뷰포트 설정
@@ -1385,7 +1568,7 @@ namespace MMMEngine {
 	void RenderManager::EndFrame()
 	{
 		// 캐싱된 데이터들 해제
-		InitCache();
+		ClearCache();
 
 		// Present our back buffer to our front buffer
 		m_pSwapChain->Present(m_rSyncInterval, 0);
@@ -1490,14 +1673,74 @@ namespace MMMEngine {
 		m_canvases.pop_back();
 	}
 
-void RenderManager::BeginCanvas(Canvas* canvas)
-{
-		(void)canvas;
-}
+	void RenderManager::BeginCanvas(Canvas* canvas)
+	{
+	}
 
-void RenderManager::EndCanvas()
-{
-}
+	void RenderManager::EndCanvas()
+	{
+	}
+
+	void RenderManager::SetUIStencilDisabled()
+	{
+		m_uiActiveDepthState = m_pUIDepthState.Get();
+		m_uiStencilRef = 0;
+		if (m_pDeviceContext)
+			m_pDeviceContext->OMSetDepthStencilState(m_uiActiveDepthState, m_uiStencilRef);
+	}
+
+	void RenderManager::SetUIStencilTest(UINT stencilRef)
+	{
+		if (stencilRef > 0xFF)
+			stencilRef = 0xFF;
+		m_uiActiveDepthState = m_pUIStencilTestState.Get();
+		m_uiStencilRef = stencilRef;
+		if (m_pDeviceContext)
+			m_pDeviceContext->OMSetDepthStencilState(m_uiActiveDepthState, m_uiStencilRef);
+	}
+
+	void RenderManager::SetUIStencilWriteIncrement(UINT stencilRef)
+	{
+		if (stencilRef > 0xFF)
+			stencilRef = 0xFF;
+		m_uiActiveDepthState = m_pUIStencilWriteState.Get();
+		m_uiStencilRef = stencilRef;
+		if (m_pDeviceContext)
+			m_pDeviceContext->OMSetDepthStencilState(m_uiActiveDepthState, m_uiStencilRef);
+	}
+
+	void RenderManager::SetUIStencilWriteDecrement(UINT stencilRef)
+	{
+		if (stencilRef > 0xFF)
+			stencilRef = 0xFF;
+		m_uiActiveDepthState = m_pUIStencilClearState.Get();
+		m_uiStencilRef = stencilRef;
+		if (m_pDeviceContext)
+			m_pDeviceContext->OMSetDepthStencilState(m_uiActiveDepthState, m_uiStencilRef);
+	}
+
+	void RenderManager::SetUIColorWriteEnabled(bool enabled)
+	{
+		if (!m_pDeviceContext)
+			return;
+
+		ID3D11BlendState* state = enabled ? m_pUIBlendState.Get() : m_pUIBlendStateNoColor.Get();
+		if (!state)
+			state = m_pUIBlendState.Get();
+
+		float blendFactor[4] = { 0,0,0,0 };
+		m_pDeviceContext->OMSetBlendState(state, blendFactor, 0xffffffff);
+	}
+
+	void RenderManager::SetUIMaskParams(bool enabled, float alphaThreshold)
+	{
+		m_uiMaskEnabled = enabled;
+		if (alphaThreshold < 0.0f)
+			alphaThreshold = 0.0f;
+		if (alphaThreshold > 1.0f)
+			alphaThreshold = 1.0f;
+		m_uiMaskAlphaThreshold = alphaThreshold;
+	}
 
 	void RenderManager::DrawUIElement(const Vector4& rect, const Vector4& uvRect,
 		const Color& color, const ResPtr<Texture2D>& texture,
@@ -1510,14 +1753,19 @@ void RenderManager::EndCanvas()
 		data.rect = rect;
 		data.uvRect = uvRect;
 		data.color = color;
-		data.screenParams = Vector4(
-			static_cast<float>(m_sceneWidth),
-			static_cast<float>(m_sceneHeight),
-			texture ? 1.0f : 0.0f,
-			0.0f);
-		data.transformParams0 = Vector4(
-			pivot.x,
-			pivot.y,
+	data.screenParams = Vector4(
+		static_cast<float>(m_sceneWidth),
+		static_cast<float>(m_sceneHeight),
+		texture ? 1.0f : 0.0f,
+		0.0f);
+	data.maskParams = Vector4(
+		m_uiMaskEnabled ? 1.0f : 0.0f,
+		m_uiMaskAlphaThreshold,
+		0.0f,
+		0.0f);
+	data.transformParams0 = Vector4(
+		pivot.x,
+		pivot.y,
 			rightDir.x,
 			rightDir.y);
 		data.transformParams1 = Vector4(
@@ -1556,14 +1804,17 @@ void RenderManager::EndCanvas()
 
 		const DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity();
 
-		ID3D11RasterizerState* uiRs = m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get();
-		m_uiSpriteBatch->Begin(DirectX::SpriteSortMode_Deferred,
-			m_pUIBlendState.Get(),
-			m_pLinearSampler.Get(),
-			m_pUIDepthState.Get(),
-			uiRs,
-			nullptr,
-			transform);
+	ID3D11RasterizerState* uiRs = m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get();
+	ID3D11DepthStencilState* depthState = m_uiActiveDepthState ? m_uiActiveDepthState : m_pUIDepthState.Get();
+	m_uiSpriteBatch->Begin(DirectX::SpriteSortMode_Deferred,
+		m_pUIBlendState.Get(),
+		m_pLinearSampler.Get(),
+		depthState,
+		uiRs,
+		nullptr,
+		transform);
+	if (m_pDeviceContext && depthState && m_uiStencilRef != 0)
+		m_pDeviceContext->OMSetDepthStencilState(depthState, m_uiStencilRef);
 
 		auto endSpriteBatch = [this]()
 		{
@@ -1587,7 +1838,8 @@ void RenderManager::EndCanvas()
 
 			float blendFactor[4] = { 0,0,0,0 };
 			context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
-			context->OMSetDepthStencilState(m_pUIDepthState.Get(), 0);
+		ID3D11DepthStencilState* restoreDepth = m_uiActiveDepthState ? m_uiActiveDepthState : m_pUIDepthState.Get();
+		context->OMSetDepthStencilState(restoreDepth, m_uiStencilRef);
 		context->RSSetState(m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
 		};
 

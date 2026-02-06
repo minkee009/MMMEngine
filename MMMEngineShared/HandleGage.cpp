@@ -1,4 +1,4 @@
-#include "HandleGage.h"
+﻿#include "HandleGage.h"
 #include "RectTransform.h"
 #include "Canvas.h"
 #include "RenderManager.h"
@@ -33,13 +33,11 @@ RTTR_REGISTRATION
 void MMMEngine::HandleGage::SetBackgroundTexture(const ResPtr<Texture2D>& tex)
 {
 	m_backgroundTexture = tex;
-	ApplyNativeSizeFromTexture(tex);
 }
 
 void MMMEngine::HandleGage::SetFillTexture(const ResPtr<Texture2D>& tex)
 {
 	m_fillTexture = tex;
-	ApplyNativeSizeFromTexture(tex);
 }
 
 void MMMEngine::HandleGage::SetHandleTexture(const ResPtr<Texture2D>& tex)

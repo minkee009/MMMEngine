@@ -19,13 +19,13 @@ void MMMEngine::PhysxManager::BindScene(MMMEngine::Scene* scene)
     // 씬 설정으로 desc 구성 (임시라도)
     PhysSceneDesc desc{};
 
-    for (uint32_t i = 0; i <= 4; ++i)
-    {
-        for (uint32_t j = 0; j <= 4; ++j)
-        {
-            m_CollisionMatrix.SetCanCollide(i, j, true);
-        }
-    }
+    //for (uint32_t i = 0; i <= 4; ++i)
+    //{
+    //    for (uint32_t j = 0; j <= 4; ++j)
+    //    {
+    //        m_CollisionMatrix.SetCanCollide(i, j, true);
+    //    }
+    //}
 
     if (m_PhysScene.Create(desc))
     {

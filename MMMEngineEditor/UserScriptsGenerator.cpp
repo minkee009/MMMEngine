@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <set>
 #include <unordered_map>
+#include <filesystem>
 
 namespace fs = std::filesystem;
 
@@ -91,6 +92,9 @@ namespace MMMEngine::Editor
             return static_cast<bool>(out);
         }
 
+        // 클래스 이름을 키로, 상대 헤더 경로를 값으로 가지는 '파일 DB'
+        using ScriptDB = std::unordered_map<std::string, fs::path>;
+
         struct MessageInfo
         {
             std::string messageName;  // BroadCast 시 사용할 이름
@@ -107,20 +111,42 @@ namespace MMMEngine::Editor
             std::string range;
         };
 
-        struct ScriptInfo
-        {
-            std::string className;
-            fs::path headerPath;  // Scripts 기준 상대 경로
-            bool dontAutogen = false;
-            std::vector<MessageInfo> messages;
-            std::vector<PropertyInfo> properties;
-        };
-
         struct FileStamp {
             long long writeTime = 0;
             long long fileSize = 0;
             size_t contentHash = 0; // [추가] 내용 기반 비교를 위한 해시값
         };
+
+        struct ScriptInfo {
+            std::string className;
+            fs::path headerPath;        // Scripts 폴더 기준 상대 경로 (서브폴더 포함)
+            bool dontAutogen = false;
+            std::vector<MessageInfo> messages;
+            std::vector<PropertyInfo> properties;
+            std::set<std::string> dependencies; // ObjPtr<T> 등에서 추출된 의존 클래스 이름
+        };
+
+
+        // ObjPtr<T> 패턴을 찾아 의존성 리스트에 추가하는 로직
+        static void ExtractDependencies(const std::string& classBody, MMMEngine::Editor::ScriptInfo& info) {
+            // ObjPtr<Type> 패턴을 찾아 Type을 추출
+                // 공백(\s*) 처리를 포함하여 정확하게 클래스명만 캡처합니다.
+            std::regex ptrRegex(R"re(ObjPtr\s*<\s*([A-Za-z0-9_]+)\s*>)re");
+
+            auto words_begin = std::sregex_iterator(classBody.begin(), classBody.end(), ptrRegex);
+            auto words_end = std::sregex_iterator();
+
+            for (std::sregex_iterator i = words_begin; i != words_end; ++i)
+            {
+                std::string tType = (*i)[1].str();
+
+                // 자기 자신은 인클루드할 필요 없으므로 제외
+                if (tType != info.className)
+                {
+                    info.dependencies.insert(tType);
+                }
+            }
+        }
 
         static int64_t ToStampTime(const fs::file_time_type& time)
         {
@@ -396,6 +422,8 @@ namespace MMMEngine::Editor
             const std::vector<MMMEngine::UserScriptMessageSignature>& engineSigs,
             ScriptInfo& info)
         {
+            ExtractDependencies(classBody, info);
+
             std::set<std::string> registeredMessages; // 중복 방지
 
             // 1) USCRIPT_MESSAGE() void Func(params);
@@ -576,7 +604,7 @@ namespace MMMEngine::Editor
         }
 
         // gen.cpp 생성 (이미 RTTR 등록된 .cpp가 있는 클래스는 제외)
-        static bool WriteGenCpp(const fs::path& scriptsDir, const std::vector<ScriptInfo>& scripts)
+        static bool WriteGenCpp(const fs::path& scriptsDir, const std::vector<ScriptInfo>& scripts, const ScriptDB& db)
         {
             std::vector<const ScriptInfo*> toGen;
             for (const auto& s : scripts)
@@ -594,6 +622,8 @@ namespace MMMEngine::Editor
             os << "#include \"ScriptBehaviour.h\"\n";
             os << "#include \"UserScriptsCommon.h\"\n";
             os << "#include \"Object.h\"\n";
+            os << "#include \"GameObject.h\"\n";
+            os << "#include \"CoreComponents.h\"\n";
             os << "#include \"rttr/registration\"\n";
             os << "#include \"rttr/detail/policies/ctor_policies.h\"\n\n";
 
@@ -605,6 +635,21 @@ namespace MMMEngine::Editor
                 os << "#include \"" << incPath << "\"\n";
             }
             os << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
+
+            std::set<std::string> extraIncludes;
+            for (const auto* s : toGen) {
+                for (const auto& dep : s->dependencies) {
+                    if (db.count(dep)) {
+                        std::string dPath = db.at(dep).generic_string();
+                        std::replace(dPath.begin(), dPath.end(), '\\', '/');
+                        extraIncludes.insert(dPath);
+                    }
+                }
+            }
+
+            for (const auto& inc : extraIncludes) {
+                os << "#include \"" << inc << "\"\n";
+            }
 
             for (const auto& s : toGen)
             {
@@ -789,6 +834,8 @@ namespace MMMEngine::Editor
         std::sort(headerList.begin(), headerList.end());
         std::vector<ScriptInfo> allScripts;
 
+        std::unordered_map<std::string, std::filesystem::path> scriptDB;
+
         for (const auto& rel : headerList) 
         {
             const fs::path headerPath = scriptsDir / fs::path(rel);
@@ -803,7 +850,7 @@ namespace MMMEngine::Editor
         }
 
         // 스크립트 유무와 관계없이 gen.cpp 는 항상 생성 (빌드가 동일한 파일 집합을 사용하도록)
-        if (!WriteGenCpp(scriptsDir, allScripts))
+        if (!WriteGenCpp(scriptsDir, allScripts, scriptDB))
             return false;
 
         for (const ScriptInfo& info : allScripts)

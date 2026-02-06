@@ -1,4 +1,4 @@
-#include "Text.h"
+﻿#include "Text.h"
 #include "Font.h"
 #include "Canvas.h"
 #include "RectTransform.h"

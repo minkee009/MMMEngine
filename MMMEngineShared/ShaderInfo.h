@@ -95,6 +95,7 @@ namespace MMMEngine {
 	struct PropertyInfo {
 		PropertyType propertyType = PropertyType::Texture;
 		int bufferIndex = -1;	// 버퍼번호
+		PropertyValue defaultValue;
 
 		D3D_SHADER_VARIABLE_TYPE varType;
 		UINT rows;    // 행 수 (예: float4 → 1)
