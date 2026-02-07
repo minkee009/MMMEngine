@@ -66,6 +66,7 @@ bool MMMEngine::MeshColliderComponent::BuildShape(physx::PxPhysics* physics, phy
     if (!ExtractMeshData(*m_mesh, m_submesh, verts, indices))
         return false;
 
+
     if (wantConvex)
     {
         if (m_tri) { m_tri->release(); m_tri = nullptr; }
@@ -82,6 +83,26 @@ bool MMMEngine::MeshColliderComponent::BuildShape(physx::PxPhysics* physics, phy
     physx::PxShape* shape = wantConvex
         ? physics->createShape(physx::PxConvexMeshGeometry(m_convex), *material, true)
         : physics->createShape(physx::PxTriangleMeshGeometry(m_tri), *material, true);
+
+    const Vector3 World_Scale = GetTransform()->GetWorldScale();
+    physx::PxMeshScale meshScale(physx::PxVec3(
+        fabs(World_Scale.x), fabs(World_Scale.y), fabs(World_Scale.z)
+    ));
+
+
+    if (wantConvex)
+    {
+        physx::PxConvexMeshGeometry geom(m_convex, meshScale);
+        if (!geom.isValid()) return false;
+        shape = physics->createShape(geom, *material, true);
+    }
+    else
+    {
+        physx::PxTriangleMeshGeometry geom(m_tri, meshScale);
+        if (!geom.isValid()) return false;
+        shape = physics->createShape(geom, *material, true);
+    }
+
 
     if (!shape) return false;
     SetShape(shape, true);
@@ -135,27 +156,37 @@ bool MMMEngine::MeshColliderComponent::TryBuildAndRegister()
 
 bool MMMEngine::MeshColliderComponent::UpdateShapeGeometry()
 {
-
     if (!m_Shape) return false;
 
-    Vector3 s = GetTransform()->GetWorldScale();
-    physx::PxMeshScale scale(ToPxVec(s), physx::PxQuat(physx::PxIdentity));
+    const Vector3 ws = GetTransform()->GetWorldScale();
+    physx::PxMeshScale meshScale(physx::PxVec3(
+        fabs(ws.x), fabs(ws.y), fabs(ws.z)
+    ));
 
-    if (m_convex)
+    physx::PxGeometryHolder holder = m_Shape->getGeometry();
+    switch (holder.getType())
     {
-        physx::PxConvexMeshGeometry geom(m_convex, scale);
+    case physx::PxGeometryType::eTRIANGLEMESH:
+    {
+        auto geom = holder.triangleMesh();
+        geom.scale = meshScale;
         if (!geom.isValid()) return false;
         m_Shape->setGeometry(geom);
+        ApplyAll();
         return true;
     }
-    if (m_tri)
+    case physx::PxGeometryType::eCONVEXMESH:
     {
-        physx::PxTriangleMeshGeometry geom(m_tri, scale);
+        auto geom = holder.convexMesh();
+        geom.scale = meshScale;
         if (!geom.isValid()) return false;
         m_Shape->setGeometry(geom);
+        ApplyAll();
         return true;
     }
-    return false;
+    default:
+        return false;
+    }
 }
 
 bool MMMEngine::MeshColliderComponent::RebuildForRigidType(MMMEngine::RigidBodyComponent::Type type)
