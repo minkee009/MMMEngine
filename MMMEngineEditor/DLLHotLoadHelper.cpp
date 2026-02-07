@@ -36,14 +36,25 @@ fs::path MMMEngine::Editor::DLLHotLoadHelper::CopyDllForHotReload(const fs::path
 
 void MMMEngine::Editor::DLLHotLoadHelper::PrepareForBuild(const fs::path& binDir)
 {
-    fs::path pdbPath = binDir / "UserScripts.pdb";
-    if (fs::exists(pdbPath)) {
+    auto cleanupPdb = [](const fs::path& pdbPath)
+    {
+        if (!fs::exists(pdbPath))
+            return;
+
         std::error_code ec;
         // 삭제 시도, 잠겨있다면 이름 변경 시도 (이름 변경은 잠겨있어도 가능할 때가 많음)
         fs::remove(pdbPath, ec);
-        if (ec) {
+        if (ec)
             fs::rename(pdbPath, pdbPath.wstring() + L".old", ec);
-        }
+    };
+
+    cleanupPdb(binDir / "UserScripts.pdb");
+
+    const fs::path projectRoot = binDir.parent_path().parent_path();
+    if (!projectRoot.empty())
+    {
+        cleanupPdb(projectRoot / "Build" / "UserScripts" / "Debug" / "UserScripts.pdb");
+        cleanupPdb(projectRoot / "Build" / "UserScripts" / "Release" / "UserScripts.pdb");
     }
 }
 

@@ -148,6 +148,7 @@ bool MMMEngine::MeshColliderComponent::TryBuildAndRegister()
         RegisterToPhysics();
         return true;
     }
+    UpdateShapeGeometry();
 
     if (!m_IsRegistered) RegisterToPhysics();
     else { std::cout << u8"생성실패2" << std::endl; }

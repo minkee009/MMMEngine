@@ -1,7 +1,10 @@
-#pragma once
+癤�#pragma once
 #include <streambuf>
 #include <string>
 #include <functional>
+#include <mutex>
+#include <vector>
+#include <utility>
 
 class ConsoleStreamBuf : public std::streambuf
 {
@@ -16,37 +19,68 @@ public:
 protected:
     int overflow(int ch) override
     {
-        if (ch == traits_type::eof())
-            return ch;
-
-        char c = static_cast<char>(ch);
-        if (c == '\n')
+        if (traits_type::eq_int_type(ch, traits_type::eof()))
         {
-            if (!m_Line.empty())
+            sync();
+            return traits_type::not_eof(ch);
+        }
+
+        const char c = traits_type::to_char_type(ch);
+        return xsputn(&c, 1) == 1 ? traits_type::not_eof(ch) : traits_type::eof();
+    }
+
+    std::streamsize xsputn(const char* s, std::streamsize count) override
+    {
+        if (!s || count <= 0)
+            return 0;
+
+        std::vector<std::string> lines;
+        {
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            for (std::streamsize i = 0; i < count; ++i)
             {
-                m_Callback(m_Line);
-                m_Line.clear();
+                const char c = s[i];
+                if (c == '\n' || c == '\r')
+                {
+                    if (!m_Line.empty())
+                    {
+                        lines.emplace_back(std::move(m_Line));
+                        m_Line.clear();
+                    }
+                }
+                else
+                {
+                    m_Line.push_back(c);
+                }
             }
         }
-        else
+
+        if (m_Callback)
         {
-            m_Line.push_back(c);
+            for (const auto& line : lines)
+                m_Callback(line);
         }
-        return ch;
+        return count;
     }
 
     int sync() override
     {
-        // flush될 때도 남은 내용 밀어넣기
-        if (!m_Line.empty())
+        std::string line;
         {
-            m_Callback(m_Line);
-            m_Line.clear();
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            if (!m_Line.empty())
+            {
+                line = std::move(m_Line);
+                m_Line.clear();
+            }
         }
+        if (!line.empty() && m_Callback)
+            m_Callback(line);
         return 0;
     }
 
 private:
     std::string m_Line;
     Callback m_Callback;
+    std::mutex m_Mutex;
 };

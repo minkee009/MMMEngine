@@ -209,25 +209,38 @@ void MMMEngine::GameObject::Dispose()
 		scene->UnRegisterGameObject(SelfPtr(this));
 	}
 
-	for (auto& child : m_transform->m_childs)
+	if (m_transform.IsValid())
 	{
-		if (child.IsValid() 
-			&& !child->IsDestroyed())
+		// Copy to avoid invalidation when children reparent/destroy during iteration.
+		auto children = m_transform->m_childs;
+		for (auto& child : children)
 		{
-			Destroy(child->GetGameObject());
+			if (!child.IsValid() || child->IsDestroyed())
+				continue;
+
+			auto childGo = child->GetGameObject();
+			if (childGo.IsValid() && !childGo->IsDestroyed())
+				Destroy(childGo);
 		}
+
+		m_transform->DetachChildren();
+		m_transform->SetParent(nullptr);
+		m_transform->SetGameObject(nullptr);
+		UnRegisterComponent(m_transform);
+		ObjectManager::Get().Destroy(m_transform);
+		m_transform = nullptr;
 	}
-	m_transform->SetParent(nullptr);
-	m_transform->SetGameObject(nullptr);
-	UnRegisterComponent(m_transform);
-	ObjectManager::Get().Destroy(m_transform);
-	m_transform = nullptr;
-	for (const auto& comp : m_components)
+
+	// Copy to avoid invalidation when components unregister themselves during Destroy.
+	auto components = m_components;
+	for (const auto& comp : components)
+	{
 		if (comp.IsValid() && !comp->IsDestroyed())
 		{
 			comp->SetGameObject(nullptr);
 			Destroy(comp);
 		}
+	}
 
 	m_components.clear();
 }

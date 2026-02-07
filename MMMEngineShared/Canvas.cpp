@@ -140,7 +140,7 @@ void MMMEngine::Canvas::RenderUI(RenderManager& renderer)
 	graphics.reserve(m_graphics.size());
 	for (auto& graphic : m_graphics)
 	{
-		if (!graphic.IsValid())
+		if (!graphic.IsValid() || graphic->IsDestroyed())
 			continue;
 		graphics.push_back(graphic);
 	}
@@ -176,7 +176,7 @@ void MMMEngine::Canvas::RenderUI(RenderManager& renderer)
 
 	auto drawMaskPass = [&renderer](const MaskEntry& mask, UINT depth, bool increment)
 	{
-		if (!mask.graphic.IsValid() || !mask.graphic->IsActiveAndEnabled())
+		if (!mask.graphic.IsValid() || mask.graphic->IsDestroyed() || !mask.graphic->IsActiveAndEnabled())
 			return;
 
 		renderer.SetUIMaskParams(true, mask.alphaThreshold);
@@ -194,23 +194,27 @@ void MMMEngine::Canvas::RenderUI(RenderManager& renderer)
 	auto collectMasks = [this](const ObjPtr<Graphic>& graphic, std::vector<MaskEntry>& out)
 	{
 		out.clear();
-		if (!graphic.IsValid())
+		if (!graphic.IsValid() || graphic->IsDestroyed())
 			return;
 
 		auto tr = graphic->GetTransform();
-		if (!tr.IsValid())
+		if (!tr.IsValid() || tr->IsDestroyed())
 			return;
 
-		for (auto t = tr; t != nullptr; t = t->GetParent())
+		for (auto t = tr; t.IsValid(); t = t->GetParent())
 		{
+			if (t->IsDestroyed())
+				break;
+
 			auto go = t->GetGameObject();
-			if (go.IsValid())
+			if (go.IsValid() && !go->IsDestroyed())
 			{
 				auto mask = go->GetComponent<UIMask>();
-				if (mask.IsValid() && mask->IsActiveAndEnabled())
+				if (mask.IsValid() && !mask->IsDestroyed() && mask->IsActiveAndEnabled())
 				{
 					auto maskGraphic = mask->GetTargetGraphic();
 					if (maskGraphic.IsValid()
+						&& !maskGraphic->IsDestroyed()
 						&& maskGraphic->IsActiveAndEnabled()
 						&& maskGraphic->GetCanvas().operator->() == this)
 					{
@@ -238,6 +242,8 @@ void MMMEngine::Canvas::RenderUI(RenderManager& renderer)
 
 	for (auto& graphic : graphics)
 	{
+		if (graphic->IsDestroyed())
+			continue;
 		if (!graphic->IsActiveAndEnabled())
 			continue;
 

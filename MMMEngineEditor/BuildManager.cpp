@@ -568,7 +568,6 @@ namespace MMMEngine::Editor
             << "\"" << vcxprojPath.string() << "\" "
             << "/p:Configuration=" << configStr << " "
             << "/p:Platform=x64 "
-            << "/p:DebugType=none "
             //<< "/m:" << std::thread::hardware_concurrency() << " "  // 병렬 빌드 (CPU 코어 수만큼)
             //<< "/p:CL_MPCount=" << std::thread::hardware_concurrency() << " "  // 컴파일러 병렬화
             //<< "/p:UseMultiToolTask=true "
