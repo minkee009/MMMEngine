@@ -118,7 +118,7 @@ namespace MMMEngine::Editor
             std::lock_guard<std::mutex> lock(m_Mutex);
 
             // 텍스트 출력 (이건 스크롤을 만들지 않음. 스크롤은 Child가 담당)
-            ImGui::TextUnformatted(m_Buffer.c_str());
+            ImGui::TextUnformatted(m_Buffer.data(), m_Buffer.data() + m_Buffer.size());
 
             shouldScroll = m_ScrollToBottom;
             m_ScrollToBottom = false;

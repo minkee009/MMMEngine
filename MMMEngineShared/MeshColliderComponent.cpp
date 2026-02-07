@@ -66,6 +66,7 @@ bool MMMEngine::MeshColliderComponent::BuildShape(physx::PxPhysics* physics, phy
     if (!ExtractMeshData(*m_mesh, m_submesh, verts, indices))
         return false;
 
+
     if (wantConvex)
     {
         if (m_tri) { m_tri->release(); m_tri = nullptr; }
@@ -82,6 +83,26 @@ bool MMMEngine::MeshColliderComponent::BuildShape(physx::PxPhysics* physics, phy
     physx::PxShape* shape = wantConvex
         ? physics->createShape(physx::PxConvexMeshGeometry(m_convex), *material, true)
         : physics->createShape(physx::PxTriangleMeshGeometry(m_tri), *material, true);
+
+    const Vector3 World_Scale = GetTransform()->GetWorldScale();
+    physx::PxMeshScale meshScale(physx::PxVec3(
+        fabs(World_Scale.x), fabs(World_Scale.y), fabs(World_Scale.z)
+    ));
+
+
+    if (wantConvex)
+    {
+        physx::PxConvexMeshGeometry geom(m_convex, meshScale);
+        if (!geom.isValid()) return false;
+        shape = physics->createShape(geom, *material, true);
+    }
+    else
+    {
+        physx::PxTriangleMeshGeometry geom(m_tri, meshScale);
+        if (!geom.isValid()) return false;
+        shape = physics->createShape(geom, *material, true);
+    }
+
 
     if (!shape) return false;
     SetShape(shape, true);
@@ -127,6 +148,7 @@ bool MMMEngine::MeshColliderComponent::TryBuildAndRegister()
         RegisterToPhysics();
         return true;
     }
+    UpdateShapeGeometry();
 
     if (!m_IsRegistered) RegisterToPhysics();
     else { std::cout << u8"생성실패2" << std::endl; }
