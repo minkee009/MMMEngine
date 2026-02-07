@@ -23,6 +23,9 @@ namespace MMMEngine::Editor
 {
     void ScriptBuildWindow::StartBuild()
     {
+        if (EditorRegistry::g_editor_scene_playing)
+            return;
+
         if (m_building.exchange(true))
             return;
 

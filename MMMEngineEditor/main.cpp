@@ -102,6 +102,7 @@ void Initialize()
 
 void Update_ProjectNotLoaded()
 {
+	GlobalRegistry::g_runtimeActive = false;
 	TimeManager::Get().BeginFrame();
 	TimeManager::Get().ResetFixedStepAccumed();
 	InputManager::Get().Update();
@@ -128,6 +129,9 @@ void Update()
 		return;
 	}
 
+	GlobalRegistry::g_runtimeActive = (EditorRegistry::g_editor_scene_playing
+		&& !EditorRegistry::g_editor_scene_pause);
+
 	TimeManager::Get().BeginFrame();
 	InputManager::Get().Update();
 
@@ -142,17 +146,20 @@ void Update()
 		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
 	}
 
-	if (EditorRegistry::g_editor_scene_playing
-		&& !EditorRegistry::g_editor_scene_pause)
+	if (GlobalRegistry::g_runtimeActive)
 	{
 		BehaviourManager::Get().InitializeBehaviours();
+		BehaviourManager::Get().CheckAndSortBehaviours();
+		BehaviourManager::Get().ExecuteAwake();
+		BehaviourManager::Get().ExecuteStart();
+		BehaviourManager::Get().ExecuteOnEnable();
+		BehaviourManager::Get().ClearInitializeCache();
 	}
 
 	TimeManager::Get().ConsumeFixedSteps([&](float fixedDt)
 		{
 			PhysxManager::Get().SetStep();
-			if (!EditorRegistry::g_editor_scene_playing
-				|| EditorRegistry::g_editor_scene_pause)
+			if (!GlobalRegistry::g_runtimeActive)
 			{
 				return;
 			}
@@ -203,15 +210,13 @@ void Update()
 			}
 		});
 
-	if (EditorRegistry::g_editor_scene_playing
-		&& !EditorRegistry::g_editor_scene_pause)
+
+	if (GlobalRegistry::g_runtimeActive)
 	{
 		PhysxManager::Get().ApplyInterpolation(TimeManager::Get().GetInterpolationAlpha());
 		BehaviourManager::Get().BroadCastBehaviourMessage("Update");
 		BehaviourManager::Get().BroadCastBehaviourMessage("LateUpdate");
 	}
-
-
 
 	RenderManager::Get().BeginFrame();
 	RenderManager::Get().Render();
@@ -221,12 +226,12 @@ void Update()
 	RenderManager::Get().EndFrame();
 
 
-	if (EditorRegistry::g_editor_scene_playing
-		&& !EditorRegistry::g_editor_scene_pause)
+	if (GlobalRegistry::g_runtimeActive)
 	{
 		ObjectManager::Get().UpdateInternalTimer(dt);
 		BehaviourManager::Get().DisableBehaviours();
 	}
+
 	ObjectManager::Get().ProcessPendingDestroy();
 }
 

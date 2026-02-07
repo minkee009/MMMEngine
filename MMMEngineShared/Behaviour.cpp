@@ -1,4 +1,4 @@
-#include "Behaviour.h"
+﻿#include "Behaviour.h"
 #include "BehaviourManager.h"
 
 #include "rttr/registration"
@@ -25,12 +25,26 @@ MMMEngine::Behaviour::Behaviour()
 void MMMEngine::Behaviour::Initialize()
 {
 	BehaviourManager::Get().RegisterBehaviour(SelfPtr(this));
+
+	if (auto owner = GetGameObject(); owner.IsValid())
+	{
+		owner->onActiveInHierarchyChanged.AddListener<Behaviour, &Behaviour::OnOwnerActiveInHierarchyChanged>(this);
+	}
 }
 
 void MMMEngine::Behaviour::UnInitialize()
 {
+	if (auto owner = GetGameObject(); owner.IsValid())
+	{
+		owner->onActiveInHierarchyChanged.RemoveListener<Behaviour, &Behaviour::OnOwnerActiveInHierarchyChanged>(this);
+	}
+
 	BehaviourManager::Get().UnRegisterBehaviour(SelfPtr(this)); // BehaviourManager에서 제거
-	m_messages.clear();
+}
+
+void MMMEngine::Behaviour::OnOwnerActiveInHierarchyChanged()
+{
+	BehaviourManager::Get().MarkBehaviourDirty(SelfPtr(this));
 }
 
 void MMMEngine::Behaviour::SetEnabled(bool value)
@@ -39,6 +53,7 @@ void MMMEngine::Behaviour::SetEnabled(bool value)
 	{
 		//바뀔 때 무언갈 실행하는 코드 작성하기
 		m_enabled = value;
+		BehaviourManager::Get().MarkBehaviourDirty(SelfPtr(this));
 	}
 }
 

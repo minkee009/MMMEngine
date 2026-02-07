@@ -22,10 +22,25 @@ void MMMEngine::BehaviourManager::ShutDown()
 	m_pScriptLoader.release();
 	m_activeBehaviours.clear();
 	m_inactiveBehaviours.clear();
+	m_pendingRegister.clear();
+	m_pendingDestroy.clear();
+	m_dirtyBehaviours.clear();
+	m_pendingAwake.clear();
+	m_pendingStart.clear();
+	m_pendingOnEnable.clear();
+	m_isInitializingPhase = false;
+	m_isCollecting = false;
 }
 
 void MMMEngine::BehaviourManager::RegisterBehaviour(ObjPtr<Behaviour> behaviour)
 {
+	if (m_isInitializingPhase || m_isCollecting)
+	{
+		m_pendingRegister.push_back(behaviour);
+		m_firstCallBehaviours.insert(behaviour);
+		return;
+	}
+
 	m_inactiveBehaviours.push_back(behaviour);
 	m_firstCallBehaviours.insert(behaviour);
 	m_needSort = true; // Behaviour 정렬이 필요함을 표시
@@ -33,6 +48,9 @@ void MMMEngine::BehaviourManager::RegisterBehaviour(ObjPtr<Behaviour> behaviour)
 
 void MMMEngine::BehaviourManager::UnRegisterBehaviour(ObjPtr<Behaviour> behaviour)
 {
+	if (!behaviour.IsValid())
+		return;
+
 	auto it = std::find(m_activeBehaviours.begin(), m_activeBehaviours.end(), behaviour);
 	if (it != m_activeBehaviours.end())
 	{
@@ -46,6 +64,20 @@ void MMMEngine::BehaviourManager::UnRegisterBehaviour(ObjPtr<Behaviour> behaviou
 			m_inactiveBehaviours.erase(it);
 		}
 	}
+
+	if (std::find(m_pendingDestroy.begin(), m_pendingDestroy.end(), behaviour) == m_pendingDestroy.end())
+		m_pendingDestroy.push_back(behaviour);
+
+	if (!m_pendingRegister.empty())
+	{
+		auto pit = std::find(m_pendingRegister.begin(), m_pendingRegister.end(), behaviour);
+		if (pit != m_pendingRegister.end())
+			m_pendingRegister.erase(pit);
+	}
+	m_pendingAwake.erase(behaviour);
+	m_pendingStart.erase(behaviour);
+	m_pendingOnEnable.erase(behaviour);
+	m_firstCallBehaviours.erase(behaviour);
 	m_needSort = true; // Behaviour 정렬이 필요함을 표시
 }
 
@@ -72,11 +104,24 @@ void MMMEngine::BehaviourManager::AllSortBehaviours()
 
 void MMMEngine::BehaviourManager::InitializeBehaviours()
 {
+	if (m_isInitializingPhase)
+		return;
+
+	m_isInitializingPhase = true;
+	m_pendingAwake.clear();
+	m_pendingStart.clear();
+	m_pendingOnEnable.clear();
+
+	struct CollectScope
+	{
+		bool& flag;
+		CollectScope(bool& f) : flag(f) { flag = true; }
+		~CollectScope() { flag = false; }
+	} scope(m_isCollecting);
+
 	// 활성화된 Behaviour를 모으는 컨테이너.
 // count() 메서드로 O(1)에 존재 여부 확인 가능.
 	std::unordered_set<ObjPtr<Behaviour>> changedBehavioursSet;
-
-	// 이전에 생성되어 활성화된 적 없는 Behaviour를 효율적으로 찾기 위한 set
 	std::unordered_set<ObjPtr<Behaviour>> newBehavioursSet;
 
 	// m_inactiveBehaviours를 순회하며 활성화 객체 처리
@@ -84,6 +129,12 @@ void MMMEngine::BehaviourManager::InitializeBehaviours()
 	while (it != m_inactiveBehaviours.end())
 	{
 		ObjPtr<Behaviour> currentBehaviour = *it;
+		if (!currentBehaviour.IsValid() || currentBehaviour->IsDestroyed())
+		{
+			it = m_inactiveBehaviours.erase(it);
+			continue;
+		}
+
 		if (currentBehaviour->IsActiveAndEnabled())
 		{
 			m_activeBehaviours.push_back(currentBehaviour);
@@ -105,64 +156,156 @@ void MMMEngine::BehaviourManager::InitializeBehaviours()
 		}
 	}
 
-	// 활성화 behaviour 정렬 (필요시에)
-	CheckAndSortBehaviours();
-
-	// 1. Awake 호출 (새로운 객체만)
 	for (auto& behaviour : m_activeBehaviours)
 	{
 		if (newBehavioursSet.count(behaviour) > 0)
 		{
-			behaviour->CallMessage("Awake");
+			m_pendingAwake.insert(behaviour);
+			m_pendingStart.insert(behaviour);
 		}
 	}
 
-	// 2. OnEnable 호출 (새롭게 활성화된 모든 객체)
 	for (auto& behaviour : m_activeBehaviours)
 	{
 		if (changedBehavioursSet.count(behaviour) > 0)
 		{
-			behaviour->CallMessage("OnEnable");
-		}
-	}
-
-	// 3. Start 호출 (새로운 객체만)
-	for (auto& behaviour : m_activeBehaviours)
-	{
-		if (newBehavioursSet.count(behaviour) > 0)
-		{
-			behaviour->CallMessage("Start");
+			m_pendingOnEnable.insert(behaviour);
 		}
 	}
 }
 
+void MMMEngine::BehaviourManager::ExecuteAwake()
+{
+	if (!m_isInitializingPhase)
+		return;
+
+	for (auto& behaviour : m_activeBehaviours)
+	{
+		if (!behaviour.IsValid() || behaviour->IsDestroyed())
+			continue;
+		if (m_pendingAwake.count(behaviour) > 0)
+			behaviour->CallMessage("Awake");
+	}
+}
+
+void MMMEngine::BehaviourManager::ExecuteStart()
+{
+	if (!m_isInitializingPhase)
+		return;
+
+	for (auto& behaviour : m_activeBehaviours)
+	{
+		if (!behaviour.IsValid() || behaviour->IsDestroyed())
+			continue;
+		if (m_pendingStart.count(behaviour) > 0)
+			behaviour->CallMessage("Start");
+	}
+}
+
+void MMMEngine::BehaviourManager::ExecuteOnEnable()
+{
+	if (!m_isInitializingPhase)
+		return;
+
+	for (auto& behaviour : m_activeBehaviours)
+	{
+		if (!behaviour.IsValid() || behaviour->IsDestroyed())
+			continue;
+		if (m_pendingOnEnable.count(behaviour) > 0)
+			behaviour->CallMessage("OnEnable");
+	}
+}
+
+void MMMEngine::BehaviourManager::ClearInitializeCache()
+{
+	if (!m_isInitializingPhase)
+		return;
+
+	m_pendingAwake.clear();
+	m_pendingStart.clear();
+	m_pendingOnEnable.clear();
+
+	if (!m_pendingRegister.empty())
+	{
+		for (auto& behaviour : m_pendingRegister)
+			m_inactiveBehaviours.push_back(behaviour);
+		m_pendingRegister.clear();
+		m_needSort = true;
+	}
+
+	m_isInitializingPhase = false;
+}
+
 void MMMEngine::BehaviourManager::DisableBehaviours()
 {
-	auto it = m_activeBehaviours.begin();
-	while (it != m_activeBehaviours.end())
-	{
-		ObjPtr<Behaviour> currentBehaviour = *it;
-		if (!currentBehaviour->IsActiveAndEnabled() || currentBehaviour->IsDestroyed())
-		{
-			(*it)->CallMessage("OnDisable");
-			m_needSort = true;
+	if (m_dirtyBehaviours.empty() && m_pendingDestroy.empty())
+		return;
 
-			m_inactiveBehaviours.push_back(currentBehaviour); // 바로 m_inactiveBehaviours로 이동
-			it = m_activeBehaviours.erase(it); // m_activeBehaviours에서 제거
-		}
-		else
+	std::unordered_set<ObjPtr<Behaviour>> disableSeen;
+	std::unordered_set<ObjPtr<Behaviour>> destroySeen;
+	std::vector<ObjPtr<Behaviour>> disableList;
+	std::vector<ObjPtr<Behaviour>> destroyList;
+	disableList.reserve(m_dirtyBehaviours.size() + m_pendingDestroy.size());
+	destroyList.reserve(m_pendingDestroy.size());
+
+	auto pushUnique = [](std::vector<ObjPtr<Behaviour>>& list,
+		std::unordered_set<ObjPtr<Behaviour>>& seen,
+		const ObjPtr<Behaviour>& behaviour)
+	{
+		if (!behaviour.IsValid())
+			return;
+		if (seen.insert(behaviour).second)
+			list.push_back(behaviour);
+	};
+
+	for (auto& behaviour : m_dirtyBehaviours)
+	{
+		if (!behaviour.IsValid())
+			continue;
+
+		if (!behaviour->IsActiveAndEnabled() || behaviour->IsDestroyed())
 		{
-			++it;
+			auto it = std::find(m_activeBehaviours.begin(), m_activeBehaviours.end(), behaviour);
+			if (it != m_activeBehaviours.end())
+			{
+				pushUnique(disableList, disableSeen, behaviour);
+				if (behaviour->IsDestroyed())
+					pushUnique(destroyList, destroySeen, behaviour);
+				m_needSort = true;
+
+				m_inactiveBehaviours.push_back(behaviour); // 바로 m_inactiveBehaviours로 이동
+				m_activeBehaviours.erase(it); // m_activeBehaviours에서 제거
+			}
 		}
 	}
+	m_dirtyBehaviours.clear();
 
-	for (auto& inactive : m_inactiveBehaviours)
+	for (auto& pending : m_pendingDestroy)
 	{
-		if (inactive->IsDestroyed())
-		{
-			inactive->CallMessage("OnDestroy");
-		}
+		pushUnique(disableList, disableSeen, pending);
+		pushUnique(destroyList, destroySeen, pending);
 	}
+	m_pendingDestroy.clear();
+
+	for (auto& behaviour : disableList)
+	{
+		if (behaviour.IsValid())
+			behaviour->CallMessage("OnDisable");
+	}
+
+	for (auto& behaviour : destroyList)
+	{
+		if (behaviour.IsValid())
+			behaviour->CallMessage("OnDestroy");
+	}
+
+}
+
+void MMMEngine::BehaviourManager::MarkBehaviourDirty(ObjPtr<Behaviour> behaviour)
+{
+	if (!behaviour.IsValid())
+		return;
+	m_dirtyBehaviours.insert(behaviour);
 }
 
 void MMMEngine::BehaviourManager::BroadCastBehaviourMessage(const std::string& messageName)
@@ -195,6 +338,14 @@ void MMMEngine::BehaviourManager::UnloadUserScripts()
 	m_activeBehaviours.clear();
 	m_inactiveBehaviours.clear();
 	m_firstCallBehaviours.clear();
+	m_pendingRegister.clear();
+	m_pendingDestroy.clear();
+	m_dirtyBehaviours.clear();
+	m_pendingAwake.clear();
+	m_pendingStart.clear();
+	m_pendingOnEnable.clear();
+	m_isInitializingPhase = false;
+	m_isCollecting = false;
 	m_needSort = false;
 }
 

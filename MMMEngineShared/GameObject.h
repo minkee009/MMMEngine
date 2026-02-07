@@ -2,6 +2,7 @@
 #include "Object.h"
 #include "rttr/type"
 #include <vector>
+#include "Delegates.hpp"
 #include "Export.h"
 #include "SceneRef.h"
 
@@ -50,6 +51,8 @@ namespace MMMEngine
 		virtual void Dispose() final override;
 	public:
 		virtual ~GameObject() = default;
+
+		Utility::Event<GameObject, void(void)> onActiveInHierarchyChanged{ this };
 		
 		void SetActive(bool active);
 		void SetTag(const std::string& tag) { m_tag = tag; }

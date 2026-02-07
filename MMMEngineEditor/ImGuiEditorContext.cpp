@@ -302,8 +302,10 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
 
     static float g_saveBlockedTimer = 0.0f;
     static float g_saveSuccessTimer = 0.0f;
+    static float g_scriptBuildBlockedTimer = 0.0f;
     const float saveBlockedDuration = 2.5f;
     const float saveSuccessDuration = 1.8f;
+    const float scriptBuildBlockedDuration = 2.5f;
     auto RequestSceneSave = [&]()
     {
         if (g_editor_scene_playing)
@@ -418,7 +420,10 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
             {
                 if (ImGui::MenuItem(u8"스크립트 빌드"))
                 {
-                    ScriptBuildWindow::Get().StartBuild();
+                    if (g_editor_scene_playing)
+                        g_scriptBuildBlockedTimer = scriptBuildBlockedDuration;
+                    else
+                        ScriptBuildWindow::Get().StartBuild();
                 }
                 if (ImGui::MenuItem(u8"플레이어 빌드"))
                 {
@@ -787,6 +792,28 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
         if (ImGui::Begin("##SceneSaveSuccessToast", nullptr, toastFlags))
         {
             ImGui::TextColored(ImVec4(0.6f, 1.0f, 0.6f, t), u8"씬 저장 완료");
+            ImGui::End();
+        }
+    }
+
+    if (g_scriptBuildBlockedTimer > 0.0f)
+    {
+        g_scriptBuildBlockedTimer -= MMMEngine::Time::GetUnscaledDeltaTime();
+        const float t = std::clamp(g_scriptBuildBlockedTimer / scriptBuildBlockedDuration, 0.0f, 1.0f);
+
+        ImGui::SetNextWindowPos(
+            ImVec2(viewport->WorkPos.x + viewport->WorkSize.x * 0.5f, viewport->WorkPos.y + 68.0f),
+            ImGuiCond_Always,
+            ImVec2(0.5f, 0.0f));
+        ImGui::SetNextWindowBgAlpha(0.85f * t);
+
+        ImGuiWindowFlags toastFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize
+            | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav
+            | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDocking;
+
+        if (ImGui::Begin("##ScriptBuildBlockedToast", nullptr, toastFlags))
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, t), u8"플레이 중에는 스크립트 빌드를 할 수 없습니다.");
             ImGui::End();
         }
     }

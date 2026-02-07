@@ -75,6 +75,7 @@ void MMMEngine::GameObject::UpdateActiveInHierarchy()
 {
 	// todo : 이벤트 발생 시키기
 
+	const bool wasActiveInHierarchy = m_activeInHierarchy;
 
 	if (auto parent = m_transform->GetParent(); parent.IsValid())
 	{
@@ -85,6 +86,11 @@ void MMMEngine::GameObject::UpdateActiveInHierarchy()
 	else
 	{
 		m_activeInHierarchy = m_active; // 부모가 없으면 자기 자신만 활성화 여부를 따짐
+	}
+
+	if (wasActiveInHierarchy != m_activeInHierarchy)
+	{
+		onActiveInHierarchyChanged.Invoke(this);
 	}
 
 	// 자식들의 활성화 상태 갱신

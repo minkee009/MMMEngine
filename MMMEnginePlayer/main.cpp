@@ -14,6 +14,7 @@
 #include "SceneManager.h"
 #include "ObjectManager.h"
 #include "PhysxManager.h"
+#include "GlobalRegistry.h"
 
 #include "PhysicsSettings.h"
 #include "ShaderInfo.h"
@@ -73,6 +74,7 @@ void Initialize()
 
 void Update()
 {
+	GlobalRegistry::g_runtimeActive = true;
 	TimeManager::Get().BeginFrame();
 	InputManager::Get().Update();
 	UIEventManager::Get().UpdateFromClientPointer(InputManager::Get().GetMousePos(),
@@ -90,6 +92,11 @@ void Update()
 	}
 
 	BehaviourManager::Get().InitializeBehaviours();
+	BehaviourManager::Get().CheckAndSortBehaviours();
+	BehaviourManager::Get().ExecuteAwake();
+	BehaviourManager::Get().ExecuteStart();
+	BehaviourManager::Get().ExecuteOnEnable();
+	BehaviourManager::Get().ClearInitializeCache();
 
 	TimeManager::Get().ConsumeFixedSteps([&](float fixedDt)
 		{

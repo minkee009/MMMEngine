@@ -15,6 +15,16 @@ namespace MMMEngine
 	private:
 		friend class Behaviour;
 
+		bool m_isInitializingPhase = false; // 초기화 파이프라인 진행 중인지
+		bool m_isCollecting = false; // InitializeBehaviours 수집 중인지
+
+		std::vector<ObjPtr<Behaviour>> m_pendingRegister; // 초기화 중 등록된 Behaviour
+		std::vector<ObjPtr<Behaviour>> m_pendingDestroy; // 파괴 예약된 Behaviour (OnDisable/OnDestroy 루프용)
+		std::unordered_set<ObjPtr<Behaviour>> m_dirtyBehaviours; // 활성/비활성 상태 변경 감지용
+		std::unordered_set<ObjPtr<Behaviour>> m_pendingAwake;
+		std::unordered_set<ObjPtr<Behaviour>> m_pendingStart;
+		std::unordered_set<ObjPtr<Behaviour>> m_pendingOnEnable;
+
 		bool m_needSort = false; // Behaviour 정렬이 필요한지 여부
 		std::vector<ObjPtr<Behaviour>> m_activeBehaviours; // 활성화된 Behaviour를 저장하는 벡터
 		std::vector<ObjPtr<Behaviour>> m_inactiveBehaviours; // 비활성화된 Behaviour를 저장하는 벡터
@@ -32,10 +42,16 @@ namespace MMMEngine
 		void SortBehaviours();
 		void AllSortBehaviours();
 
+		// 초기화 대상 수집 (Awake/Start/OnEnable 호출 전 단계)
 		void InitializeBehaviours();
+		void ExecuteAwake();
+		void ExecuteStart();
+		void ExecuteOnEnable();
+		void ClearInitializeCache();
 
 		// 비활성화된 Behaviour를 감지하는 함수
 		void DisableBehaviours();
+		void MarkBehaviourDirty(ObjPtr<Behaviour> behaviour);
 
 		void BroadCastBehaviourMessage(const std::string& messageName);
 

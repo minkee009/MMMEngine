@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Export.h"
 
 namespace MMMEngine::Utility
@@ -9,4 +9,5 @@ namespace MMMEngine::Utility
 namespace MMMEngine::GlobalRegistry
 {
 	extern MMMENGINE_API Utility::App* g_pApp;
+	inline bool g_runtimeActive = false;
 }

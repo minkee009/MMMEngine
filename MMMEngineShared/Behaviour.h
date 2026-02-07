@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Component.h"
 #include "GameObject.h"
 #include "Export.h"
@@ -130,6 +130,7 @@ namespace MMMEngine
 		Behaviour();
 		virtual void Initialize() override;
 		virtual void UnInitialize() override;
+		void OnOwnerActiveInHierarchyChanged();
 
 		bool m_enabled;
 		int m_executionOrder = 0; // ???? ?????? ??????? ????

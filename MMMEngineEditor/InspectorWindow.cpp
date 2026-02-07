@@ -15,9 +15,6 @@
 #include <regex>
 
 #include "EditorRegistry.h"
-using namespace MMMEngine::EditorRegistry;
-using namespace DirectX::SimpleMath;
-using namespace DirectX;
 #include "DragAndDrop.h"
 #include "StringHelper.h"
 #include "ProjectManager.h"
@@ -33,6 +30,9 @@ using namespace DirectX;
 #include <limits>
 #include <cfloat>
 
+using namespace MMMEngine::EditorRegistry;
+using namespace DirectX::SimpleMath;
+using namespace DirectX;
 using namespace MMMEngine;
 using namespace MMMEngine::Editor;
 using namespace MMMEngine::Utility;

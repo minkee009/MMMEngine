@@ -1484,9 +1484,17 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 				if (m_ui2DMode)
 				{
 					ObjPtr<GameObject> picked = nullptr;
-					const auto& canvases = RenderManager::Get().GetCanvases();
-					for (auto* canvas : canvases)
+					bool found = false;
+					std::vector<Canvas*> sortedCanvases = RenderManager::Get().GetCanvases();
+					std::sort(sortedCanvases.begin(), sortedCanvases.end(),
+						[](Canvas* a, Canvas* b)
+						{
+							return a->GetSortOrder() < b->GetSortOrder();
+						});
+
+					for (auto canvasIt = sortedCanvases.rbegin(); canvasIt != sortedCanvases.rend() && !found; ++canvasIt)
 					{
+						auto* canvas = *canvasIt;
 						if (!canvas || !canvas->IsActiveAndEnabled())
 							continue;
 
@@ -1506,8 +1514,9 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 							});
 
 						const auto canvasInfo = GetCanvasInfo(canvas, static_cast<float>(m_width), static_cast<float>(m_height));
-						for (auto& graphic : graphics)
+						for (auto graphicIt = graphics.rbegin(); graphicIt != graphics.rend(); ++graphicIt)
 						{
+							auto& graphic = *graphicIt;
 							auto rectTr = graphic->GetRectTransform();
 							if (!rectTr.IsValid())
 								continue;
@@ -1524,9 +1533,11 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 							if (PointInRotatedRect(sceneX, sceneY, rectScene, pivot, worldRot))
 							{
 								picked = graphic->GetGameObject();
-							}
+								found = true;
+								break;
 							}
 						}
+					}
 
 					g_selectedGameObject = picked;
 					if (picked.IsValid() && picked->GetTransform().IsValid() && picked->GetTransform()->GetParent() != nullptr)

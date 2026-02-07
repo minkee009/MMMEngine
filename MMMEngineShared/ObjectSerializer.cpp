@@ -1,4 +1,4 @@
-#include "ObjectSerializer.h"
+﻿#include "ObjectSerializer.h"
 #include "GameObject.h"
 #include "Component.h"
 #include "MissingScriptBehaviour.h"
@@ -12,6 +12,8 @@
 #include "SerializableEvent.h"
 #include "StringHelper.h"
 #include "AnimationCurve.h"
+#include "BehaviourManager.h"
+#include "GlobalRegistry.h"
 #include "json/json.hpp"
 #include "rttr/registration"
 #include "rttr/type"
@@ -808,23 +810,44 @@ namespace MMMEngine
                     return;
                 }
                 std::string muidStr = j.get<std::string>();
-                auto it = ctx.objectTable.find(muidStr);
-                if (it == ctx.objectTable.end() || IsMissingScriptTargetVariant(it->second))
+                auto tryInject = [&](const ObjPtr<Object>& obj) -> bool
                 {
-                    ObjPtr<Object> nullObj;
-                    const ObjPtrBase& nullRef = nullObj;
-                    inject.invoke(target, nullRef);
-                    return;
+                    if (!obj.IsValid())
+                        return false;
+                    if (obj.Cast<MissingScriptBehaviour>().IsValid())
+                        return false;
+
+                    const ObjPtrBase& baseRef = obj;
+                    inject.invoke(target, baseRef);
+                    return true;
+                };
+
+                // 1) Prefab 내부 오브젝트 우선
+                auto it = ctx.objectTable.find(muidStr);
+                if (it != ctx.objectTable.end() && !IsMissingScriptTargetVariant(it->second))
+                {
+                    rttr::variant src = it->second;
+                    if (src.is_type<ObjPtr<Object>>())
+                    {
+                        ObjPtr<Object> base = src.get_value<ObjPtr<Object>>();
+                        if (tryInject(base))
+                            return;
+                    }
                 }
 
-                rttr::variant src = it->second;
-                if (src.is_type<ObjPtr<Object>>())
+                // 2) 내부 MUID가 리맵된 경우 (예외적 누락 대비)
+                std::string remapped = RemapMuid(ctx, muidStr);
+                if (!remapped.empty())
                 {
-                    ObjPtr<Object> base = src.get_value<ObjPtr<Object>>();
-                    const ObjPtrBase& baseRef = base;
-                    inject.invoke(target, baseRef);
-                    return;
+                    ObjPtr<Object> remappedObj = ObjectManager::Get().GetObjectByMUID(remapped);
+                    if (tryInject(remappedObj))
+                        return;
                 }
+
+                // 3) 프리팹 외부 오브젝트 참조는 전역 MUID로 복원 시도
+                ObjPtr<Object> externalObj = ObjectManager::Get().GetObjectByMUID(muidStr);
+                if (tryInject(externalObj))
+                    return;
 
                 ObjPtr<Object> nullObj;
                 const ObjPtrBase& nullRef = nullObj;
@@ -1424,14 +1447,24 @@ namespace MMMEngine
         SerializableEventT<int>::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
         SerializableEventT<std::string>::SetResolver([](const Utility::MUID& muid) { return ObjectManager::Get().GetObjectByMUID(muid); });
 
+        auto tryInitializeBehaviours = []()
+        {
+            if (!GlobalRegistry::g_runtimeActive)
+                return;
+
+            BehaviourManager::Get().InitializeBehaviours();
+        };
+
+        ObjPtr<GameObject> root;
         if (!rootMuid.empty())
         {
             auto itRoot = ctx.objectTable.find(rootMuid);
             if (itRoot != ctx.objectTable.end())
-                return itRoot->second.Cast<GameObject>();
+                root = itRoot->second.Cast<GameObject>();
         }
 
-        return ObjPtr<GameObject>();
+        tryInitializeBehaviours();
+        return root;
     }
 
     bool ObjectSerializer::CreatePrefabFromGameObject(const ObjPtr<GameObject>& root,
