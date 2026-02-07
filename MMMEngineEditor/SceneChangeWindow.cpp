@@ -88,6 +88,7 @@ namespace MMMEngine::Editor
 					if (!isCurrent)
 					{
 						sceneManager.ChangeScene(sceneId);
+						ProjectManager::Get().SetLastSceneIndex(static_cast<uint32_t>(sceneId));
 						g_editor_window_sceneChange = false;
 					}
 				}
@@ -124,6 +125,7 @@ namespace MMMEngine::Editor
 				{
 					const auto& [selectedName, selectedId] = sortedScenes[selectedSceneIndex];
 					sceneManager.ChangeScene(selectedId);
+					ProjectManager::Get().SetLastSceneIndex(static_cast<uint32_t>(selectedId));
 					g_editor_window_sceneChange = false;
 					selectedSceneIndex = -1;
 				}

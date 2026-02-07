@@ -41,7 +41,7 @@ bool MMMEngine::Prefab::LoadFromFilePath(const std::wstring& filePath)
 {
     fs::path fPath(filePath);
     if (!fs::exists(fPath))
-        throw std::runtime_error("Prefab::File does not exist!");
+        return false;
 
     std::ifstream file(filePath, std::ios::binary | std::ios::ate);
     if (!file.is_open())
@@ -54,6 +54,13 @@ bool MMMEngine::Prefab::LoadFromFilePath(const std::wstring& filePath)
     file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
     file.close();
 
-    m_snapshot = json::from_msgpack(buffer);
+    try
+    {
+        m_snapshot = json::from_msgpack(buffer);
+    }
+    catch (...)
+    {
+        return false;
+    }
     return true;
 }

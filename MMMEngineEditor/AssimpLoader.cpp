@@ -565,9 +565,9 @@ bool MMMEngine::AssimpLoader::ExtractSkinning(const aiScene* scene, const NodeTr
 	outSkinning.bones.clear();
 
 	if (!scene || !scene->mMeshes) return false;
-	if (inoutSubMeshes.size() != scene->mNumMeshes) return false; // mesh 1:1 전제(지금 구조)
+	if (inoutSubMeshes.size() != scene->mNumMeshes) return false;
 
-	auto getOrCreateBoneIndex = [&](const std::string& boneName, const aiMatrix4x4& offsetM) -> int
+	auto getOrCreateBoneIndex = [&](const std::string& boneName, const aiMatrix4x4& offsetM, int forceNodeIndex = -1) -> int
 		{
 			auto it = outSkinning.boneIndexByName.find(boneName);
 			if (it != outSkinning.boneIndexByName.end())
@@ -578,11 +578,17 @@ bool MMMEngine::AssimpLoader::ExtractSkinning(const aiScene* scene, const NodeTr
 
 			BoneAsset b;
 			b.name = boneName;
-			auto nit = nodes.nodeIndexByName.find(boneName);
-			if (nit != nodes.nodeIndexByName.end())
-				b.nodeIndex = nit->second;
+
+			if (forceNodeIndex >= 0)
+			{
+				b.nodeIndex = forceNodeIndex;
+			}
 			else
-				b.nodeIndex = -1;
+			{
+				auto nit = nodes.nodeIndexByName.find(boneName);
+				b.nodeIndex = (nit != nodes.nodeIndexByName.end()) ? nit->second : -1;
+			}
+
 			b.offset = ToMatrix(offsetM);
 			outSkinning.bones.push_back(std::move(b));
 			return newIndex;
@@ -597,9 +603,36 @@ bool MMMEngine::AssimpLoader::ExtractSkinning(const aiScene* scene, const NodeTr
 		SubMeshAsset& sm = inoutSubMeshes[mi];
 		if (sm.vertices.size() != mesh->mNumVertices) return false;
 
+		// bone 없는 메시: dummy bone 하나 만들고 전체 weight=1 부여
 		if (mesh->mNumBones == 0)
 		{
-			sm.skinned = false;
+			sm.skinned = true; // <- 스키닝 파이프에 태우고 싶다면 true가 맞음 (GPU 스킨 셰이더가 돈다는 전제)
+
+			int attachNode = sm.nodeIndex;
+			if (attachNode < 0 || attachNode >= (int)nodes.nodes.size())
+				attachNode = nodes.rootIndex;
+
+			// offset은 Identity 권장
+			aiMatrix4x4 identity; // 기본 생성자가 identity인지 애매하면 아래처럼 명시
+			identity = aiMatrix4x4();
+			identity.a1 = 1; identity.b2 = 1; identity.c3 = 1; identity.d4 = 1;
+			identity.a2 = identity.a3 = identity.a4 = 0;
+			identity.b1 = identity.b3 = identity.b4 = 0;
+			identity.c1 = identity.c2 = identity.c4 = 0;
+			identity.d1 = identity.d2 = identity.d3 = 0;
+
+			std::string dummyName = "__DUMMY_BONE_MESH_" + std::to_string(mi);
+			int boneIndex = getOrCreateBoneIndex(dummyName, identity, attachNode);
+
+			for (auto& v : sm.vertices)
+			{
+				// 4개 슬롯 중 첫 번째만 사용
+				v.BoneIndices[0] = boneIndex;
+				v.BoneWeights[0] = 1.0f;
+
+				v.BoneIndices[1] = v.BoneIndices[2] = v.BoneIndices[3] = 0;
+				v.BoneWeights[1] = v.BoneWeights[2] = v.BoneWeights[3] = 0.0f;
+			}
 			continue;
 		}
 

@@ -14,6 +14,7 @@ namespace MMMEngine {
 			friend class Scene;
 			friend class Animator;
 
+		void FixQuatHemisphere(std::vector<Mesh_QuatKey>& keys);
 	public:
 		std::string mName;
 
@@ -21,6 +22,7 @@ namespace MMMEngine {
 		float ticksPerSecond = 30.0f;
 		std::vector<Mesh_AnimTrack> mTracks;
 
+		
 		bool LoadFromFilePath(const std::wstring& filePath) override;
 	};
 }

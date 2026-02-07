@@ -124,19 +124,33 @@ bool MMMEngine::Animator::IsInSubTree(const NodeTreeAsset& tree, int root, int n
 	return false;
 }
 
-MMMEngine::Mesh_QuatKey MMMEngine::Animator::Evaluate(const Mesh_QuatKey& _k1, const Mesh_QuatKey& _k2, float _currTime)
+static float DotQuat(const DirectX::SimpleMath::Quaternion& a,
+	const DirectX::SimpleMath::Quaternion& b)
 {
-	if (_k1.value == _k2.value)
-		return _k1;
+	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+MMMEngine::Mesh_QuatKey MMMEngine::Animator::Evaluate(
+	const Mesh_QuatKey& _k1, const Mesh_QuatKey& _k2, float _currTime)
+{
+	if (_k1.timeSec == _k2.timeSec) // 안전장치(혹시 모를 0 division)
+		return { _currTime, _k1.value };
 
 	float lerpTime = (_currTime - _k1.timeSec) / (_k2.timeSec - _k1.timeSec);
 
-	DirectX::SimpleMath::Quaternion temp;
-	temp = DirectX::SimpleMath::Quaternion::Slerp(_k1.value, _k2.value, lerpTime);
-	return {
-		_currTime,
-		temp };
+	auto q1 = _k1.value;
+	auto q2 = _k2.value;
+
+	// hemisphere fix: dot < 0이면 같은 회전이라도 부호가 반대라서 -q2로 맞춤
+	if (DotQuat(q1, q2) < 0.0f)
+		q2 = DirectX::SimpleMath::Quaternion(-q2.x, -q2.y, -q2.z, -q2.w);
+
+	auto out = DirectX::SimpleMath::Quaternion::Slerp(q1, q2, lerpTime);
+	out.Normalize();
+
+	return { _currTime, out };
 }
+
 
 void MMMEngine::Animator::UpdateBoneMatrix()
 {
@@ -194,7 +208,7 @@ void MMMEngine::Animator::UpdateBoneMatrix()
 	std::vector<DirectX::SimpleMath::Vector3> outScale = bindScale;
 	std::vector<DirectX::SimpleMath::Quaternion> outRot = bindRot;
 
-	// "bind 유지 + 애니 추가" 방식이면 누적을 위해 별도 accumulator가 필요
+	// 누적을 위해 별도 accumulator가 필요
 	std::vector<DirectX::SimpleMath::Vector3> accPos(nodeCount, { 0,0,0 });
 	std::vector<DirectX::SimpleMath::Vector3> accScale(nodeCount, { 0,0,0 });
 	std::vector<DirectX::SimpleMath::Quaternion> accRot(nodeCount, DirectX::SimpleMath::Quaternion(0, 0, 0, 0));
@@ -500,6 +514,11 @@ void MMMEngine::Animator::ResumeClip()
 	mIsPlaying = true;
 }
 
+void MMMEngine::Animator::SetSpeed(float _speed)
+{
+	if (_speed > 0) mPlaySpeed = _speed;
+}
+
 void MMMEngine::Animator::PauseClip()
 {
 	mIsPlaying = false;
@@ -514,9 +533,14 @@ void MMMEngine::Animator::StopClip()
 int MMMEngine::Animator::GetBoneIdx(std::string _boneName)
 {
 	if (mSkinComp) {
-		auto it = mSkinComp->GetMesh()->boneIdxData.find(_boneName);
-		if(it != mSkinComp->GetMesh()->boneIdxData.end())
-			return mSkinComp->GetMesh()->boneIdxData[_boneName];
+		auto& mesh = mSkinComp->GetMesh();
+
+		auto it = mesh->boneIdxData.find(_boneName);
+		if (it != mesh->boneIdxData.end()) {
+			auto nIt = mesh->nodeIdxData.find(it->second);
+			if (nIt != mesh->nodeIdxData.end())
+				return nIt->second;
+		}
 	}
 
 	return -1;

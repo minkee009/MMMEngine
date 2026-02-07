@@ -129,7 +129,11 @@ void Update()
 		return;
 	}
 
-	GlobalRegistry::g_runtimeActive = (EditorRegistry::g_editor_scene_playing
+	const bool isPlaying = EditorRegistry::g_editor_scene_playing;
+	const bool playStoppedThisFrame = (EditorRegistry::g_editor_scene_was_playing && !isPlaying);
+	EditorRegistry::g_editor_scene_was_playing = isPlaying;
+
+	GlobalRegistry::g_runtimeActive = (isPlaying
 		&& !EditorRegistry::g_editor_scene_pause);
 
 	TimeManager::Get().BeginFrame();
@@ -139,11 +143,13 @@ void Update()
 	if (SceneManager::Get().CheckSceneIsChanged())
 	{
 		ObjectManager::Get().UpdateInternalTimer(dt);
-		BehaviourManager::Get().DisableBehaviours();
+		const bool allowLifecycleMessages = (GlobalRegistry::g_runtimeActive || playStoppedThisFrame);
+		BehaviourManager::Get().DisableBehaviours(allowLifecycleMessages);
 		ObjectManager::Get().ProcessPendingDestroy();
 		RenderManager::Get().ClearCache(); // todo : -> InitCache()로 바꾸기
 		BehaviourManager::Get().AllSortBehaviours();
-		BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
+		if (GlobalRegistry::g_runtimeActive)
+			BehaviourManager::Get().AllBroadCastBehaviourMessage("OnSceneLoaded");
 	}
 
 	if (GlobalRegistry::g_runtimeActive)

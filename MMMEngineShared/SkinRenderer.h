@@ -15,6 +15,7 @@ namespace MMMEngine {
 		RTTR_ENABLE(Renderer)
 			RTTR_REGISTRATION_FRIEND
 			friend class Animator;
+			friend class AnimatorController;
 	private:
 		// GPU 버퍼
 		ResPtr<SkeletalMesh> mesh = nullptr;

@@ -41,9 +41,17 @@ namespace MMMEngine::Editor
             auto sceneRef = SceneManager::Get().GetCurrentScene();
             auto sceneRaw = SceneManager::Get().GetSceneRaw(sceneRef);
 
-            SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" +
-            StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
-            SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
+            if (sceneRaw)
+            {
+                ProjectManager::Get().SetLastSceneIndex(static_cast<uint32_t>(sceneRef.id));
+                SceneSerializer::Get().Serialize(*sceneRaw, SceneManager::Get().GetSceneListPath() + L"/" +
+                    StringHelper::StringToWString(sceneRaw->GetName()) + L".scene");
+                SceneSerializer::Get().ExtractScenesList(SceneManager::Get().GetAllSceneToRaw(), SceneManager::Get().GetSceneListPath());
+            }
+            else
+            {
+                std::cout << "[ScriptBuildWindow] Warning: current scene is null. Skipping scene serialize before build.\n";
+            }
 
             EditorRegistry::g_selectedGameObject = nullptr;
             InspectorWindow::Get().ClearCache();
@@ -118,17 +126,28 @@ namespace MMMEngine::Editor
                 DLLHotLoadHelper::RestoreOriginalDll(binDir);
 
                 // 복구된 DLL을 핫로드용 폴더로 복사
-                fs::path restoredPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, hotDir);
-                if (!restoredPath.empty())
-                {
-                    // 이전 상태로 복구 리로드 (StartUp은 생략하거나 필요시 호출)
-                    BehaviourManager::Get().ReloadUserScripts(restoredPath.u8string());
+                fs::path reloadPath = DLLHotLoadHelper::CopyDllForHotReload(originDllPath, hotDir);
+                if (reloadPath.empty() && fs::exists(originDllPath))
+                    reloadPath = originDllPath;
 
-                    // 빌드 전 ShutDown을 했으므로, 엔진을 다시 가동시켜야 함
-                    auto currentProject = ProjectManager::Get().GetActiveProject();
-                    SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
-                    ObjectManager::Get().StartUp();
+                bool reloadOk = false;
+                if (!reloadPath.empty())
+                    reloadOk = BehaviourManager::Get().ReloadUserScripts(reloadPath.u8string());
+                else
+                    std::cout << "[ScriptBuildWindow] Warning: UserScripts.dll not found after build failure.\n";
+
+                // 빌드 전 ShutDown을 했으므로, 엔진을 다시 가동시켜야 함
+                auto currentProject = ProjectManager::Get().GetActiveProject();
+                SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
+                ObjectManager::Get().StartUp();
+                if (!SceneManager::Get().CheckSceneIsChanged())
+                {
+                    SceneManager::Get().ChangeScene(0);
+                    SceneManager::Get().CheckSceneIsChanged();
                 }
+
+                if (!reloadOk && !reloadPath.empty())
+                    std::cout << "[ScriptBuildWindow] Warning: failed to reload user scripts after build failure.\n";
                 return;
             }
 
@@ -148,7 +167,11 @@ namespace MMMEngine::Editor
                     auto currentProject = ProjectManager::Get().GetActiveProject();
                     SceneManager::Get().StartUp(currentProject.ProjectRootFS().generic_wstring() + L"/Assets/Scenes", currentProject.lastSceneIndex, true);
                     ObjectManager::Get().StartUp();
-                    SceneManager::Get().CheckSceneIsChanged();
+                    if (!SceneManager::Get().CheckSceneIsChanged())
+                    {
+                        SceneManager::Get().ChangeScene(0);
+                        SceneManager::Get().CheckSceneIsChanged();
+                    }
                 }
                 else
                 {

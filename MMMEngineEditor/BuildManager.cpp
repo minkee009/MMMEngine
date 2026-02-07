@@ -1,5 +1,6 @@
 ﻿#include "BuildManager.h"
 #include "UserScriptsGenerator.h"
+#include "ProjectManager.h"
 #include <Windows.h>
 #include <array>
 #include <thread>
@@ -794,6 +795,9 @@ namespace MMMEngine::Editor
 
         // 1. 실제 파일 변경 여부 확인 (메모리 맵 기반)
         bool scriptsChanged = HasFilesChanged(scriptsPath);
+
+        if (scriptsChanged || !fs::exists(vcxprojPath))
+            ProjectManager::Get().RefreshUserScriptsIDEFiles();
 
         // DLL이 없거나 프로젝트 파일보다 이전 것이라면 빌드 필요
         bool dllOutdated = true;

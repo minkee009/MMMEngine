@@ -1,4 +1,5 @@
-#include "ResourceManager.h"
+﻿#include "ResourceManager.h"
+#include "StringHelper.h"
 
 DEFINE_SINGLETON(MMMEngine::ResourceManager)
 
@@ -37,7 +38,7 @@ rttr::variant MMMEngine::ResourceManager::Load(rttr::type resourceType, const st
 	resPtr->SetFilePath(filePath);
 	if (!resPtr->LoadFromFilePath(truePath))
 	{
-		std::cout << u8"유효하지 않은 파일패스" << std::endl;
+		std::cout << Utility::StringHelper::WStringToString(truePath) << u8" : 유효하지 않은 파일패스" << std::endl;
 		return rttr::variant();
 	}
 

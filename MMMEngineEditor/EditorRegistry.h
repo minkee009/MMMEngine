@@ -25,5 +25,6 @@ namespace MMMEngine::EditorRegistry
 
 	inline bool g_editor_scene_playing = false;     // 게임 진행중
 	inline bool g_editor_scene_pause = true;		// 시간정지 인가 아닌가
+	inline bool g_editor_scene_was_playing = false; // 직전 프레임 플레이 상태
 }
 

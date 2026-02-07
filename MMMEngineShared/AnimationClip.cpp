@@ -27,12 +27,34 @@ RTTR_REGISTRATION{
 	);
 }
 
+//void MMMEngine::AnimationClip::FixQuatHemisphere(std::vector<Mesh_QuatKey>& keys)
+//{
+//	if (keys.empty()) return;
+//	for (size_t i = 1; i < keys.size(); ++i)
+//	{
+//		auto& prev = keys[i - 1].value;
+//		auto& cur = keys[i].value;
+//
+//		float dot = prev.x * cur.x + prev.y * cur.y + prev.z * cur.z + prev.w * cur.w;
+//		if (dot < 0.0f)
+//			cur = DirectX::SimpleMath::Quaternion(-cur.x, -cur.y, -cur.z, -cur.w);
+//
+//		cur.Normalize();
+//	}
+//}
+
 bool MMMEngine::AnimationClip::LoadFromFilePath(const std::wstring& filePath)
 {
 	std::filesystem::path fPath{ filePath };
 
 	if (std::filesystem::exists(fPath)) {
 		ResourceSerializer::Get().DeSerialize_Animation(this, filePath);
+
+		//// rotKey 고치기
+		//for (auto& track : mTracks) {
+		//	FixQuatHemisphere(track.rotKeys);
+		//}
+
 		return true;
 	}
 

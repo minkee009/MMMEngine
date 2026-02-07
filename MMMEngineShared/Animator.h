@@ -65,7 +65,7 @@ namespace MMMEngine {
 		void StopClip();
 		void PauseClip();
 		void ResumeClip();
-		void SetSpeed(float _speed) { if (_speed > 0) mPlaySpeed = _speed; }
+		void SetSpeed(float _speed);
 
 		bool IsPlaying() { return mIsPlaying; }
 		bool IsLooping(std::string name) { return mCurrentPlayingMap[name].isLoop; }

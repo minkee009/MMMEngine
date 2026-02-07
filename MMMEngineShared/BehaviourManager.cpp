@@ -236,7 +236,7 @@ void MMMEngine::BehaviourManager::ClearInitializeCache()
 	m_isInitializingPhase = false;
 }
 
-void MMMEngine::BehaviourManager::DisableBehaviours()
+void MMMEngine::BehaviourManager::DisableBehaviours(bool dispatchMessages)
 {
 	if (m_dirtyBehaviours.empty() && m_pendingDestroy.empty())
 		return;
@@ -289,13 +289,13 @@ void MMMEngine::BehaviourManager::DisableBehaviours()
 
 	for (auto& behaviour : disableList)
 	{
-		if (behaviour.IsValid())
+		if (dispatchMessages && behaviour.IsValid())
 			behaviour->CallMessage("OnDisable");
 	}
 
 	for (auto& behaviour : destroyList)
 	{
-		if (behaviour.IsValid())
+		if (dispatchMessages && behaviour.IsValid())
 			behaviour->CallMessage("OnDestroy");
 	}
 

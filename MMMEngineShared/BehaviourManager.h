@@ -16,7 +16,7 @@ namespace MMMEngine
 		friend class Behaviour;
 
 		bool m_isInitializingPhase = false; // 초기화 파이프라인 진행 중인지
-		bool m_isCollecting = false; // InitializeBehaviours 수집 중인지
+		bool m_isCollecting = false; // InitializeBehaviours 수집 중인지S
 
 		std::vector<ObjPtr<Behaviour>> m_pendingRegister; // 초기화 중 등록된 Behaviour
 		std::vector<ObjPtr<Behaviour>> m_pendingDestroy; // 파괴 예약된 Behaviour (OnDisable/OnDestroy 루프용)
@@ -50,7 +50,7 @@ namespace MMMEngine
 		void ClearInitializeCache();
 
 		// 비활성화된 Behaviour를 감지하는 함수
-		void DisableBehaviours();
+		void DisableBehaviours(bool dispatchMessages = true);
 		void MarkBehaviourDirty(ObjPtr<Behaviour> behaviour);
 
 		void BroadCastBehaviourMessage(const std::string& messageName);

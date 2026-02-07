@@ -1,4 +1,4 @@
-#include "SceneSerializer.h"
+﻿#include "SceneSerializer.h"
 #include "GameObject.h"
 #include "Component.h"
 #include "StringHelper.h"
