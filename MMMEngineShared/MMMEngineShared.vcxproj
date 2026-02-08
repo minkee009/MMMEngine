@@ -248,6 +248,7 @@
     <ClInclude Include="ShaderInfo.h" />
     <ClInclude Include="SkeletalMesh.h" />
     <ClInclude Include="SkinRenderer.h" />
+    <ClInclude Include="TrailRenderer.h" />
     <ClInclude Include="SkyRenderer.h" />
     <ClInclude Include="SphereColliderComponent.h" />
     <ClInclude Include="StaticMesh.h" />
@@ -337,6 +338,7 @@
     <ClCompile Include="ShaderInfo.cpp" />
     <ClCompile Include="SkeletalMesh.cpp" />
     <ClCompile Include="SkinRenderer.cpp" />
+    <ClCompile Include="TrailRenderer.cpp" />
     <ClCompile Include="SkyRenderer.cpp" />
     <ClCompile Include="SphereColliderComponent.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
