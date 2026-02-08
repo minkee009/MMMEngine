@@ -21,6 +21,8 @@ RTTR_REGISTRATION
 		.property("AngularDamping", &RigidBodyComponent::GetAngularDamping , &RigidBodyComponent::SetAngularDamping)
 		.property("UseGravity", &RigidBodyComponent::GetUseGravity , &RigidBodyComponent::SetUseGravity)
 		.property("IsKinematic", &RigidBodyComponent::GetKinematic , &RigidBodyComponent::SetKinematic)
+				(rttr::metadata("INSPECTOR_CHAIN", "true=KinematicQuery"))
+		.property("KinematicQuery", &RigidBodyComponent::GetKineticQuery, &RigidBodyComponent::SetKinematicQuery)
 		.property("CollisionMode", &RigidBodyComponent::GetCollisionMode , &RigidBodyComponent::SetCollisionMode)
 		.property("Interpolation", &RigidBodyComponent::GetInterpolationMode , &RigidBodyComponent::SetInterpolationMode)
 		.property("LockPosX", &RigidBodyComponent::GetLockPosX , &RigidBodyComponent::SetLockPosX)
@@ -95,6 +97,12 @@ void MMMEngine::RigidBodyComponent::CreateActor(physx::PxPhysics* physics, Vecto
 
 		if (m_Desc.isKinematic) {
 			t_dynamic->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+			if (m_KineQuery) {
+				t_dynamic->setRigidBodyFlag(
+					physx::PxRigidBodyFlag::eFORCE_KINE_KINE_NOTIFICATIONS, true);
+				/*t_dynamic->setRigidBodyFlag(
+					physx::PxRigidBodyFlag::eFORCE_STATIC_KINE_NOTIFICATIONS, true);*/
+			}
 		}
 		t_dynamic->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD,
 			m_Desc.collisionMode == CollisionDetectionMode::Continuous);
@@ -602,7 +610,6 @@ void MMMEngine::RigidBodyComponent::ClearMassDirty()
 }
 
 
-
 void MMMEngine::RigidBodyComponent::BindTeleport()
 {
 	auto Bind_Trans = GetGameObject();
@@ -738,5 +745,46 @@ void MMMEngine::RigidBodyComponent::SetType(Type newType)
 	m_WakeRequested = true;
 
 	// 매니저에 처리 요청
+	MMMEngine::PhysxManager::Get().NotifyRigidTypeChanged(this);
+}
+
+void MMMEngine::RigidBodyComponent::SetKinematicQuery(bool value)
+{
+
+	m_KineQuery = value;
+	// 현재 포즈 확보
+	Vector3 temp_Position = {};
+	Quaternion temp_Quarter = {};
+
+	if (m_Actor)
+	{
+		auto px = m_Actor->getGlobalPose();
+		temp_Position = ToVec(px.p);
+		temp_Quarter = ToQuat(px.q);
+	}
+	else if (auto tr = GetTransform())
+	{
+		temp_Position = tr->GetWorldPosition();
+		temp_Quarter = tr->GetWorldRotation();
+	}
+	else
+	{
+		temp_Position = Vector3{ 0,0,0 };
+		temp_Quarter = Quaternion::Identity;
+	}
+
+	m_RequestedType = m_Desc.type;
+	m_RequestedPos = temp_Position;
+	m_RequestedRot = temp_Quarter;
+
+	// actor가 없으면 재생성할 필요 없음
+	if (!m_Actor)
+	{
+		m_TypeChangePending = false;
+		return;
+	}
+
+	m_TypeChangePending = true;
+	m_WakeRequested = true;
 	MMMEngine::PhysxManager::Get().NotifyRigidTypeChanged(this);
 }
