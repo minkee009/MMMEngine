@@ -146,6 +146,11 @@ namespace MMMEngine {
 				m_pDeviceContext->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
 			else
 				m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, 0xffffffff);
+			
+			if (type == RenderType::R_PARTICLE)
+				m_pDeviceContext->RSSetState(m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
+			else
+				m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
 
 			// 정렬된 커맨드 실행
 			ResPtr<Material> lastMaterial;
@@ -1085,6 +1090,12 @@ namespace MMMEngine {
 		// TODO :: 글로벌 쉐이더인포 삭제하기 (라이트는 관리했는데 스카이박스 데이터는 관리안함 바꾸셈)
 		ShaderInfo::Get().ClearWorldPropertyDatas();
 
+		if (m_pMainCamera.IsValid())
+		{
+			m_viewMatrix = m_pMainCamera->GetViewMatrix();
+			m_projMatrix = m_pMainCamera->GetProjMatrix();
+		}
+
 		// 렌더러 컨트롤
 		UpdateRenderers();
 		UpdateLights();
@@ -1445,6 +1456,13 @@ namespace MMMEngine {
 
 		// RenderPass
 		ExcuteCommands();
+	}
+
+	void RenderManager::RefreshRenderCommands()
+	{
+		ClearCache();
+		UpdateRenderers();
+		UpdateLights();
 	}
 
 	void RenderManager::RenderUIWithSize(UINT width, UINT height)

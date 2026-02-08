@@ -75,6 +75,7 @@ namespace MMMEngine
 		float m_uiMaskAlphaThreshold = 0.001f;
 		ID3D11DepthStencilState* m_uiActiveDepthState = nullptr;
 		UINT m_uiStencilRef = 0;
+		bool m_sceneViewPass = false;
 		
 		// 라이트 저장
 		std::vector<Light*> m_lights;
@@ -208,6 +209,11 @@ namespace MMMEngine
 
 		ObjPtr<Camera> GetCamera() { return m_pMainCamera; }
 		void SetCamera(const ObjPtr<Camera> _camera) { if(_camera) m_pMainCamera = _camera; }
+		const DirectX::SimpleMath::Matrix& GetViewMatrix() const { return m_viewMatrix; }
+		const DirectX::SimpleMath::Matrix& GetProjMatrix() const { return m_projMatrix; }
+		void SetSceneViewPass(bool value) { m_sceneViewPass = value; }
+		bool IsSceneViewPass() const { return m_sceneViewPass; }
+		void RefreshRenderCommands();
 		uint32_t AddRenderer(Renderer* _renderer);
 		void RemoveRenderer(int _idx);
 

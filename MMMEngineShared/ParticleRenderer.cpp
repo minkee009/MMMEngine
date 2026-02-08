@@ -209,7 +209,8 @@ namespace MMMEngine
 		if (!tr)
 			return;
 
-		const bool allowSim = GlobalRegistry::g_runtimeActive || m_previewEnabled;
+		const bool allowSim = m_previewEnabled ||
+			(GlobalRegistry::g_runtimeActive && !RenderManager::Get().IsSceneViewPass());
 		const float dt = TimeManager::Get().GetDeltaTime();
 		if (allowSim && dt > 0.0f)
 			UpdateSimulation(dt, true);
@@ -238,21 +239,17 @@ namespace MMMEngine
 				useMaterial->AddProperty(L"_albedo", m_texture);
 		}
 
-		auto cam = RenderManager::Get().GetCamera();
-		if (!cam)
-			cam = Camera::GetMainCamera();
-		Vector3 camPos = Vector3::Zero;
-		Vector3 camUp = Vector3::Up;
-		Vector3 camForward = Vector3::Forward;
-		if (cam && cam->GetTransform())
-		{
-			camPos = cam->GetTransform()->GetWorldPosition();
-			Matrix camRot = Matrix::CreateFromQuaternion(cam->GetTransform()->GetWorldRotation());
-			camUp = Vector3::TransformNormal(Vector3::Up, camRot);
-			camForward = Vector3::TransformNormal(Vector3::Forward, camRot);
-			camUp.Normalize();
-			camForward.Normalize();
-		}
+		Matrix view = RenderManager::Get().GetViewMatrix();
+		Matrix invView = view.Invert();
+		Vector3 camPos = invView.Translation();
+		Vector3 camUp = Vector3::TransformNormal(Vector3::Up, invView);
+		Vector3 camForward = Vector3::TransformNormal(Vector3::Forward, invView);
+		if (camUp.LengthSquared() < 0.0001f)
+			camUp = Vector3::Up;
+		if (camForward.LengthSquared() < 0.0001f)
+			camForward = Vector3::Forward;
+		camUp.Normalize();
+		camForward.Normalize();
 
 		for (auto& p : m_particles)
 		{
@@ -277,10 +274,7 @@ namespace MMMEngine
 			cmd.particleAlpha = alpha;
 			cmd.useParticleAlpha = (m_fadeMode == ParticleFade::Fade || m_fadeMode == ParticleFade::ShrinkFade);
 
-			if (cam)
-				cmd.camDistance = Vector3::Distance(camPos, p.position);
-			else
-				cmd.camDistance = 0.0f;
+			cmd.camDistance = Vector3::Distance(camPos, p.position);
 
 			if (m_particleType == ParticleType::Quad)
 			{
@@ -292,8 +286,7 @@ namespace MMMEngine
 				cmd.indiciesSize = 6;
 				cmd.material = useMaterial;
 
-				Matrix billboard = cam ? Matrix::CreateBillboard(p.position, camPos, camUp, &camForward)
-					: Matrix::CreateTranslation(p.position);
+				Matrix billboard = Matrix::CreateWorld(p.position, -camForward, camUp);
 				Matrix spin = Matrix::CreateRotationZ(DegToRad(p.rotationZ));
 				Matrix world = Matrix::CreateScale(finalScale) * spin * billboard;
 
@@ -303,6 +296,8 @@ namespace MMMEngine
 			else
 			{
 				if (!m_mesh || m_mesh->gpuBuffer.vertexBuffers.empty())
+					continue;
+				if (!useMaterial)
 					continue;
 
 				Matrix world = Matrix::CreateScale(finalScale) *
@@ -314,8 +309,6 @@ namespace MMMEngine
 				for (auto& [matIdx, meshIndices] : m_mesh->meshGroupData)
 				{
 					ResPtr<Material> mat = useMaterial;
-					if (!mat && matIdx < m_mesh->materials.size())
-						mat = m_mesh->materials[matIdx];
 					if (!mat)
 						continue;
 

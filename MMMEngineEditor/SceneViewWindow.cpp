@@ -1799,6 +1799,8 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	RenderManager::Get().SetViewMatrix(view);
 	RenderManager::Get().SetProjMatrix(proj);
 	RenderManager::Get().SetOrtho(ortho);
+	RenderManager::Get().SetSceneViewPass(true);
+	RenderManager::Get().RefreshRenderCommands();
 
 	// ID 텍스쳐 렌더링
 	if (m_pPickingVS && m_pPickingPS && m_pPickingIdBuffer)
@@ -2172,7 +2174,8 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	}
 
 	if (m_ui2DMode)
-		RenderManager::Get().RenderUIWithSize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
+	RenderManager::Get().RenderUIWithSize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
+	RenderManager::Get().SetSceneViewPass(false);
 
 	// 여기서 함수 끝나면 guard 소멸자에서 원래 RT/Viewport/Blend 등 자동 복원됨
 }
