@@ -7,6 +7,7 @@
 #include "Material.h"
 #include "StaticMesh.h"
 #include "ShaderInfo.h"
+#include "ResourceManager.h"
 #include "Camera.h"
 #include "TimeManager.h"
 #include "GlobalRegistry.h"
@@ -93,6 +94,17 @@ RTTR_REGISTRATION
 
 namespace
 {
+	constexpr wchar_t kParticleDefaultUnlitPSPath[] = L"Shader/PBR/PS/ParticleUnlitPS.hlsl";
+
+	MMMEngine::ResPtr<MMMEngine::PShader> ResolveParticleDefaultPShader()
+	{
+		auto unlitPS = MMMEngine::ResourceManager::Get().Load<MMMEngine::PShader>(kParticleDefaultUnlitPSPath);
+		if (unlitPS)
+			return unlitPS;
+
+		return MMMEngine::ShaderInfo::Get().GetDefaultPShader();
+	}
+
 	inline float ClampMin(float v, float minV)
 	{
 		return (v < minV) ? minV : v;
@@ -241,7 +253,7 @@ namespace MMMEngine
 			return;
 
 		ResPtr<Material> useMaterial = m_material;
-		if (m_particleType == ParticleType::Quad && !useMaterial)
+		if (!useMaterial)
 		{
 			EnsureAutoMaterial();
 			useMaterial = m_autoMaterial;
@@ -594,7 +606,7 @@ namespace MMMEngine
 
 		auto mat = std::make_shared<Material>();
 		auto vShader = ShaderInfo::Get().GetDefaultVShader();
-		auto pShader = ShaderInfo::Get().GetDefaultPShader();
+		auto pShader = ResolveParticleDefaultPShader();
 
 		if (vShader)
 			mat->SetVShader(vShader);
