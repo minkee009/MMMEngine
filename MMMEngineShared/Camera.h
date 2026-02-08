@@ -32,12 +32,9 @@ namespace MMMEngine
 		const DirectX::SimpleMath::Matrix& GetViewMatrix();
 		const DirectX::SimpleMath::Matrix& GetProjMatrix();
 
-		// Screen space conversion helpers (screen origin: top-left, units: pixels)
-		DirectX::SimpleMath::Vector2 WorldToScreenPoint(
-			const DirectX::SimpleMath::Vector3& worldPos,
-			float screenWidth,
-			float screenHeight);
-		DirectX::SimpleMath::Vector2 WorldToScreenPoint(
+		// Screen space conversion helper (screen origin: top-left, units: pixels).
+		// Returns screen x/y and view-space z (Unity-style: z is distance in camera space; behind camera => z < 0).
+		DirectX::SimpleMath::Vector3 WorldToScreenPoint(
 			const DirectX::SimpleMath::Vector3& worldPos);
 		DirectX::SimpleMath::Vector3 ScreenToWorldPoint(
 			const DirectX::SimpleMath::Vector2& screenPos,

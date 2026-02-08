@@ -17,8 +17,8 @@ DirectX::SimpleMath::Vector2 RectTransform::GetAnchoredPositionInCanvas(const Ve
 ```cpp
 auto cam = Camera::GetMainCamera();
 auto canvas = graphic->GetCanvas();
-Vector2 screenPos = cam->WorldToScreenPoint(worldPos);
-Vector2 canvasPos = canvas->ScreenToCanvas(screenPos);
+Vector3 screenPos = cam->WorldToScreenPoint(worldPos);
+Vector2 canvasPos = canvas->ScreenToCanvas(Vector2(screenPos.x, screenPos.y));
 ```
 
 **사용 예시 2: UI 피벗 위치(캔버스 좌표)**
