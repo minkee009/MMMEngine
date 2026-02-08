@@ -11,6 +11,7 @@
 #include "Button.h"
 #include "Gage.h"
 #include "HandleGage.h"
+#include "ParticleRenderer.h"
 #include "Canvas.h"
 #include <regex>
 
@@ -1272,6 +1273,26 @@ void MMMEngine::Editor::InspectorWindow::RenderProperties(rttr::instance inst, O
         {
             if (ImGui::Button(u8"Set Native Size"))
                 comp->SetNativeSize();
+        }
+    }
+    else if (t == rttr::type::get<ParticleRenderer>())
+    {
+        auto comp = ObjectManager::Get().GetPtr<ParticleRenderer>(objPtr.GetPtrID(), objPtr.GetPtrGeneration());
+        if (comp.IsValid())
+        {
+            if (!comp->IsPreviewing())
+            {
+                if (ImGui::Button(u8"Preview Play"))
+                    comp->StartPreview();
+            }
+            else
+            {
+                if (ImGui::Button(u8"Preview Stop"))
+                    comp->StopPreview();
+                ImGui::SameLine();
+                if (ImGui::Button(u8"Preview Burst"))
+                    comp->PreviewBurst();
+            }
         }
     }
 

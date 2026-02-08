@@ -6,6 +6,7 @@
 #include <Camera.h>
 #include <MeshRenderer.h>
 #include <SkinRenderer.h>
+#include <ParticleRenderer.h>
 #include <Light.h>
 #include <SkyRenderer.h>
 #include <BoxColliderComponent.h>

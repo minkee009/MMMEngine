@@ -107,7 +107,7 @@ namespace MMMEngine {
 	{
 		for (auto& [type, commands] : m_renderCommands)
 		{
-			if (type == RenderType::R_TRANSCULANT)
+			if (type == RenderType::R_TRANSCULANT || type == RenderType::R_PARTICLE)
 			{
 				// 투명 오브젝트: 카메라 거리 내림차순 정렬
 				std::sort(commands.begin(), commands.end(),
@@ -140,6 +140,12 @@ namespace MMMEngine {
 						return a.material < b.material;
 					});
 			}
+
+			float blendFactor[4] = { 0,0,0,0 };
+			if (type == RenderType::R_PARTICLE)
+				m_pDeviceContext->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
+			else
+				m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, 0xffffffff);
 
 			// 정렬된 커맨드 실행
 			ResPtr<Material> lastMaterial;
@@ -181,6 +187,20 @@ namespace MMMEngine {
 
 				// 상수버퍼 등록
 				auto sType = ShaderInfo::Get().GetShaderType(lastMaterial->GetPShader()->GetFilePath());
+
+				if (type == RenderType::R_PARTICLE && cmd.useParticleAlpha)
+				{
+					Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f };
+					const auto& props = lastMaterial->GetProperties();
+					auto it = props.find(L"mBaseColor");
+					if (it != props.end())
+					{
+						if (auto col = std::get_if<Vector4>(&it->second))
+							baseColor = *col;
+					}
+					baseColor.w *= cmd.particleAlpha;
+					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mBaseColor", &baseColor);
+				}
 
 				// 상수버퍼 일렬업데이트
 				ShaderInfo::Get().UpdateCBuffers(sType);

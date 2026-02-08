@@ -26,6 +26,10 @@ namespace MMMEngine {
 
 		bool castShadow = true;
 		bool receiveShadow = true;
+
+		// Particle rendering overrides
+		bool useParticleAlpha = false;
+		float particleAlpha = 1.0f;
 	};
 }
 

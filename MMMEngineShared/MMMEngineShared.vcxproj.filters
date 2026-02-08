@@ -19,6 +19,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="MaterialSerializer.cpp" />
     <ClCompile Include="MeshRenderer.cpp" />
+    <ClCompile Include="ParticleRenderer.cpp" />
     <ClCompile Include="MissingScriptBehaviour.cpp" />
     <ClCompile Include="MUID.cpp" />
     <ClCompile Include="Object.cpp" />
@@ -127,6 +128,9 @@
     <ClCompile Include="MeshRenderer.cpp">
       <Filter>소스 파일\Core\Render API\Component</Filter>
     </ClCompile>
+    <ClCompile Include="ParticleRenderer.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
     <ClCompile Include="PhysicsSettings.cpp">
       <Filter>소스 파일\Core\Physcis API</Filter>
     </ClCompile>
@@ -196,6 +200,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="MaterialSerializer.h" />
     <ClInclude Include="MeshRenderer.h" />
+    <ClInclude Include="ParticleRenderer.h" />
     <ClInclude Include="MissingScriptBehaviour.h" />
     <ClInclude Include="MMMApplication.h" />
     <ClInclude Include="MMMResources.h" />
@@ -605,6 +610,9 @@
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
     <ClInclude Include="MeshRenderer.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleRenderer.h">
       <Filter>헤더 파일\Core\Render API\Component</Filter>
     </ClInclude>
     <ClInclude Include="RendererTools.h">
