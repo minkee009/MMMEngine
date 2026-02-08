@@ -43,6 +43,8 @@ bool MMMEngine::AudioManager::StartUp()
 
 	CheckFmod(m_system->set3DSettings(1.0f, 1.0f, 1.0f), "System::set3DSettings");
 	CheckFmod(m_system->getMasterChannelGroup(&m_master), "System::getMasterChannelGroup");
+	if (m_master)
+		CheckFmod(m_master->setPaused(m_masterPaused), "ChannelGroup::setPaused");
 
 	m_initialized = true;
 	return true;
@@ -65,6 +67,7 @@ void MMMEngine::AudioManager::ShutDown()
 
 	m_master = nullptr;
 	m_initialized = false;
+	m_masterPaused = false;
 }
 
 void MMMEngine::AudioManager::Update(float dt)
@@ -126,6 +129,18 @@ void MMMEngine::AudioManager::StopAll()
 
 	if (m_master)
 		m_master->stop();
+}
+
+void MMMEngine::AudioManager::SetPaused(bool paused)
+{
+	if (m_masterPaused == paused)
+		return;
+
+	m_masterPaused = paused;
+	if (!m_initialized || !m_master)
+		return;
+
+	CheckFmod(m_master->setPaused(paused), "ChannelGroup::setPaused");
 }
 
 void MMMEngine::AudioManager::RegisterSource(AudioSource* source)

@@ -30,14 +30,17 @@ namespace MMMEngine
 		AudioListener* m_mainListener = nullptr;
 
 		bool m_initialized = false;
+		bool m_masterPaused = false;
 
 	public:
 		bool StartUp();
 		void ShutDown();
 		void Update(float dt);
 		void StopAll();
+		void SetPaused(bool paused);
 
 		bool IsInitialized() const { return m_initialized; }
+		bool IsPaused() const { return m_masterPaused; }
 		FMOD::System* GetSystem() const { return m_system; }
 		FMOD::ChannelGroup* GetMasterGroup() const { return m_master; }
 

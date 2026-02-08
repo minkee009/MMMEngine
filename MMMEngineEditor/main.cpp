@@ -139,6 +139,8 @@ void Update()
 	if (playStoppedThisFrame)
 		AudioManager::Get().StopAll();
 
+	AudioManager::Get().SetPaused(isPlaying && EditorRegistry::g_editor_scene_pause);
+
 	GlobalRegistry::g_runtimeActive = (isPlaying
 		&& !EditorRegistry::g_editor_scene_pause);
 
