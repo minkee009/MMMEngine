@@ -4,6 +4,8 @@
 #include "Resource.h"
 #include "rttr/type"
 #include "rttr/registration_friend.h"
+#include <cstdint>
+#include <vector>
 
 namespace FMOD
 {
@@ -22,6 +24,7 @@ namespace MMMEngine
 		friend class Scene;
 
 		FMOD::Sound* m_sound = nullptr;
+		std::vector<uint8_t> m_embeddedData;
 
 	public:
 		AudioClip() = default;

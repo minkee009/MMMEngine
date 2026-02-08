@@ -255,6 +255,7 @@
     <ClInclude Include="SphereColliderComponent.h" />
     <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="AudioClip.h" />
+    <ClInclude Include="AudioClipFileFormat.h" />
     <ClInclude Include="UserScriptMessageSignatures.h" />
     <ClInclude Include="UserScriptsCommon.h" />
     <ClInclude Include="VShader.h" />

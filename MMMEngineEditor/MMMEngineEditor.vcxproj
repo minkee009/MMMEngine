@@ -166,6 +166,7 @@
     <ClInclude Include="FilesWindow.h" />
     <ClInclude Include="FontImporter.h" />
     <ClInclude Include="FontImporterWindow.h" />
+    <ClInclude Include="AudioClipImporterWindow.h" />
     <ClInclude Include="GameViewWindow.h" />
     <ClInclude Include="HierarchyWindow.h" />
     <ClInclude Include="imgui-docking\backends\imgui_impl_dx11.h" />
@@ -208,6 +209,7 @@
     <ClCompile Include="FilesWindow.cpp" />
     <ClCompile Include="FontImporter.cpp" />
     <ClCompile Include="FontImporterWindow.cpp" />
+    <ClCompile Include="AudioClipImporterWindow.cpp" />
     <ClCompile Include="GameViewWindow.cpp" />
     <ClCompile Include="HierarchyWindow.cpp" />
     <ClCompile Include="imgui-docking\backends\imgui_impl_dx11.cpp" />

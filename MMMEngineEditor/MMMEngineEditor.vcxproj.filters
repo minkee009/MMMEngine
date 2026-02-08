@@ -219,6 +219,9 @@
     <ClInclude Include="FontImporterWindow.h">
       <Filter>헤더 파일\EditorWindow\Popup</Filter>
     </ClInclude>
+    <ClInclude Include="AudioClipImporterWindow.h">
+      <Filter>헤더 파일\EditorWindow\Popup</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AnimationCurveEditor.cpp">
@@ -333,6 +336,9 @@
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
     <ClCompile Include="FontImporterWindow.cpp">
+      <Filter>소스 파일\EditorWIndow\Popup</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioClipImporterWindow.cpp">
       <Filter>소스 파일\EditorWIndow\Popup</Filter>
     </ClCompile>
   </ItemGroup>
