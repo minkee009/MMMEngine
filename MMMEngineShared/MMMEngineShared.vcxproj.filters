@@ -4,6 +4,9 @@
     <ClCompile Include="AnimationCurve.cpp" />
     <ClCompile Include="AnimationClip.cpp" />
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="AudioListener.cpp" />
+    <ClCompile Include="AudioManager.cpp" />
+    <ClCompile Include="AudioSource.cpp" />
     <ClCompile Include="Behaviour.cpp" />
     <ClCompile Include="BehaviourManager.cpp" />
     <ClCompile Include="BoxColliderComponent.cpp" />
@@ -54,6 +57,7 @@
     <ClCompile Include="SkyRenderer.cpp" />
     <ClCompile Include="SphereColliderComponent.cpp" />
     <ClCompile Include="StaticMesh.cpp" />
+    <ClCompile Include="AudioClip.cpp" />
     <ClCompile Include="VShader.cpp" />
     <ClCompile Include="ScriptLoader.cpp" />
     <ClCompile Include="StringHelper.cpp" />
@@ -179,6 +183,9 @@
   <ItemGroup>
     <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="App.h" />
+    <ClInclude Include="AudioListener.h" />
+    <ClInclude Include="AudioManager.h" />
+    <ClInclude Include="AudioSource.h" />
     <ClInclude Include="Behaviour.h" />
     <ClInclude Include="BoxColliderComponent.h" />
     <ClInclude Include="Camera.h" />
@@ -244,6 +251,7 @@
     <ClInclude Include="SkyRenderer.h" />
     <ClInclude Include="SphereColliderComponent.h" />
     <ClInclude Include="StaticMesh.h" />
+    <ClInclude Include="AudioClip.h" />
     <ClInclude Include="UserScriptMessageSignatures.h" />
     <ClInclude Include="UserScriptsCommon.h" />
     <ClInclude Include="VShader.h" />

@@ -15,6 +15,7 @@
 #include "ObjectManager.h"
 #include "PhysxManager.h"
 #include "GlobalRegistry.h"
+#include "AudioManager.h"
 
 #include "PhysicsSettings.h"
 #include "ShaderInfo.h"
@@ -51,6 +52,8 @@ void Initialize()
 	// 유저 스크립트 불러오기
 	auto dllPath = cwd / "UserScripts.dll";
 	BehaviourManager::Get().StartUp(dllPath.generic_u8string());
+
+	AudioManager::Get().StartUp();
 
 	// 리소스 매니저 부팅
 	ResourceManager::Get().StartUp(dataPath.generic_wstring() + L"/");
@@ -150,6 +153,7 @@ void Update()
 	PhysxManager::Get().ApplyInterpolation(TimeManager::Get().GetInterpolationAlpha());
 	BehaviourManager::Get().BroadCastBehaviourMessage("Update");
 	BehaviourManager::Get().BroadCastBehaviourMessage("LateUpdate");
+	AudioManager::Get().Update(dt);
 
 	RenderManager::Get().BeginFrame();
 	RenderManager::Get().Render();
@@ -171,6 +175,7 @@ void Release()
 	SceneManager::Get().ShutDown();
 	ObjectManager::Get().ShutDown();
 	BehaviourManager::Get().ShutDown();
+	AudioManager::Get().ShutDown();
 
 	fs::path cwd = fs::current_path();
 }
