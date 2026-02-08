@@ -165,6 +165,7 @@ namespace MMMEngine {
 		uint32_t GetSolverVelocityIters() { return m_Desc.solverVelocityIters; }
 		CollisionDetectionMode GetCollisionMode() { return m_Desc.collisionMode; }
 		InterpolationMode GetInterpolationMode() { return m_Desc.interpolation; }
+		bool GetKineticQuery() { return m_KineQuery; }
 
 
 		void SetUseGravity(bool value);
@@ -210,6 +211,8 @@ namespace MMMEngine {
 		void MarkMassDirty();
 		bool IsMassDirty() const;
 		void ClearMassDirty();
+
+		void SetKinematicQuery(bool value);
 	private:
 		Desc m_Desc;
 
@@ -281,5 +284,7 @@ namespace MMMEngine {
 		bool m_ColliderMaster = false;
 
 		bool m_MassDirty = false;
+
+		bool m_KineQuery = false;
 	};
 }
