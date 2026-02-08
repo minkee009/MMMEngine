@@ -31,6 +31,7 @@ namespace MMMEngine
 		void AddChild(ObjPtr<Transform> child);
 		void RemoveChild(ObjPtr<Transform> child);
 		void MarkDirty();
+		void NotifyTransformTreeChangedRecursive();
 	protected:
 		Transform();
 		//virtual void Initialize() override {};

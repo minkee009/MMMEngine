@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Export.h"
 #include "Behaviour.h"
@@ -22,9 +22,18 @@ namespace MMMEngine
 		DirectX::SimpleMath::Color m_color = { 1.0f,1.0f,1.0f,1.0f };
 		ResPtr<Texture2D> m_texture = nullptr;
 		int m_renderOrder = 0;
+		int m_cachedEffectiveRenderOrder = 0;
+		int m_cachedRenderOrderValue = 0;
+		int m_cachedParentEffectiveOrder = 0;
+		bool m_hadCachedParentGraphic = false;
+		ObjPtr<Graphic> m_cachedParentGraphic;
+		bool m_effectiveOrderDirty = true;
 
 		void RefreshCanvas(ObjPtr<Transform> newParent);
 		void HandleTransformParentChanged(ObjPtr<Transform> newParent);
+		void MarkEffectiveOrderDirty();
+		void MarkEffectiveOrderDirtyRecursive();
+		int RecalculateEffectiveRenderOrder();
 
 	protected:
 		void Initialize() override;
@@ -42,7 +51,14 @@ namespace MMMEngine
 		void SetTexture(const ResPtr<Texture2D>& texture) { m_texture = texture; }
 
 		int GetRenderOrder() const { return m_renderOrder; }
-		void SetRenderOrder(int order) { m_renderOrder = order; }
+		void SetRenderOrder(int order)
+		{
+			if (m_renderOrder == order)
+				return;
+			m_renderOrder = order;
+			MarkEffectiveOrderDirtyRecursive();
+		}
+		int GetEffectiveRenderOrder();
 
 		ObjPtr<Canvas> GetCanvas() const { return m_canvas; }
 		ObjPtr<RectTransform> GetRectTransform();
