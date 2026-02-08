@@ -46,6 +46,8 @@ namespace MMMEngine
 		void UpdateTrailPoints(float dt, const DirectX::SimpleMath::Vector3& emitterPosition);
 		bool BuildTrailGeometry(
 			const DirectX::SimpleMath::Vector3& cameraPosition,
+			const DirectX::SimpleMath::Vector3& emitterPosition,
+			bool includeEmitterHead,
 			std::vector<Mesh_Vertex>& outVertices,
 			std::vector<UINT>& outIndices) const;
 		bool UpdateGpuBuffers(
@@ -79,4 +81,3 @@ namespace MMMEngine
 		void Clear();
 	};
 }
-

@@ -140,7 +140,7 @@ namespace MMMEngine
 
 		std::vector<Mesh_Vertex> vertices;
 		std::vector<UINT> indices;
-		if (!BuildTrailGeometry(cameraPos, vertices, indices))
+		if (!BuildTrailGeometry(cameraPos, emitterPos, mEmitting, vertices, indices))
 			return;
 
 		if (!UpdateGpuBuffers(vertices, indices))
@@ -201,18 +201,13 @@ namespace MMMEngine
 			return;
 		}
 
-		auto& head = mPoints.back();
+		const auto& head = mPoints.back();
 		const float minDistSq = mMinVertexDistance * mMinVertexDistance;
 		const float distSq = DirectX::SimpleMath::Vector3::DistanceSquared(head.position, emitterPosition);
 
 		if (distSq >= minDistSq)
 		{
 			mPoints.push_back({ emitterPosition, 0.0f });
-		}
-		else
-		{
-			head.position = emitterPosition;
-			head.age = 0.0f;
 		}
 
 		while (mPoints.size() > static_cast<size_t>(mMaxPoints))
@@ -221,13 +216,35 @@ namespace MMMEngine
 
 	bool TrailRenderer::BuildTrailGeometry(
 		const DirectX::SimpleMath::Vector3& cameraPosition,
+		const DirectX::SimpleMath::Vector3& emitterPosition,
+		bool includeEmitterHead,
 		std::vector<Mesh_Vertex>& outVertices,
 		std::vector<UINT>& outIndices) const
 	{
 		outVertices.clear();
 		outIndices.clear();
 
-		const size_t pointCount = mPoints.size();
+		std::vector<DirectX::SimpleMath::Vector3> trailPositions;
+		trailPositions.reserve(mPoints.size() + 1);
+		for (const auto& point : mPoints)
+			trailPositions.push_back(point.position);
+
+		if (includeEmitterHead)
+		{
+			if (trailPositions.empty())
+			{
+				trailPositions.push_back(emitterPosition);
+			}
+			else
+			{
+				const float headDistSq =
+					DirectX::SimpleMath::Vector3::DistanceSquared(trailPositions.back(), emitterPosition);
+				if (headDistSq > kTrailEpsilon)
+					trailPositions.push_back(emitterPosition);
+			}
+		}
+
+		const size_t pointCount = trailPositions.size();
 		if (pointCount < 2 || mWidth <= 0.0f)
 			return false;
 
@@ -238,13 +255,13 @@ namespace MMMEngine
 
 		for (size_t i = 0; i < pointCount; ++i)
 		{
-			const auto& current = mPoints[i].position;
-			const auto& prev = (i > 0) ? mPoints[i - 1].position : current;
-			const auto& next = (i + 1 < pointCount) ? mPoints[i + 1].position : current;
+			const auto& current = trailPositions[i];
+			const auto& prev = (i > 0) ? trailPositions[i - 1] : current;
+			const auto& next = (i + 1 < pointCount) ? trailPositions[i + 1] : current;
 
 			DirectX::SimpleMath::Vector3 tangent = next - prev;
 			if (tangent.LengthSquared() < kTrailEpsilon)
-				tangent = (i > 0) ? (current - mPoints[i - 1].position) : DirectX::SimpleMath::Vector3::Forward;
+				tangent = (i > 0) ? (current - trailPositions[i - 1]) : DirectX::SimpleMath::Vector3::Forward;
 			if (tangent.LengthSquared() < kTrailEpsilon)
 				tangent = DirectX::SimpleMath::Vector3::Forward;
 			tangent.Normalize();
