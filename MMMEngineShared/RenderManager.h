@@ -75,7 +75,6 @@ namespace MMMEngine
 		float m_uiMaskAlphaThreshold = 0.001f;
 		ID3D11DepthStencilState* m_uiActiveDepthState = nullptr;
 		UINT m_uiStencilRef = 0;
-		bool m_sceneViewPass = false;
 		
 		// 라이트 저장
 		std::vector<Light*> m_lights;
@@ -177,9 +176,9 @@ namespace MMMEngine
 		void ShutDown();
 
 		// 이 3개는 업데이트때마다 호출해서 관리할것
-		void SetWorldMatrix(DirectX::SimpleMath::Matrix& _world);
-		void SetViewMatrix(DirectX::SimpleMath::Matrix& _view);
-		void SetProjMatrix(DirectX::SimpleMath::Matrix& _proj);
+		void SetWorldMatrix(const DirectX::SimpleMath::Matrix& _world);
+		void SetViewMatrix(const DirectX::SimpleMath::Matrix& _view);
+		void SetProjMatrix(const DirectX::SimpleMath::Matrix& _proj);
 		void SetOrtho(bool _val) { isOrtho = _val; }
 
 		void ResizeSwapChainSize(int width, int height);
@@ -209,10 +208,6 @@ namespace MMMEngine
 
 		ObjPtr<Camera> GetCamera() { return m_pMainCamera; }
 		void SetCamera(const ObjPtr<Camera> _camera) { if(_camera) m_pMainCamera = _camera; }
-		const DirectX::SimpleMath::Matrix& GetViewMatrix() const { return m_viewMatrix; }
-		const DirectX::SimpleMath::Matrix& GetProjMatrix() const { return m_projMatrix; }
-		void SetSceneViewPass(bool value) { m_sceneViewPass = value; }
-		bool IsSceneViewPass() const { return m_sceneViewPass; }
 		void RefreshRenderCommands();
 		uint32_t AddRenderer(Renderer* _renderer);
 		void RemoveRenderer(int _idx);

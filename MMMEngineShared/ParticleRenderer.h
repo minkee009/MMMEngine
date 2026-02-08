@@ -75,6 +75,7 @@ namespace MMMEngine
 
 		DirectX::SimpleMath::Vector3 m_emitDirection = { 0.0f, 1.0f, 0.0f };
 		DirectX::SimpleMath::Vector2 m_directionAngleRange = { 0.0f, 30.0f }; // degrees
+		DirectX::SimpleMath::Vector2 m_startAngleRange = { 0.0f, 0.0f }; // degrees
 		DirectX::SimpleMath::Vector3 m_directionBoxRange = { 1.0f, 1.0f, 1.0f };
 		float m_lifetimeMin = 1.0f;
 		float m_lifetimeMax = 2.0f;
@@ -118,6 +119,9 @@ namespace MMMEngine
 		void EnsureAutoMaterial();
 
 	public:
+		static void BeginSceneViewRender(const DirectX::SimpleMath::Matrix& viewMatrix);
+		static void EndSceneViewRender();
+
 		EmitShape GetShape() const { return m_shape; }
 		void SetShape(EmitShape shape) { m_shape = shape; }
 
@@ -135,6 +139,9 @@ namespace MMMEngine
 
 		const DirectX::SimpleMath::Vector2& GetDirectionAngleRange() const { return m_directionAngleRange; }
 		void SetDirectionAngleRange(const DirectX::SimpleMath::Vector2& range) { m_directionAngleRange = range; }
+
+		const DirectX::SimpleMath::Vector2& GetStartAngleRange() const { return m_startAngleRange; }
+		void SetStartAngleRange(const DirectX::SimpleMath::Vector2& range) { m_startAngleRange = range; }
 
 		const DirectX::SimpleMath::Vector3& GetDirectionBoxRange() const { return m_directionBoxRange; }
 		void SetDirectionBoxRange(const DirectX::SimpleMath::Vector3& range) { m_directionBoxRange = range; }

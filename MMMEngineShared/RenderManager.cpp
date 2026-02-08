@@ -896,17 +896,17 @@ namespace MMMEngine {
 			}, _value);
 	}
 
-	void RenderManager::SetWorldMatrix(DirectX::SimpleMath::Matrix& _world)
+	void RenderManager::SetWorldMatrix(const DirectX::SimpleMath::Matrix& _world)
 	{
 		m_worldMatrix = _world;
 	}
 
-	void RenderManager::SetViewMatrix(DirectX::SimpleMath::Matrix& _view)
+	void RenderManager::SetViewMatrix(const DirectX::SimpleMath::Matrix& _view)
 	{
 		m_viewMatrix = _view;
 	}
 
-	void RenderManager::SetProjMatrix(DirectX::SimpleMath::Matrix& _proj)
+	void RenderManager::SetProjMatrix(const DirectX::SimpleMath::Matrix& _proj)
 	{
 		m_projMatrix = _proj;
 	}

@@ -65,6 +65,7 @@ RTTR_REGISTRATION
 		.property("DirectionRange", &ParticleRenderer::GetDirectionRange, &ParticleRenderer::SetDirectionRange)
 			(rttr::metadata("INSPECTOR_CHAIN", "Cone=DirectionAngleRange;Box=DirectionBoxRange"))
 		.property("DirectionAngleRange", &ParticleRenderer::GetDirectionAngleRange, &ParticleRenderer::SetDirectionAngleRange)
+		.property("StartAngleRange", &ParticleRenderer::GetStartAngleRange, &ParticleRenderer::SetStartAngleRange)
 		.property("DirectionBoxRange", &ParticleRenderer::GetDirectionBoxRange, &ParticleRenderer::SetDirectionBoxRange)
 		.property("LifetimeMin", &ParticleRenderer::GetLifetimeMin, &ParticleRenderer::SetLifetimeMin)
 		.property("LifetimeMax", &ParticleRenderer::GetLifetimeMax, &ParticleRenderer::SetLifetimeMax)
@@ -79,7 +80,7 @@ RTTR_REGISTRATION
 		.property("SpawnFormula", &ParticleRenderer::GetSpawnFormula, &ParticleRenderer::SetSpawnFormula)
 		.property("UpdateFormula", &ParticleRenderer::GetUpdateFormula, &ParticleRenderer::SetUpdateFormula)
 		.property("ParticleType", &ParticleRenderer::GetParticleType, &ParticleRenderer::SetParticleType)
-			(rttr::metadata("INSPECTOR_CHAIN", "Quad=Material,Texture;Mesh=Mesh,Material"))
+			(rttr::metadata("INSPECTOR_CHAIN", "Quad=Material,Texture,StartAngleRange;Mesh=Mesh,Material"))
 		.property("FadeMode", &ParticleRenderer::GetFadeMode, &ParticleRenderer::SetFadeMode)
 		.property("Material", &ParticleRenderer::GetMaterial, &ParticleRenderer::SetMaterial)
 		.property("Mesh", &ParticleRenderer::GetMesh, &ParticleRenderer::SetMesh)
@@ -108,10 +109,30 @@ namespace
 	{
 		return deg * (XM_PI / 180.0f);
 	}
+
+	struct SceneViewParticleContext
+	{
+		bool active = false;
+		Matrix viewMatrix = Matrix::Identity;
+	};
+
+	SceneViewParticleContext g_sceneViewParticleContext;
 }
 
 namespace MMMEngine
 {
+	void ParticleRenderer::BeginSceneViewRender(const Matrix& viewMatrix)
+	{
+		g_sceneViewParticleContext.active = true;
+		g_sceneViewParticleContext.viewMatrix = viewMatrix;
+	}
+
+	void ParticleRenderer::EndSceneViewRender()
+	{
+		g_sceneViewParticleContext.active = false;
+		g_sceneViewParticleContext.viewMatrix = Matrix::Identity;
+	}
+
 	void ParticleRenderer::Initialize()
 	{
 		renderIndex = RenderManager::Get().AddRenderer(this);
@@ -209,8 +230,9 @@ namespace MMMEngine
 		if (!tr)
 			return;
 
+		const bool inSceneViewPass = g_sceneViewParticleContext.active;
 		const bool allowSim = m_previewEnabled ||
-			(GlobalRegistry::g_runtimeActive && !RenderManager::Get().IsSceneViewPass());
+			(GlobalRegistry::g_runtimeActive && !inSceneViewPass);
 		const float dt = TimeManager::Get().GetDeltaTime();
 		if (allowSim && dt > 0.0f)
 			UpdateSimulation(dt, true);
@@ -239,7 +261,18 @@ namespace MMMEngine
 				useMaterial->AddProperty(L"_albedo", m_texture);
 		}
 
-		Matrix view = RenderManager::Get().GetViewMatrix();
+		Matrix view = Matrix::Identity;
+		if (inSceneViewPass)
+		{
+			view = g_sceneViewParticleContext.viewMatrix;
+		}
+		else
+		{
+			auto mainCamera = RenderManager::Get().GetCamera();
+			if (mainCamera.IsValid())
+				view = mainCamera->GetViewMatrix();
+		}
+
 		Matrix invView = view.Invert();
 		Vector3 camPos = invView.Translation();
 		Vector3 camUp = Vector3::TransformNormal(Vector3::Up, invView);
@@ -406,7 +439,9 @@ namespace MMMEngine
 		float angMax = std::max(m_angularSpeedMin, m_angularSpeedMax);
 		p.angularVelocity = RandomRange(angMin, angMax);
 
-		p.rotationZ = RandomRange(0.0f, 360.0f);
+		const float startAngleMin = std::min(m_startAngleRange.x, m_startAngleRange.y);
+		const float startAngleMax = std::max(m_startAngleRange.x, m_startAngleRange.y);
+		p.rotationZ = RandomRange(startAngleMin, startAngleMax);
 		p.rotation = emitterRot;
 		p.angularAxis = RandomUnitVector();
 

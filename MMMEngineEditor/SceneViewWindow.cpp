@@ -6,6 +6,7 @@
 #include "RenderManager.h"
 #include "ResourceManager.h"
 #include "Renderer.h"
+#include "ParticleRenderer.h"
 #include "VShader.h"
 #include "PShader.h"
 #include "SceneManager.h"
@@ -1795,12 +1796,13 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	auto view = m_pCam->GetViewMatrix();
 	auto proj = m_pCam->GetProjMatrix();
 	auto ortho = m_pCam->IsOrthographic();
+	auto& renderManager = RenderManager::Get();
 
-	RenderManager::Get().SetViewMatrix(view);
-	RenderManager::Get().SetProjMatrix(proj);
-	RenderManager::Get().SetOrtho(ortho);
-	RenderManager::Get().SetSceneViewPass(true);
-	RenderManager::Get().RefreshRenderCommands();
+	renderManager.SetViewMatrix(view);
+	renderManager.SetProjMatrix(proj);
+	renderManager.SetOrtho(ortho);
+	ParticleRenderer::BeginSceneViewRender(view);
+	renderManager.RefreshRenderCommands();
 
 	// ID 텍스쳐 렌더링
 	if (m_pPickingVS && m_pPickingPS && m_pPickingIdBuffer)
@@ -1811,7 +1813,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 		context->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		context->RSSetState(m_states->CullNone());
 
-		RenderManager::Get().RenderPickingIds(
+		renderManager.RenderPickingIds(
 			m_pPickingPS->m_pPShader.Get(),
 			m_pPickingIdBuffer.Get());
 	}
@@ -1826,7 +1828,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	if (!m_ui2DMode)
 		m_pGridRenderer->Render(context, *m_pCam);
 
-	RenderManager::Get().RenderOnlyRenderer();
+	renderManager.RenderOnlyRenderer();
 
 	// 디버그 드로잉
 	if (m_enableDebugDraw)
@@ -2108,7 +2110,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 
 		if (!selectedIds.empty())
 		{
-			RenderManager::Get().RenderSelectedMask(
+			renderManager.RenderSelectedMask(
 				m_pMaskPS->m_pPShader.Get(),
 				selectedIds.data(),
 				static_cast<uint32_t>(selectedIds.size()));
@@ -2174,8 +2176,9 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	}
 
 	if (m_ui2DMode)
-	RenderManager::Get().RenderUIWithSize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
-	RenderManager::Get().SetSceneViewPass(false);
+		renderManager.RenderUIWithSize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
+
+	ParticleRenderer::EndSceneViewRender();
 
 	// 여기서 함수 끝나면 guard 소멸자에서 원래 RT/Viewport/Blend 등 자동 복원됨
 }
