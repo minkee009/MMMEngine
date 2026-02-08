@@ -99,6 +99,7 @@ void MMMEngine::ShaderInfo::StartUp()
 	// --- JSON 템플릿 ---
 	// 쉐이더 타입정보정의
 	m_typeInfoMap[L"Shader/PBR/PS/BRDFShader.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY };
+	m_typeInfoMap[L"Shader/PBR/PS/TrailUnlitPS.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY };
 	m_typeInfoMap[L"Shader/TOON/ToonPS.hlsl"] = { ShaderType::S_TOON, RenderType::R_GEOMETRY };
 	m_typeInfoMap[L"Shader/SkyBox/SkyBoxPixelShader.hlsl"] = { ShaderType::S_SKYBOX, RenderType::R_SKYBOX };
 

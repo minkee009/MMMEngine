@@ -6,6 +6,7 @@
 #include "RenderCommand.h"
 #include "RenderManager.h"
 #include "RendererTools.h"
+#include "ResourceManager.h"
 #include "ShaderInfo.h"
 #include "TimeManager.h"
 #include "Transform.h"
@@ -20,6 +21,16 @@
 namespace
 {
 	constexpr float kTrailEpsilon = 1.0e-6f;
+	constexpr wchar_t kTrailDefaultPShaderPath[] = L"Shader/PBR/PS/TrailUnlitPS.hlsl";
+
+	MMMEngine::ResPtr<MMMEngine::PShader> ResolveTrailDefaultPShader()
+	{
+		auto trailUnlit = MMMEngine::ResourceManager::Get().Load<MMMEngine::PShader>(kTrailDefaultPShaderPath);
+		if (trailUnlit)
+			return trailUnlit;
+
+		return MMMEngine::ShaderInfo::Get().GetDefaultPShader();
+	}
 }
 
 RTTR_REGISTRATION
@@ -60,7 +71,7 @@ namespace MMMEngine
 			mMaterial->SetVShader(ShaderInfo::Get().GetDefaultVShader());
 
 		if (!mMaterial->GetPShader())
-			mMaterial->SetPShader(ShaderInfo::Get().GetDefaultPShader());
+			mMaterial->SetPShader(ResolveTrailDefaultPShader());
 
 		auto pShader = mMaterial->GetPShader();
 		if (pShader)
@@ -178,7 +189,7 @@ namespace MMMEngine
 			return;
 
 		const auto defaultVS = ShaderInfo::Get().GetDefaultVShader();
-		const auto defaultPS = ShaderInfo::Get().GetDefaultPShader();
+		const auto defaultPS = ResolveTrailDefaultPShader();
 		if (!defaultVS || !defaultPS)
 			return;
 
