@@ -31,6 +31,8 @@ RTTR_REGISTRATION
 		(rttr::metadata("wrapper_type_name", "ObjPtr<TrailRenderer>"))
 		.property("Material", &TrailRenderer::GetMaterial, &TrailRenderer::SetMaterial)
 		.property("Width", &TrailRenderer::GetWidth, &TrailRenderer::SetWidth)(rttr::metadata("RANGE", "0.01,10.0"))
+		.property("TailWidthScale", &TrailRenderer::GetTailWidthScale, &TrailRenderer::SetTailWidthScale)(rttr::metadata("RANGE", "0.0,1.0"))
+		.property("WidthTaperPower", &TrailRenderer::GetWidthTaperPower, &TrailRenderer::SetWidthTaperPower)(rttr::metadata("RANGE", "0.1,8.0"))
 		.property("Time", &TrailRenderer::GetTime, &TrailRenderer::SetTime)(rttr::metadata("RANGE", "0.01,20.0"))
 		.property("MinVertexDistance", &TrailRenderer::GetMinVertexDistance, &TrailRenderer::SetMinVertexDistance)(rttr::metadata("RANGE", "0.001,5.0"))
 		.property("MaxPoints", &TrailRenderer::GetMaxPoints, &TrailRenderer::SetMaxPoints)(rttr::metadata("RANGE", "8,4096"))
@@ -73,6 +75,16 @@ namespace MMMEngine
 		mWidth = std::max(width, 0.001f);
 	}
 
+	void TrailRenderer::SetTailWidthScale(float scale)
+	{
+		mTailWidthScale = std::clamp(scale, 0.0f, 1.0f);
+	}
+
+	void TrailRenderer::SetWidthTaperPower(float power)
+	{
+		mWidthTaperPower = std::clamp(power, 0.1f, 8.0f);
+	}
+
 	void TrailRenderer::SetTime(float lifeTime)
 	{
 		mLifeTime = std::max(lifeTime, 0.01f);
@@ -98,8 +110,6 @@ namespace MMMEngine
 	void TrailRenderer::Initialize()
 	{
 		renderIndex = RenderManager::Get().AddRenderer(this);
-		castShadows = false;
-		receiveShadows = false;
 		EnsureMaterial();
 	}
 
@@ -128,7 +138,7 @@ namespace MMMEngine
 		const DirectX::SimpleMath::Vector3 emitterPos = transform->GetWorldPosition();
 		UpdateTrailPoints(dt, emitterPos);
 
-		if (mPoints.size() < 2)
+		if (mPoints.empty())
 			return;
 
 		DirectX::SimpleMath::Vector3 cameraPos = emitterPos + DirectX::SimpleMath::Vector3::Backward;
@@ -251,8 +261,6 @@ namespace MMMEngine
 		outVertices.reserve(pointCount * 2);
 		outIndices.reserve((pointCount - 1) * 6);
 
-		const float halfWidth = mWidth * 0.5f;
-
 		for (size_t i = 0; i < pointCount; ++i)
 		{
 			const auto& current = trailPositions[i];
@@ -281,6 +289,9 @@ namespace MMMEngine
 			side.Normalize();
 
 			const float u = (pointCount > 1) ? static_cast<float>(i) / static_cast<float>(pointCount - 1) : 0.0f;
+			const float taperT = std::pow(std::clamp(u, 0.0f, 1.0f), mWidthTaperPower);
+			const float widthScale = mTailWidthScale + (1.0f - mTailWidthScale) * taperT;
+			const float halfWidth = mWidth * 0.5f * widthScale;
 
 			Mesh_Vertex left{};
 			left.Pos = current - side * halfWidth;

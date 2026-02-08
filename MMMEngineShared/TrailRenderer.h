@@ -33,6 +33,8 @@ namespace MMMEngine
 		size_t mIndexCapacity = 0;
 
 		float mWidth = 0.25f;
+		float mTailWidthScale = 1.0f;
+		float mWidthTaperPower = 1.0f;
 		float mLifeTime = 0.6f;
 		float mMinVertexDistance = 0.1f;
 		uint32_t mMaxPoints = 128;
@@ -59,6 +61,12 @@ namespace MMMEngine
 
 		void SetWidth(float width);
 		float GetWidth() const { return mWidth; }
+
+		void SetTailWidthScale(float scale);
+		float GetTailWidthScale() const { return mTailWidthScale; }
+
+		void SetWidthTaperPower(float power);
+		float GetWidthTaperPower() const { return mWidthTaperPower; }
 
 		void SetTime(float lifeTime);
 		float GetTime() const { return mLifeTime; }
