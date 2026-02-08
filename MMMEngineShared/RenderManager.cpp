@@ -1,4 +1,4 @@
-﻿#include "RenderManager.h"
+#include "RenderManager.h"
 
 #include "RendererTools.h"
 #include "RenderShared.h"
@@ -91,6 +91,8 @@ namespace MMMEngine {
 		auto VS = _material->GetVShader();
 		auto PS = _material->GetPShader();
 		ShaderType type = ShaderInfo::Get().GetShaderType(PS->GetFilePath());
+		ShaderInfo::Get().BeginMaterialUpdate();
+		ShaderInfo::Get().ConvertMaterialType(type, _material);
 		_context->VSSetShader(VS->m_pVShader.Get(), nullptr, 0);
 		_context->PSSetShader(PS->m_pPShader.Get(), nullptr, 0);
 
@@ -107,14 +109,26 @@ namespace MMMEngine {
 	{
 		for (auto& [type, commands] : m_renderCommands)
 		{
+			auto transparentSort = [](const RenderCommand& a, const RenderCommand& b)
+				{
+					const float diff = a.camDistance - b.camDistance;
+					if (std::fabs(diff) < 1e-4f)
+					{
+						if (a.rendererID != b.rendererID)
+							return a.rendererID < b.rendererID;
+						if (a.worldMatIndex != b.worldMatIndex)
+							return a.worldMatIndex < b.worldMatIndex;
+						if (a.indexBuffer != b.indexBuffer)
+							return a.indexBuffer < b.indexBuffer;
+						return a.indiciesSize < b.indiciesSize;
+					}
+					return a.camDistance > b.camDistance;
+				};
+
 			if (type == RenderType::R_TRANSCULANT || type == RenderType::R_PARTICLE)
 			{
 				// 투명 오브젝트: 카메라 거리 내림차순 정렬
-				std::sort(commands.begin(), commands.end(),
-					[](const RenderCommand& a, const RenderCommand& b)
-					{
-						return a.camDistance > b.camDistance;
-					});
+				std::sort(commands.begin(), commands.end(), transparentSort);
 			}
 			else if (type == RenderType::R_SKYBOX)
 			{
@@ -142,15 +156,20 @@ namespace MMMEngine {
 			}
 
 			float blendFactor[4] = { 0,0,0,0 };
-			if (type == RenderType::R_PARTICLE)
+			if (type == RenderType::R_PARTICLE || type == RenderType::R_TRANSCULANT)
 				m_pDeviceContext->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
 			else
 				m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, 0xffffffff);
-			
-			if (type == RenderType::R_PARTICLE)
-				m_pDeviceContext->RSSetState(m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
-			else
-				m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
+
+			ID3D11DepthStencilState* depthState = nullptr;
+			if (type == RenderType::R_PARTICLE || type == RenderType::R_TRANSCULANT)
+				depthState = m_pTransparentDepthState.Get();
+			m_pDeviceContext->OMSetDepthStencilState(depthState, 0);
+
+			ID3D11RasterizerState* defaultRS = m_pDefaultRS.Get();
+			ID3D11RasterizerState* noCullRS = m_pNoCullRS ? m_pNoCullRS.Get()
+				: (m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
+			ID3D11RasterizerState* lastRS = nullptr;
 
 			// 정렬된 커맨드 실행
 			ResPtr<Material> lastMaterial;
@@ -165,6 +184,15 @@ namespace MMMEngine {
 				{
 					ApplyMatToContext(m_pDeviceContext.Get(), cmd.material.get());
 					lastMaterial = cmd.material;
+				}
+
+				const bool forceNoCull = (type == RenderType::R_PARTICLE);
+				const bool wantNoCull = forceNoCull || (cmd.material && cmd.material->IsTwoSided());
+				ID3D11RasterizerState* desiredRS = wantNoCull ? noCullRS : defaultRS;
+				if (desiredRS != lastRS)
+				{
+					m_pDeviceContext->RSSetState(desiredRS);
+					lastRS = desiredRS;
 				}
 
 
@@ -193,22 +221,66 @@ namespace MMMEngine {
 				// 상수버퍼 등록
 				auto sType = ShaderInfo::Get().GetShaderType(lastMaterial->GetPShader()->GetFilePath());
 
-				if (type == RenderType::R_PARTICLE && cmd.useParticleAlpha)
+				Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f };
+				float baseAlphaClip = 1.0f;
+				const bool overrideColor = (type == RenderType::R_PARTICLE && cmd.useParticleColor);
+				const bool overrideAlpha = (type == RenderType::R_PARTICLE && cmd.useParticleAlpha);
+				const bool overrideClip = (type == RenderType::R_PARTICLE && cmd.forceAlphaClipOff);
+				const bool needsOverride = overrideColor || overrideAlpha || overrideClip;
+				if (needsOverride)
 				{
-					Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f };
 					const auto& props = lastMaterial->GetProperties();
 					auto it = props.find(L"mBaseColor");
 					if (it != props.end())
 					{
-						if (auto col = std::get_if<Vector4>(&it->second))
-							baseColor = *col;
+						if (auto col4 = std::get_if<Vector4>(&it->second))
+							baseColor = *col4;
+						else if (auto col3 = std::get_if<Vector3>(&it->second))
+							baseColor = { col3->x, col3->y, col3->z, 1.0f };
 					}
-					baseColor.w *= cmd.particleAlpha;
-					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mBaseColor", &baseColor);
+
+					auto itClip = props.find(L"mUseAlphaClip");
+					if (itClip != props.end())
+					{
+						if (auto val = std::get_if<float>(&itClip->second))
+							baseAlphaClip = *val;
+					}
 				}
 
-				// 상수버퍼 일렬업데이트
-				ShaderInfo::Get().UpdateCBuffers(sType);
+				if (overrideColor)
+				{
+					Vector4 applied = cmd.particleColor;
+					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mBaseColor", &applied, false);
+					if (overrideClip)
+					{
+						const float clipOff = 0.0f;
+						ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mUseAlphaClip", &clipOff, false);
+					}
+					ShaderInfo::Get().UpdateCBuffers(sType);
+				}
+				else if (overrideAlpha)
+				{
+					Vector4 faded = baseColor;
+					faded.w *= cmd.particleAlpha;
+					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mBaseColor", &faded, false);
+					if (overrideClip)
+					{
+						const float clipOff = 0.0f;
+						ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mUseAlphaClip", &clipOff, false);
+					}
+					ShaderInfo::Get().UpdateCBuffers(sType);
+				}
+				else if (overrideClip)
+				{
+					const float clipOff = 0.0f;
+					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mUseAlphaClip", &clipOff, false);
+					ShaderInfo::Get().UpdateCBuffers(sType);
+				}
+				else
+				{
+					// 상수버퍼 일렬업데이트
+					ShaderInfo::Get().UpdateCBuffers(sType);
+				}
 
 				// 월드매트릭스 버퍼집어넣기
 				Render_TransformBuffer transformBuffer;
@@ -222,6 +294,16 @@ namespace MMMEngine {
 					m_pDeviceContext->Draw(3, 0);
 				else
 					m_pDeviceContext->DrawIndexed(cmd.indiciesSize, 0, 0);
+
+				if (needsOverride)
+				{
+					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mBaseColor", &baseColor, false);
+					if (overrideClip)
+					{
+						ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mUseAlphaClip", &baseAlphaClip, false);
+					}
+					ShaderInfo::Get().UpdateCBuffers(sType);
+				}
 			}
 		}
 	}
@@ -478,6 +560,10 @@ namespace MMMEngine {
 		defaultRsDesc.AntialiasedLineEnable = FALSE;
 		HR_T(m_pDevice->CreateRasterizerState2(&defaultRsDesc, m_pDefaultRS.GetAddressOf()));
 
+		D3D11_RASTERIZER_DESC2 noCullDesc = defaultRsDesc;
+		noCullDesc.CullMode = D3D11_CULL_NONE;
+		HR_T(m_pDevice->CreateRasterizerState2(&noCullDesc, m_pNoCullRS.GetAddressOf()));
+
 	// 블랜드 스테이트 생성
 	D3D11_BLEND_DESC1 blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = FALSE;
@@ -533,6 +619,14 @@ namespace MMMEngine {
 	uiDepthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
 	uiDepthDesc.StencilEnable = FALSE;
 	HR_T(m_pDevice->CreateDepthStencilState(&uiDepthDesc, m_pUIDepthState.GetAddressOf()));
+
+	// 투명용 깊이 스테이트 (깊이 테스트만, 쓰기 비활성화)
+	D3D11_DEPTH_STENCIL_DESC transparentDepthDesc = {};
+	transparentDepthDesc.DepthEnable = TRUE;
+	transparentDepthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	transparentDepthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	transparentDepthDesc.StencilEnable = FALSE;
+	HR_T(m_pDevice->CreateDepthStencilState(&transparentDepthDesc, m_pTransparentDepthState.GetAddressOf()));
 
 	// UI 스텐실 스테이트 생성
 	D3D11_DEPTH_STENCIL_DESC uiStencilTestDesc = uiDepthDesc;
@@ -804,6 +898,7 @@ namespace MMMEngine {
 		m_pUIBlendState.Reset();
 		m_pUIBlendStateNoColor.Reset();
 		m_pUIDepthState.Reset();
+		m_pTransparentDepthState.Reset();
 		m_pUIStencilTestState.Reset();
 		m_pUIStencilWriteState.Reset();
 		m_pUIStencilClearState.Reset();
@@ -845,6 +940,7 @@ namespace MMMEngine {
 		m_pPointSampler.Reset();
 		m_pDefaultRS.Reset();
 		m_pUIRS.Reset();
+		m_pNoCullRS.Reset();
 		m_pDefaultBS.Reset();
 		m_DefaultRS.Reset();
 
@@ -887,10 +983,7 @@ namespace MMMEngine {
 				}
 				else if constexpr (std::is_same_v<T, ResPtr<MMMEngine::Texture2D>>)
 				{
-					if (arg == nullptr)
-						return;
-
-					ID3D11ShaderResourceView* srv = arg->m_pSRV.Get();
+					ID3D11ShaderResourceView* srv = arg ? arg->m_pSRV.Get() : nullptr;
 					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), _type, _propName, srv);
 				}
 			}, _value);
@@ -1199,6 +1292,11 @@ namespace MMMEngine {
 		m_pDeviceContext->PSSetSamplers(0, 3, samplers);
 		m_pDeviceContext->RSSetState(m_pDefaultRS.Get());
 
+		ID3D11RasterizerState* defaultRS = m_pDefaultRS.Get();
+		ID3D11RasterizerState* noCullRS = m_pNoCullRS ? m_pNoCullRS.Get()
+			: (m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
+		ID3D11RasterizerState* lastRS = defaultRS;
+
 		// 리소스 업데이트
 		m_pDeviceContext->UpdateSubresource1(m_pCambuffer.Get(), 0, nullptr, &m_camMat, 0, 0, D3D11_COPY_DISCARD);
 		m_pDeviceContext->UpdateSubresource1(m_pShadowBuffer.Get(), 0, nullptr, &shadowBuffer, 0, 0, D3D11_COPY_DISCARD);
@@ -1276,6 +1374,14 @@ namespace MMMEngine {
 					}
 
 					lastMaterial = cmd.material;
+				}
+
+				const bool wantNoCull = (cmd.material && cmd.material->IsTwoSided());
+				ID3D11RasterizerState* desiredRS = wantNoCull ? noCullRS : defaultRS;
+				if (desiredRS != lastRS)
+				{
+					m_pDeviceContext->RSSetState(desiredRS);
+					lastRS = desiredRS;
 				}
 
 				UINT stride = sizeof(Mesh_Vertex); // 실제 버텍스 구조체 크기

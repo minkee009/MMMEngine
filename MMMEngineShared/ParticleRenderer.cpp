@@ -1,4 +1,4 @@
-﻿#include "ParticleRenderer.h"
+#include "ParticleRenderer.h"
 
 #include "RenderManager.h"
 #include "RenderCommand.h"
@@ -7,6 +7,7 @@
 #include "Material.h"
 #include "StaticMesh.h"
 #include "ShaderInfo.h"
+#include "ResourceManager.h"
 #include "Camera.h"
 #include "TimeManager.h"
 #include "GlobalRegistry.h"
@@ -72,14 +73,17 @@ RTTR_REGISTRATION
 		.property("SpawnRate", &ParticleRenderer::GetSpawnRate, &ParticleRenderer::SetSpawnRate)
 		.property("AngularSpeedMin", &ParticleRenderer::GetAngularSpeedMin, &ParticleRenderer::SetAngularSpeedMin)
 		.property("AngularSpeedMax", &ParticleRenderer::GetAngularSpeedMax, &ParticleRenderer::SetAngularSpeedMax)
+		.property("StartRotationMin", &ParticleRenderer::GetStartRotationMin, &ParticleRenderer::SetStartRotationMin)
+		.property("StartRotationMax", &ParticleRenderer::GetStartRotationMax, &ParticleRenderer::SetStartRotationMax)
 		.property("LinearSpeedMin", &ParticleRenderer::GetLinearSpeedMin, &ParticleRenderer::SetLinearSpeedMin)
 		.property("LinearSpeedMax", &ParticleRenderer::GetLinearSpeedMax, &ParticleRenderer::SetLinearSpeedMax)
 		.property("ScaleMin", &ParticleRenderer::GetScaleMin, &ParticleRenderer::SetScaleMin)
 		.property("ScaleMax", &ParticleRenderer::GetScaleMax, &ParticleRenderer::SetScaleMax)
 		.property("SpawnFormula", &ParticleRenderer::GetSpawnFormula, &ParticleRenderer::SetSpawnFormula)
 		.property("UpdateFormula", &ParticleRenderer::GetUpdateFormula, &ParticleRenderer::SetUpdateFormula)
+		.property("Color", &ParticleRenderer::GetParticleColor, &ParticleRenderer::SetParticleColor)
 		.property("ParticleType", &ParticleRenderer::GetParticleType, &ParticleRenderer::SetParticleType)
-			(rttr::metadata("INSPECTOR_CHAIN", "Quad=Material,Texture;Mesh=Mesh,Material"))
+			(rttr::metadata("INSPECTOR_CHAIN", "Quad=Texture;Mesh=Mesh,Material"))
 		.property("FadeMode", &ParticleRenderer::GetFadeMode, &ParticleRenderer::SetFadeMode)
 		.property("Material", &ParticleRenderer::GetMaterial, &ParticleRenderer::SetMaterial)
 		.property("Mesh", &ParticleRenderer::GetMesh, &ParticleRenderer::SetMesh)
@@ -112,6 +116,29 @@ namespace
 
 namespace MMMEngine
 {
+	void ParticleRenderer::SetParticleColor(const Vector4& v)
+	{
+		Vector4 color = v;
+		const float maxRgb = std::max(color.x, std::max(color.y, color.z));
+		const bool rgbIs255 = (maxRgb > 1.0f + 1e-4f);
+		if (rgbIs255)
+		{
+			color.x /= 255.0f;
+			color.y /= 255.0f;
+			color.z /= 255.0f;
+		}
+
+		if (color.w > 1.0f + 1e-4f)
+			color.w /= 255.0f;
+
+		color.x = Clamp01(color.x);
+		color.y = Clamp01(color.y);
+		color.z = Clamp01(color.z);
+		color.w = Clamp01(color.w);
+
+		m_particleColor = color;
+	}
+
 	void ParticleRenderer::Initialize()
 	{
 		renderIndex = RenderManager::Get().AddRenderer(this);
@@ -218,7 +245,7 @@ namespace MMMEngine
 		if (m_particles.empty())
 			return;
 
-		ResPtr<Material> useMaterial = m_material;
+		ResPtr<Material> useMaterial = (m_particleType == ParticleType::Quad) ? nullptr : m_material;
 		if (m_particleType == ParticleType::Quad && !useMaterial)
 		{
 			EnsureAutoMaterial();
@@ -238,6 +265,58 @@ namespace MMMEngine
 			else
 				useMaterial->AddProperty(L"_albedo", m_texture);
 		}
+
+		const bool isQuad = (m_particleType == ParticleType::Quad);
+		if (isQuad && useMaterial)
+		{
+			const auto& props = useMaterial->GetProperties();
+			auto it = props.find(L"mBaseColor");
+			if (it != props.end())
+			{
+				if (std::get_if<Vector4>(&it->second))
+					useMaterial->SetProperty(L"mBaseColor", m_particleColor);
+				else if (std::get_if<Vector3>(&it->second))
+					useMaterial->SetProperty(L"mBaseColor", Vector4(m_particleColor.x, m_particleColor.y, m_particleColor.z, m_particleColor.w));
+				else
+				{
+					useMaterial->RemoveProperty(L"mBaseColor");
+					useMaterial->AddProperty(L"mBaseColor", m_particleColor);
+				}
+			}
+			else
+			{
+				useMaterial->AddProperty(L"mBaseColor", m_particleColor);
+			}
+		}
+
+		Vector4 baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		if (useMaterial)
+		{
+			const auto& props = useMaterial->GetProperties();
+			auto it = props.find(L"mBaseColor");
+			if (it != props.end())
+			{
+				if (auto col4 = std::get_if<Vector4>(&it->second))
+					baseColor = *col4;
+				else if (auto col3 = std::get_if<Vector3>(&it->second))
+					baseColor = { col3->x, col3->y, col3->z, 1.0f };
+			}
+		}
+
+		const Vector4 tint = m_particleColor;
+		const Vector4 tintedBase = {
+			baseColor.x * tint.x,
+			baseColor.y * tint.y,
+			baseColor.z * tint.z,
+			baseColor.w * tint.w
+		};
+		const bool wantsColorOverride = !isQuad && ((std::fabs(tint.x - 1.0f) > 1e-4f) ||
+			(std::fabs(tint.y - 1.0f) > 1e-4f) ||
+			(std::fabs(tint.z - 1.0f) > 1e-4f) ||
+			(std::fabs(tint.w - 1.0f) > 1e-4f) ||
+			(m_fadeMode == ParticleFade::Fade || m_fadeMode == ParticleFade::ShrinkFade));
+		const bool wantsAlphaOverride = isQuad &&
+			(m_fadeMode == ParticleFade::Fade || m_fadeMode == ParticleFade::ShrinkFade);
 
 		Matrix view = RenderManager::Get().GetViewMatrix();
 		Matrix invView = view.Invert();
@@ -272,7 +351,15 @@ namespace MMMEngine
 			cmd.castShadow = false;
 			cmd.receiveShadow = false;
 			cmd.particleAlpha = alpha;
-			cmd.useParticleAlpha = (m_fadeMode == ParticleFade::Fade || m_fadeMode == ParticleFade::ShrinkFade);
+			cmd.useParticleAlpha = wantsAlphaOverride;
+			cmd.forceAlphaClipOff = (m_fadeMode == ParticleFade::Fade || m_fadeMode == ParticleFade::ShrinkFade);
+			if (wantsColorOverride)
+			{
+				Vector4 finalColor = tintedBase;
+				finalColor.w *= alpha;
+				cmd.useParticleColor = true;
+				cmd.particleColor = finalColor;
+			}
 
 			cmd.camDistance = Vector3::Distance(camPos, p.position);
 
@@ -406,7 +493,9 @@ namespace MMMEngine
 		float angMax = std::max(m_angularSpeedMin, m_angularSpeedMax);
 		p.angularVelocity = RandomRange(angMin, angMax);
 
-		p.rotationZ = RandomRange(0.0f, 360.0f);
+		float rotMin = std::min(m_startRotationMin, m_startRotationMax);
+		float rotMax = std::max(m_startRotationMin, m_startRotationMax);
+		p.rotationZ = RandomRange(rotMin, rotMax);
 		p.rotation = emitterRot;
 		p.angularAxis = RandomUnitVector();
 
@@ -554,12 +643,26 @@ namespace MMMEngine
 
 	void ParticleRenderer::EnsureAutoMaterial()
 	{
+		const std::wstring unlitPath = L"Shader/Particle/ParticleUnlitPS.hlsl";
+		const std::wstring unlitFallback = L"../Common/Shader/Particle/ParticleUnlitPS.hlsl";
 		if (m_autoMaterial)
-			return;
+		{
+			auto ps = m_autoMaterial->GetPShader();
+			if (ps)
+			{
+				const std::wstring& pPath = ps->GetFilePath();
+				if (pPath == unlitPath || pPath == unlitFallback)
+					return;
+			}
+		}
 
 		auto mat = std::make_shared<Material>();
 		auto vShader = ShaderInfo::Get().GetDefaultVShader();
-		auto pShader = ShaderInfo::Get().GetDefaultPShader();
+		auto pShader = ResourceManager::Get().Load<PShader>(unlitPath);
+		if (!pShader)
+			pShader = ResourceManager::Get().Load<PShader>(unlitFallback);
+		if (!pShader)
+			pShader = ShaderInfo::Get().GetDefaultPShader();
 
 		if (vShader)
 			mat->SetVShader(vShader);
@@ -571,6 +674,10 @@ namespace MMMEngine
 			const auto shaderType = ShaderInfo::Get().GetShaderType(pShader->GetFilePath());
 			ShaderInfo::Get().ConvertMaterialType(shaderType, mat.get());
 		}
+
+		mat->SetSurfaceType(Material::SurfaceType::Transparent);
+		mat->AddProperty(L"mBaseColor", Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+		mat->AddProperty(L"mUseAlphaClip", 0.0f);
 
 		m_autoMaterial = std::move(mat);
 	}

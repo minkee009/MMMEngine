@@ -24,7 +24,9 @@ cbuffer ToonMatBuffer : register(b3)
     float mRimLightStr;
 
     float mEmissive;
-    float3 mPadding;
+    float mAlphaClip;
+    float mUseAlphaClip;
+    float mPadding;
 }
 
 // 수동 PCF
@@ -147,11 +149,10 @@ float4 main(PS_INPUT input) : SV_TARGET
     // 알파 클리핑용 디퓨즈 샘플링
     float4 baseTex = _albedo.Sample(_sp0, input.Tex) * mBaseColor;
 
-    // 알파 임계값 설정 (0.1~0.5 정도 보통 사용)
-    const float alphaCutoff = 0.5f;
-
-    // 알파가 낮으면 픽셀 폐기
-    clip(baseTex.a - alphaCutoff);
+    if (mUseAlphaClip > 0.5f)
+    {
+        clip(baseTex.a - mAlphaClip);
+    }
 
 	float minusRimNdotL  = dot(-mLightPos.xyz , N);
 

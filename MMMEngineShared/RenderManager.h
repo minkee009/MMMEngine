@@ -1,4 +1,4 @@
-﻿#ifndef NOMINMAX
+#ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
@@ -126,7 +126,9 @@ namespace MMMEngine
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pPointSampler;			// 포인트 샘플러
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pDefaultRS;		// 기본 RS
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pUIRS;				// UI RS (cull none)
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_pNoCullRS;			// Two-sided RS
 		Microsoft::WRL::ComPtr<ID3D11BlendState1> m_pDefaultBS;		// 기본 블랜드 스테이트
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pTransparentDepthState;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState2> m_DefaultRS;	// 기본 레스터라이저 스테이트
 		D3D11_VIEWPORT m_swapViewport;							// 기본 뷰포트
 

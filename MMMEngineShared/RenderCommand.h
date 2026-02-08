@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Export.h"
 #include "RenderShared.h"
@@ -30,6 +30,9 @@ namespace MMMEngine {
 		// Particle rendering overrides
 		bool useParticleAlpha = false;
 		float particleAlpha = 1.0f;
+		bool useParticleColor = false;
+		DirectX::SimpleMath::Vector4 particleColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		bool forceAlphaClipOff = false;
 	};
 }
 

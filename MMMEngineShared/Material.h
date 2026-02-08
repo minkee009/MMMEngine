@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Export.h"
 #include <SimpleMath.h>
@@ -29,12 +29,27 @@ namespace MMMEngine {
 			friend class ResourceManager;
 			friend class SceneManager;
 			friend class Scene;
+	public:
+		enum class SurfaceType
+		{
+			Opaque,
+			Transparent
+		};
+
 	private:
 		std::unordered_map<std::wstring, PropertyValue> m_properties;
 		ResPtr<VShader> m_pVShader;
 		ResPtr<PShader> m_pPShader;
+		SurfaceType m_surfaceType = SurfaceType::Opaque;
+		bool m_twoSided = false;
 
 	public:
+		SurfaceType GetSurfaceType() const { return m_surfaceType; }
+		void SetSurfaceType(SurfaceType type);
+
+		bool IsTwoSided() const { return m_twoSided; }
+		void SetTwoSided(bool value) { m_twoSided = value; }
+
 		void AddProperty(const std::wstring _name, const PropertyValue& _value);
 		void SetProperty(const std::wstring _name, const PropertyValue& _value);
 		void RemoveProperty(const std::wstring& _name);

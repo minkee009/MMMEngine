@@ -1,4 +1,4 @@
-﻿#include "MeshRenderer.h"
+#include "MeshRenderer.h"
 #include "RenderManager.h"
 #include "RenderCommand.h"
 #include "GameObject.h"
@@ -100,6 +100,10 @@ void MMMEngine::MeshRenderer::Render()
 	if (!mesh || !GetTransform())
 		return;
 
+	const auto view = RenderManager::Get().GetViewMatrix();
+	const Vector3 camPos = view.Invert().Translation();
+	const Vector3 worldPos = GetTransform()->GetWorldPosition();
+
 	for (auto& [matIdx, meshIndices] : mesh->meshGroupData) {
 		if (mesh->materials.empty())
 			continue;
@@ -128,6 +132,14 @@ void MMMEngine::MeshRenderer::Render()
 
 			std::wstring shaderPath = material->GetPShader()->GetFilePath();
 			RenderType type = ShaderInfo::Get().GetRenderType(shaderPath);
+			if (material->GetSurfaceType() == Material::SurfaceType::Transparent &&
+				type == RenderType::R_GEOMETRY)
+			{
+				type = RenderType::R_TRANSCULANT;
+			}
+
+			if (type == RenderType::R_TRANSCULANT)
+				command.camDistance = Vector3::Distance(camPos, worldPos);
 
 			RenderManager::Get().AddCommand(type, std::move(command));
 		}

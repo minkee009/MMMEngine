@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SkinRenderer.h"
 
 #include "RenderManager.h"
@@ -97,10 +97,14 @@ namespace MMMEngine {
 	void SkinRenderer::Render()
 	{
 		// 유효성 확인
-		if (!mesh || !GetTransform())
-			return;
+	if (!mesh || !GetTransform())
+		return;
 
-		float dt = TimeManager::Get().GetDeltaTime();
+	const auto view = RenderManager::Get().GetViewMatrix();
+	const Vector3 camPos = view.Invert().Translation();
+	const Vector3 worldPos = GetTransform()->GetWorldPosition();
+
+	float dt = TimeManager::Get().GetDeltaTime();
 
 		if (mAnimator)
 			mAnimator->Update(dt);
@@ -146,6 +150,14 @@ namespace MMMEngine {
 
 				std::wstring shaderPath = material->GetPShader()->GetFilePath();
 				RenderType type = ShaderInfo::Get().GetRenderType(shaderPath);
+				if (material->GetSurfaceType() == Material::SurfaceType::Transparent &&
+					type == RenderType::R_GEOMETRY)
+				{
+					type = RenderType::R_TRANSCULANT;
+				}
+
+				if (type == RenderType::R_TRANSCULANT)
+					command.camDistance = Vector3::Distance(camPos, worldPos);
 
 				RenderManager::Get().AddCommand(type, std::move(command));
 			}

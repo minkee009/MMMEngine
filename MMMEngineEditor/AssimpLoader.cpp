@@ -1,4 +1,4 @@
-﻿#include "AssimpLoader.h"
+#include "AssimpLoader.h"
 #include <functional>
 #include <filesystem>
 #include "StringHelper.h"
@@ -212,15 +212,20 @@ bool MMMEngine::AssimpLoader::ConvertMaterial(const TextureSemantic _sementic, c
 	if (it == semanticMap.end())
 		return false;
 
+	if (_sementic == TextureSemantic::BaseColor)
+	{
+		_out->AddProperty(it->second, _ref->color);
+		return true;
+	}
+
+	if (_ref->path.empty())
+		return false;
+
 	resource = ResourceManager::Get().Load<Texture2D>(Utility::StringHelper::StringToWString(_ref->path));
 	if (!resource)
 		return false;
 
-	if (_sementic != TextureSemantic::BaseColor)
-		_out->AddProperty(it->second, resource);
-	else
-		_out->AddProperty(it->second, _ref->color);
-
+	_out->AddProperty(it->second, resource);
 	return true;
 }
 
@@ -463,17 +468,18 @@ bool MMMEngine::AssimpLoader::ExtractMaterials(const aiScene* scene, const std::
 		const aiMaterial* mat = scene->mMaterials[mi];
 		MaterialAsset& dst = outMaterials[mi];
 
-		auto put = [&](TextureSemantic sem, const std::string& rawPath, bool srgb, aiColor4D* color = nullptr)
-			{
-				if (rawPath.empty()) return;
-				TextureRef ref;
+	auto put = [&](TextureSemantic sem, const std::string& rawPath, bool srgb, aiColor4D* color = nullptr)
+		{
+			if (rawPath.empty() && color == nullptr) return;
+			TextureRef ref;
+			if (!rawPath.empty())
 				ref.path = ResolveTexturePath(textureDir, rawPath);
-				ref.srgb = srgb;
-				if (color != nullptr) {
-					ref.color = { color->r, color->g, color->b, color->a };
-				}
-				dst.textures[sem] = std::move(ref);
-			};
+			ref.srgb = srgb;
+			if (color != nullptr) {
+				ref.color = { color->r, color->g, color->b, color->a };
+			}
+			dst.textures[sem] = std::move(ref);
+		};
 
 		std::string raw;
 

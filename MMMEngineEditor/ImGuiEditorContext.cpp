@@ -6,6 +6,11 @@
 #include <imgui_impl_dx11.h>
 #include <ImGuizmo.h>
 #include <algorithm>
+#include <string>
+#include <vector>
+#include <variant>
+#include <filesystem>
+#include <unordered_map>
 
 #include "SceneManager.h"
 #include "SceneSerializer.h"
@@ -14,6 +19,17 @@
 #include "EditorRegistry.h"
 #include "StringHelper.h"
 #include "MMMTime.h"
+#include "ResourceManager.h"
+#include "GameObject.h"
+#include "MeshRenderer.h"
+#include "SkinRenderer.h"
+#include "ParticleRenderer.h"
+#include "StaticMesh.h"
+#include "SkeletalMesh.h"
+#include "Material.h"
+#include "MaterialSerializer.h"
+#include "Texture2D.h"
+#include "ShaderInfo.h"
 
 using namespace MMMEngine::EditorRegistry;
 using namespace MMMEngine::Utility;
@@ -35,6 +51,461 @@ using namespace MMMEngine::Utility;
 #include "FontImporterWindow.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+namespace
+{
+    enum class MaterialOwnerType
+    {
+        MeshRenderer,
+        SkinRenderer,
+        ParticleRenderer
+    };
+
+    struct MaterialEntry
+    {
+        std::string label;
+        MMMEngine::ResPtr<MMMEngine::Material> material;
+        MaterialOwnerType owner = MaterialOwnerType::MeshRenderer;
+        MMMEngine::ObjPtr<MMMEngine::MeshRenderer> meshRenderer = nullptr;
+        MMMEngine::ObjPtr<MMMEngine::SkinRenderer> skinRenderer = nullptr;
+        MMMEngine::ObjPtr<MMMEngine::ParticleRenderer> particleRenderer = nullptr;
+        size_t index = 0;
+    };
+
+    static std::string ToUtf8(const std::wstring& value)
+    {
+        return MMMEngine::Utility::StringHelper::WStringToString(value);
+    }
+
+    static void ReplaceMaterialReference(const MaterialEntry& entry, const MMMEngine::ResPtr<MMMEngine::Material>& newMat)
+    {
+        if (!newMat)
+            return;
+
+        switch (entry.owner)
+        {
+        case MaterialOwnerType::MeshRenderer:
+            if (entry.meshRenderer.IsValid())
+            {
+                auto mesh = entry.meshRenderer->GetMesh();
+                if (mesh && entry.index < mesh->materials.size())
+                    mesh->materials[entry.index] = newMat;
+            }
+            break;
+        case MaterialOwnerType::SkinRenderer:
+            if (entry.skinRenderer.IsValid())
+            {
+                auto mesh = entry.skinRenderer->GetMesh();
+                if (mesh && entry.index < mesh->materials.size())
+                    mesh->materials[entry.index] = newMat;
+            }
+            break;
+        case MaterialOwnerType::ParticleRenderer:
+            if (entry.particleRenderer.IsValid())
+                entry.particleRenderer->SetMaterial(newMat);
+            break;
+        }
+    }
+
+    static void EnsureMaterialSlots(std::vector<MMMEngine::ResPtr<MMMEngine::Material>>& materials,
+        const std::unordered_map<UINT, std::vector<UINT>>& meshGroups)
+    {
+        size_t slotCount = materials.size();
+        for (const auto& [matIdx, _] : meshGroups)
+        {
+            slotCount = std::max(slotCount, static_cast<size_t>(matIdx + 1));
+        }
+        if (slotCount > materials.size())
+            materials.resize(slotCount);
+    }
+
+    static bool SaveMaterialNow(MaterialEntry& entry)
+    {
+        if (!entry.material)
+            return false;
+
+        auto& mat = *entry.material;
+        std::wstring filePath = mat.GetFilePath();
+
+        if (!filePath.empty())
+        {
+            std::filesystem::path fsPath(filePath);
+            MMMEngine::MaterialSerializer::Get().Serialize(&mat, fsPath.parent_path().wstring(), fsPath.filename().wstring(), -1);
+            return true;
+        }
+
+        const std::string muidStr = mat.GetMUID().ToStringWithoutHyphens();
+        std::wstring fileName = L"Auto_" + MMMEngine::Utility::StringHelper::StringToWString(muidStr) + L".material";
+        std::wstring relDir = L"Assets/Materials";
+
+        MMMEngine::MaterialSerializer::Get().Serialize(&mat, relDir, fileName, -1);
+
+        std::wstring relPath = relDir + L"/" + fileName;
+        auto loaded = MMMEngine::ResourceManager::Get().Load<MMMEngine::Material>(relPath);
+        if (loaded)
+        {
+            ReplaceMaterialReference(entry, loaded);
+            entry.material = loaded;
+            return true;
+        }
+
+        return false;
+    }
+
+    static bool DrawTextureProperty(const char* label, const std::wstring& propName, MaterialEntry& entry)
+    {
+        bool changed = false;
+        if (!entry.material)
+            return false;
+
+        auto& mat = *entry.material;
+        const auto& props = mat.GetProperties();
+        MMMEngine::ResPtr<MMMEngine::Texture2D> tex = nullptr;
+
+        auto it = props.find(propName);
+        if (it != props.end())
+        {
+            if (auto ptr = std::get_if<MMMEngine::ResPtr<MMMEngine::Texture2D>>(&it->second))
+                tex = *ptr;
+        }
+
+        std::string displayPath = "None";
+        if (tex && !tex->GetFilePath().empty())
+        {
+            displayPath = MMMEngine::Editor::ProjectManager::Get().ToProjectRelativePath(
+                ToUtf8(tex->GetFilePath()));
+        }
+
+        ImGui::Text("%s", label);
+        ImGui::SameLine();
+        ImGui::PushID(label);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.3f, 1.0f));
+        ImGui::Button(displayPath.c_str(), ImVec2(-1, 0));
+        ImGui::PopStyleColor();
+
+        if (ImGui::BeginPopupContextItem("TextureContext"))
+        {
+            if (ImGui::MenuItem(u8"참조 해제"))
+            {
+                mat.AddProperty(propName, MMMEngine::ResPtr<MMMEngine::Texture2D>(nullptr));
+                changed = true;
+                SaveMaterialNow(entry);
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+            {
+                std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
+                std::string relativePath = MMMEngine::Editor::ProjectManager::Get().ToProjectRelativePath(absolutePath);
+                std::wstring wRelativePath = MMMEngine::Utility::StringHelper::StringToWString(relativePath);
+
+                auto loaded = MMMEngine::ResourceManager::Get().Load<MMMEngine::Texture2D>(wRelativePath);
+                if (loaded)
+                {
+                    mat.AddProperty(propName, loaded);
+                    changed = true;
+                    SaveMaterialNow(entry);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+        ImGui::PopID();
+        return changed;
+    }
+
+    static void DrawMaterialPropertyList(MaterialEntry& entry)
+    {
+        if (!entry.material)
+            return;
+
+        auto& mat = *entry.material;
+        const auto& props = mat.GetProperties();
+
+        for (const auto& [name, value] : props)
+        {
+            if (name == L"mBaseColor" || name == L"_albedo")
+                continue;
+
+            const std::string label = ToUtf8(name);
+            ImGui::PushID(label.c_str());
+
+            if (std::holds_alternative<int>(value))
+            {
+                int v = std::get<int>(value);
+                if (ImGui::DragInt(label.c_str(), &v, 1.0f))
+                {
+                    mat.AddProperty(name, v);
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                        SaveMaterialNow(entry);
+                }
+            }
+            else if (std::holds_alternative<float>(value))
+            {
+                float v = std::get<float>(value);
+                if (ImGui::DragFloat(label.c_str(), &v, 0.01f))
+                {
+                    mat.AddProperty(name, v);
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                        SaveMaterialNow(entry);
+                }
+            }
+            else if (std::holds_alternative<DirectX::SimpleMath::Vector3>(value))
+            {
+                auto v = std::get<DirectX::SimpleMath::Vector3>(value);
+                float data[3] = { v.x, v.y, v.z };
+                if (ImGui::DragFloat3(label.c_str(), data, 0.01f))
+                {
+                    mat.AddProperty(name, DirectX::SimpleMath::Vector3(data[0], data[1], data[2]));
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                        SaveMaterialNow(entry);
+                }
+            }
+            else if (std::holds_alternative<DirectX::SimpleMath::Vector4>(value))
+            {
+                auto v = std::get<DirectX::SimpleMath::Vector4>(value);
+                float data[4] = { v.x, v.y, v.z, v.w };
+                if (ImGui::DragFloat4(label.c_str(), data, 0.01f))
+                {
+                    mat.AddProperty(name, DirectX::SimpleMath::Vector4(data[0], data[1], data[2], data[3]));
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                        SaveMaterialNow(entry);
+                }
+            }
+            else if (std::holds_alternative<DirectX::SimpleMath::Matrix>(value))
+            {
+                ImGui::Text("%s (Matrix)", label.c_str());
+            }
+            else if (std::holds_alternative<MMMEngine::ResPtr<MMMEngine::Texture2D>>(value))
+            {
+                DrawTextureProperty(label.c_str(), name, entry);
+            }
+
+            ImGui::PopID();
+        }
+    }
+
+    static void DrawMaterialEditorWindow()
+    {
+        if (!g_editor_window_materialEditor)
+            return;
+
+        ImGui::Begin("Material Editor", &g_editor_window_materialEditor);
+
+        auto selected = MMMEngine::EditorRegistry::g_selectedGameObject;
+        if (!selected.IsValid())
+        {
+            ImGui::Text("Select a GameObject to edit materials.");
+            ImGui::End();
+            return;
+        }
+
+        std::vector<MaterialEntry> materials;
+
+        if (auto mr = selected->GetComponent<MMMEngine::MeshRenderer>(); mr.IsValid())
+        {
+            auto mesh = mr->GetMesh();
+            if (mesh)
+            {
+                auto& mats = mr->GetMaterial();
+                EnsureMaterialSlots(mats, mesh->meshGroupData);
+                for (size_t i = 0; i < mats.size(); ++i)
+                {
+                    {
+                        MaterialEntry entry;
+                        entry.label = "MeshRenderer[" + std::to_string(i) + "]";
+                        entry.material = mats[i];
+                        entry.owner = MaterialOwnerType::MeshRenderer;
+                        entry.meshRenderer = mr;
+                        entry.index = i;
+                        materials.push_back(std::move(entry));
+                    }
+                }
+            }
+        }
+
+        if (auto sr = selected->GetComponent<MMMEngine::SkinRenderer>(); sr.IsValid())
+        {
+            auto mesh = sr->GetMesh();
+            if (mesh)
+            {
+                EnsureMaterialSlots(mesh->materials, mesh->meshGroupData);
+                for (size_t i = 0; i < mesh->materials.size(); ++i)
+                {
+                    {
+                        MaterialEntry entry;
+                        entry.label = "SkinRenderer[" + std::to_string(i) + "]";
+                        entry.material = mesh->materials[i];
+                        entry.owner = MaterialOwnerType::SkinRenderer;
+                        entry.skinRenderer = sr;
+                        entry.index = i;
+                        materials.push_back(std::move(entry));
+                    }
+                }
+            }
+        }
+
+        if (auto pr = selected->GetComponent<MMMEngine::ParticleRenderer>(); pr.IsValid())
+        {
+            auto mat = pr->GetMaterial();
+            if (mat)
+            {
+                MaterialEntry entry;
+                entry.label = "ParticleRenderer";
+                entry.material = mat;
+                entry.owner = MaterialOwnerType::ParticleRenderer;
+                entry.particleRenderer = pr;
+                entry.index = 0;
+                materials.push_back(std::move(entry));
+            }
+        }
+
+        if (materials.empty())
+        {
+            ImGui::Text("No materials found on the selected GameObject.");
+            ImGui::End();
+            return;
+        }
+
+        static MMMEngine::Utility::MUID s_lastSelection = MMMEngine::Utility::MUID::Empty();
+        static int s_selectedIndex = 0;
+
+        if (!selected.IsValid() || selected->GetMUID() != s_lastSelection)
+        {
+            s_lastSelection = selected.IsValid() ? selected->GetMUID() : MMMEngine::Utility::MUID::Empty();
+            s_selectedIndex = 0;
+        }
+
+        if (s_selectedIndex < 0 || s_selectedIndex >= static_cast<int>(materials.size()))
+            s_selectedIndex = 0;
+
+        const std::string& currentLabel = materials[s_selectedIndex].label;
+        if (ImGui::BeginCombo("Target", currentLabel.c_str()))
+        {
+            for (int i = 0; i < static_cast<int>(materials.size()); ++i)
+            {
+                const bool isSelected = (i == s_selectedIndex);
+                if (ImGui::Selectable(materials[i].label.c_str(), isSelected))
+                    s_selectedIndex = i;
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        MaterialEntry& entry = materials[s_selectedIndex];
+        auto& matRef = entry.material;
+        if (!matRef)
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.3f, 1.0f), "No material assigned to this slot.");
+            if (ImGui::Button("Create Material"))
+            {
+                auto created = std::make_shared<MMMEngine::Material>();
+                auto defaultVS = MMMEngine::ShaderInfo::Get().GetDefaultVShader();
+                auto defaultPS = MMMEngine::ShaderInfo::Get().GetDefaultPShader();
+                created->SetVShader(defaultVS);
+                created->SetPShader(defaultPS);
+                if (defaultPS)
+                {
+                    const auto shaderType = MMMEngine::ShaderInfo::Get().GetShaderType(defaultPS->GetFilePath());
+                    MMMEngine::ShaderInfo::Get().ConvertMaterialType(shaderType, created.get());
+                }
+
+                ReplaceMaterialReference(entry, created);
+                entry.material = created;
+                SaveMaterialNow(entry);
+                matRef = entry.material;
+            }
+
+            ImGui::Text("Drag a .material file here to assign.");
+            if (ImGui::BeginDragDropTarget())
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+                {
+                    std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
+                    std::string relativePath = MMMEngine::Editor::ProjectManager::Get().ToProjectRelativePath(absolutePath);
+                    std::filesystem::path filePath(relativePath);
+                    if (filePath.extension() == ".material")
+                    {
+                        auto loaded = MMMEngine::ResourceManager::Get().Load<MMMEngine::Material>(
+                            MMMEngine::Utility::StringHelper::StringToWString(relativePath));
+                        if (loaded)
+                        {
+                            ReplaceMaterialReference(entry, loaded);
+                            entry.material = loaded;
+                            matRef = entry.material;
+                        }
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            ImGui::End();
+            return;
+        }
+
+        MMMEngine::Material& mat = *matRef;
+
+        if (!mat.GetFilePath().empty())
+        {
+            ImGui::Text("Path: %s", ToUtf8(mat.GetFilePath()).c_str());
+        }
+        else
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.3f, 1.0f), "Unsaved material (auto-save creates Assets/Materials/Auto_*.material)");
+        }
+
+        {
+            const char* surfaceNames[] = { "Opaque", "Transparent" };
+            int surfaceIndex = (mat.GetSurfaceType() == MMMEngine::Material::SurfaceType::Opaque) ? 0 : 1;
+            if (ImGui::Combo("Surface", &surfaceIndex, surfaceNames, 2))
+            {
+                mat.SetSurfaceType(surfaceIndex == 0 ? MMMEngine::Material::SurfaceType::Opaque
+                    : MMMEngine::Material::SurfaceType::Transparent);
+                SaveMaterialNow(entry);
+            }
+        }
+
+        {
+            bool twoSided = mat.IsTwoSided();
+            if (ImGui::Checkbox("Two Sided", &twoSided))
+            {
+                mat.SetTwoSided(twoSided);
+                SaveMaterialNow(entry);
+            }
+        }
+
+        {
+            const auto& props = mat.GetProperties();
+            DirectX::SimpleMath::Vector4 color(1.0f, 1.0f, 1.0f, 1.0f);
+            auto it = props.find(L"mBaseColor");
+            if (it != props.end())
+            {
+                if (auto ptr = std::get_if<DirectX::SimpleMath::Vector4>(&it->second))
+                    color = *ptr;
+            }
+
+            float rgba[4] = { color.x, color.y, color.z, color.w };
+            if (ImGui::ColorEdit4("Base Color", rgba, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_AlphaBar))
+            {
+                mat.AddProperty(L"mBaseColor", DirectX::SimpleMath::Vector4(rgba[0], rgba[1], rgba[2], rgba[3]));
+                if (ImGui::IsItemDeactivatedAfterEdit())
+                    SaveMaterialNow(entry);
+            }
+        }
+
+        DrawTextureProperty("Albedo", L"_albedo", entry);
+
+        if (ImGui::CollapsingHeader("Properties", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            DrawMaterialPropertyList(entry);
+        }
+
+        ImGui::End();
+    }
+}
 
 void MMMEngine::Editor::ImGuiEditorContext::UpdateInfiniteDrag()
 {
@@ -446,6 +917,8 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
                     g_editor_window_fontImporter = true;
                     p_open = false;
                 }
+                ImGui::Separator();
+                ImGui::MenuItem(u8"머터리얼 에디터", nullptr, &g_editor_window_materialEditor);
                 ImGui::EndMenu();
             }
 
@@ -840,6 +1313,7 @@ void MMMEngine::Editor::ImGuiEditorContext::Render()
     PlayerBuildWindow::Get().Render();
     AssimpLoaderWindow::Get().Render();
     FontImporterWindow::Get().Render();
+    DrawMaterialEditorWindow();
 }
 
 void MMMEngine::Editor::ImGuiEditorContext::EndFrame()

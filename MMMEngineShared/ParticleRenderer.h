@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Export.h"
 #include "Renderer.h"
@@ -82,6 +82,8 @@ namespace MMMEngine
 		float m_spawnRate = 10.0f;
 		float m_angularSpeedMin = 0.0f;
 		float m_angularSpeedMax = 0.0f;
+		float m_startRotationMin = 0.0f;
+		float m_startRotationMax = 0.0f;
 		float m_linearSpeedMin = 1.0f;
 		float m_linearSpeedMax = 3.0f;
 		float m_scaleMin = 0.1f;
@@ -89,6 +91,7 @@ namespace MMMEngine
 		DirectX::SimpleMath::Vector3 m_shapeParams = { 1.0f, 1.0f, 1.0f };
 		DirectX::SimpleMath::Vector3 m_spawnFormula = DirectX::SimpleMath::Vector3::Zero;
 		DirectX::SimpleMath::Vector3 m_updateFormula = DirectX::SimpleMath::Vector3::Zero;
+		DirectX::SimpleMath::Vector4 m_particleColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		ResPtr<Material> m_material = nullptr;
 		ResPtr<StaticMesh> m_mesh = nullptr;
@@ -157,6 +160,12 @@ namespace MMMEngine
 		float GetAngularSpeedMax() const { return m_angularSpeedMax; }
 		void SetAngularSpeedMax(float v) { m_angularSpeedMax = v; }
 
+		float GetStartRotationMin() const { return m_startRotationMin; }
+		void SetStartRotationMin(float v) { m_startRotationMin = v; }
+
+		float GetStartRotationMax() const { return m_startRotationMax; }
+		void SetStartRotationMax(float v) { m_startRotationMax = v; }
+
 		float GetLinearSpeedMin() const { return m_linearSpeedMin; }
 		void SetLinearSpeedMin(float v) { m_linearSpeedMin = v; }
 
@@ -178,8 +187,16 @@ namespace MMMEngine
 		const DirectX::SimpleMath::Vector3& GetUpdateFormula() const { return m_updateFormula; }
 		void SetUpdateFormula(const DirectX::SimpleMath::Vector3& v) { m_updateFormula = v; }
 
+		const DirectX::SimpleMath::Vector4& GetParticleColor() const { return m_particleColor; }
+		void SetParticleColor(const DirectX::SimpleMath::Vector4& v);
+
 		const ResPtr<Material>& GetMaterial() const { return m_material; }
-		void SetMaterial(const ResPtr<Material>& mat) { m_material = mat; }
+		void SetMaterial(const ResPtr<Material>& mat)
+		{
+			if (m_particleType == ParticleType::Quad)
+				return;
+			m_material = mat;
+		}
 
 		const ResPtr<StaticMesh>& GetMesh() const { return m_mesh; }
 		void SetMesh(const ResPtr<StaticMesh>& mesh) { m_mesh = mesh; }

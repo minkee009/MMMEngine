@@ -101,6 +101,7 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_typeInfoMap[L"Shader/PBR/PS/BRDFShader.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY };
 	m_typeInfoMap[L"Shader/TOON/ToonPS.hlsl"] = { ShaderType::S_TOON, RenderType::R_GEOMETRY };
 	m_typeInfoMap[L"Shader/SkyBox/SkyBoxPixelShader.hlsl"] = { ShaderType::S_SKYBOX, RenderType::R_SKYBOX };
+	m_typeInfoMap[L"Shader/Particle/ParticleUnlitPS.hlsl"] = { ShaderType::S_PBR, RenderType::R_PARTICLE };
 
 	// 구조체별 이름 등록 (쉐이더 이름과같게)
 	m_CBBufferMap[L"MatBuffer"] = CreateConstantBuffer<PBR_MaterialBuffer>();
@@ -138,6 +139,8 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_PBR][L"mRoughness"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mAoStrength"] = { PropertyType::Constant, 3, 0.5f };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mEmissive"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_PBR][L"mAlphaClip"] = { PropertyType::Constant, 3, 0.5f };
+	m_propertyInfoMap[ShaderType::S_PBR][L"mUseAlphaClip"] = { PropertyType::Constant, 3, 1.0f };
 
 	//
 	m_propertyInfoMap[ShaderType::S_TOON][L"_albedo"] = { PropertyType::Texture, 0 };
@@ -168,6 +171,8 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_TOON][L"mRimLightStr"] = { PropertyType::Constant, 3, 0.5f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mEmissive"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mPadding"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mAlphaClip"] = { PropertyType::Constant, 3, 0.5f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mUseAlphaClip"] = { PropertyType::Constant, 3, 1.0f };
 	
 	//
 	m_propertyInfoMap[ShaderType::S_SKYBOX][L"_cubemap"]	= { PropertyType::Texture, 0 };
@@ -178,6 +183,14 @@ void MMMEngine::ShaderInfo::StartUp()
 	CreatePShaderReflection(L"Shader/PBR/PS/BRDFShader.hlsl");
 	CreatePShaderReflection(L"Shader/SkyBox/SkyBoxPixelShader.hlsl");
 	CreatePShaderReflection(L"Shader/TOON/ToonPS.hlsl");
+	try
+	{
+		CreatePShaderReflection(L"Shader/Particle/ParticleUnlitPS.hlsl");
+	}
+	catch (const std::exception&)
+	{
+		// Optional shader: allow missing file without failing startup
+	}
 
 	// 기본 쉐이더 정의
 	m_pDefaultVShader = ResourceManager::Get().Load<VShader>(L"Shader/PBR/VS/StaticVertexShader.hlsl");
@@ -254,58 +267,64 @@ const MMMEngine::ShaderType MMMEngine::ShaderInfo::GetShaderType(const std::wstr
 void MMMEngine::ShaderInfo::UpdateProperty(ID3D11DeviceContext4* context,
 	const ShaderType shaderType,
 	const std::wstring& propertyName,
-	const void* data)
+	const void* data,
+	bool allowGlobal)
 {
 	// 1. 글로벌 프로퍼티 먼저 확인
-	auto gIt = m_globalPropMap.find(shaderType);
-	if (gIt != m_globalPropMap.end())
+	if (allowGlobal)
 	{
-		auto& gPropMap = gIt->second;
-		auto gPropIt = gPropMap.find(propertyName);
-		if (gPropIt != gPropMap.end())
+		auto gIt = m_globalPropMap.find(shaderType);
+		if (gIt != m_globalPropMap.end())
 		{
-			const PropertyValue& gval = gPropIt->second;
-			const PropertyInfo& pinfo = m_propertyInfoMap[shaderType][propertyName];
-
-			if (pinfo.propertyType == PropertyType::Constant)
+			auto& gPropMap = gIt->second;
+			auto gPropIt = gPropMap.find(propertyName);
+			if (gPropIt != gPropMap.end())
 			{
-				// 글로벌 ConstantBuffer 값 적용
-				auto cbIt = m_CBPropertyMap[shaderType].find(propertyName);
-				if (cbIt == m_CBPropertyMap[shaderType].end())
-					return;
+				const PropertyValue& gval = gPropIt->second;
+				const PropertyInfo& pinfo = m_propertyInfoMap[shaderType][propertyName];
 
-				const CBPropertyInfo& cbInfo = cbIt->second;
-				auto bufIt = m_CBBufferMap.find(cbInfo.bufferName);
-				if (bufIt == m_CBBufferMap.end())
-					return;
-
-				auto buffer = bufIt->second;
-
-				D3D11_MAPPED_SUBRESOURCE mapped;
-				if (SUCCEEDED(context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &mapped)))
+				if (pinfo.propertyType == PropertyType::Constant)
 				{
-					// gval이 std::variant라면 std::visit으로 꺼내서 memcpy
-					std::visit([&](auto&& arg) {
-						memcpy((BYTE*)mapped.pData + cbInfo.offset, &arg, cbInfo.size);
-						}, gval);
-					context->Unmap(buffer.Get(), 0);
-				}
-				return;
-			}
-			else if (pinfo.propertyType == PropertyType::Texture)
-			{
-				auto texPtr = std::get<ResPtr<Texture2D>>(gval);
-				if (!texPtr)
-					return;
+					// 글로벌 ConstantBuffer 값 적용
+					auto cbIt = m_CBPropertyMap[shaderType].find(propertyName);
+					if (cbIt == m_CBPropertyMap[shaderType].end())
+						return;
 
-				ID3D11ShaderResourceView* srv =
-					texPtr->m_pSRV.Get();
-				context->PSSetShaderResources(pinfo.bufferIndex, 1, &srv);
-				return;
-			}
-			else if (pinfo.propertyType == PropertyType::Sampler)
-			{
-				return;
+					const CBPropertyInfo& cbInfo = cbIt->second;
+					auto bufIt = m_CBBufferMap.find(cbInfo.bufferName);
+					if (bufIt == m_CBBufferMap.end())
+						return;
+
+					auto buffer = bufIt->second;
+
+					D3D11_MAPPED_SUBRESOURCE mapped;
+					const bool firstUpdate = (m_cbUpdatedThisMaterial.insert(cbInfo.bufferName).second);
+					const D3D11_MAP mapType = firstUpdate ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE_NO_OVERWRITE;
+					if (SUCCEEDED(context->Map(buffer.Get(), 0, mapType, 0, &mapped)))
+					{
+						// gval이 std::variant라면 std::visit으로 꺼내서 memcpy
+						std::visit([&](auto&& arg) {
+							memcpy((BYTE*)mapped.pData + cbInfo.offset, &arg, cbInfo.size);
+							}, gval);
+						context->Unmap(buffer.Get(), 0);
+					}
+					return;
+				}
+				else if (pinfo.propertyType == PropertyType::Texture)
+				{
+					auto texPtr = std::get<ResPtr<Texture2D>>(gval);
+					if (!texPtr)
+						return;
+
+					ID3D11ShaderResourceView* srv =
+						texPtr->m_pSRV.Get();
+					context->PSSetShaderResources(pinfo.bufferIndex, 1, &srv);
+					return;
+				}
+				else if (pinfo.propertyType == PropertyType::Sampler)
+				{
+					return;
+				}
 			}
 		}
 	}
@@ -336,7 +355,9 @@ void MMMEngine::ShaderInfo::UpdateProperty(ID3D11DeviceContext4* context,
 		auto buffer = bufIt->second;
 
 		D3D11_MAPPED_SUBRESOURCE mapped;
-		if (SUCCEEDED(context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &mapped)))
+		const bool firstUpdate = (m_cbUpdatedThisMaterial.insert(cbInfo.bufferName).second);
+		const D3D11_MAP mapType = firstUpdate ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_WRITE_NO_OVERWRITE;
+		if (SUCCEEDED(context->Map(buffer.Get(), 0, mapType, 0, &mapped)))
 		{
 			memcpy((BYTE*)mapped.pData + cbInfo.offset, data, cbInfo.size);
 			context->Unmap(buffer.Get(), 0);

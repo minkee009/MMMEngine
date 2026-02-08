@@ -2,6 +2,7 @@
 #define NOMINMAX
 #include "ExportSingleton.hpp"
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <SimpleMath.h>
 #include <wrl/client.h>
@@ -54,12 +55,16 @@ namespace MMMEngine {
 
 	struct PBR_MaterialBuffer
 	{
-		DirectX::SimpleMath::Color mBaseColorFactor;
+		DirectX::SimpleMath::Vector4 mBaseColor;
 
-		float mMetalicFactor = 0.0f;
-		float mRoughnessFactor = 0.0f;
-		float mAoFactor = 1.0f;
-		float mEmissiveFactor = 1.0f;
+		float mMetallic = 0.0f;
+		float mRoughness = 0.0f;
+		float mAoStrength = 1.0f;
+		float mEmissive = 1.0f;
+
+		float mAlphaClip = 0.5f;
+		float mUseAlphaClip = 1.0f;
+		DirectX::SimpleMath::Vector2 mMatPadding = { 0.0f, 0.0f };
 	};
 
 	struct TOON_MaterialBuffer
@@ -148,6 +153,9 @@ namespace MMMEngine {
 		// 글로벌 리소스 저장용 맵 <ShaderType, <propertyName ,PropertyValue>>
 		std::unordered_map<ShaderType, std::unordered_map<std::wstring, PropertyValue>> m_globalPropMap;
 
+		// 머티리얼 적용 중 업데이트된 상수버퍼 추적
+		std::unordered_set<std::wstring> m_cbUpdatedThisMaterial;
+
 		//// 텍스쳐 버퍼인덱스 주는 맵 <propertyName, index> (int == shader tN)
 		//std::unordered_map<ShaderType, std::unordered_map<std::wstring, int>> m_texPropertyMap;
 		
@@ -177,8 +185,10 @@ namespace MMMEngine {
 		void UpdateProperty(ID3D11DeviceContext4* context,
 			const ShaderType shaderType,
 			const std::wstring& propertyName,
-			const void* data);
+			const void* data,
+			bool allowGlobal = true);
 		void UpdateCBuffers(const ShaderType _type);
+		void BeginMaterialUpdate() { m_cbUpdatedThisMaterial.clear(); }
 
 		void ConvertMaterialType(const ShaderType _type, Material* _mat);
 

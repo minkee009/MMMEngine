@@ -87,10 +87,13 @@ float CalculateShadowPCF(float4 LightPos)
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
-    // 알파테스트
+    // 알파 처리
     float4 texColor = _albedo.Sample(_sp0, input.Tex);
-    clip(texColor.a - 0.5f);
     float4 baseColor = texColor * mBaseColor;
+    if (mUseAlphaClip > 0.5f)
+    {
+        clip(baseColor.a - mAlphaClip);
+    }
     
      // 필요한 변수를 모두 구하기
     float3 lightColor = mLightColor * mIntensity;

@@ -1,6 +1,4 @@
-﻿
-
-#include "Material.h"
+﻿#include "Material.h"
 #include "VShader.h"
 #include "PShader.h"
 #include "Texture2D.h"
@@ -10,7 +8,10 @@
 #include <WICTextureLoader.h>
 #include <RendererTools.h>
 #include "json/json.hpp"
+#include "StringHelper.h"
 
+#include <algorithm>
+#include <cwctype>
 #include <rttr/registration>
 #include "MaterialSerializer.h"
 #include "ShaderInfo.h"
@@ -24,10 +25,18 @@ RTTR_REGISTRATION
 	using namespace rttr;
 	using namespace MMMEngine;
 
+	registration::enumeration<Material::SurfaceType>("MaterialSurfaceType")
+		(
+			value("Opaque", Material::SurfaceType::Opaque),
+			value("Transparent", Material::SurfaceType::Transparent)
+		);
+
 	registration::class_<Material>("Material")
 		.constructor<>()(policy::ctor::as_std_shared_ptr)
 		.property("VShader", &Material::GetVShader, &Material::SetVShader)
-		.property("PShader", &Material::GetPShader, &Material::SetPShader);
+		.property("PShader", &Material::GetPShader, &Material::SetPShader)
+		.property("SurfaceType", &Material::GetSurfaceType, &Material::SetSurfaceType)
+		.property("TwoSided", &Material::IsTwoSided, &Material::SetTwoSided);
 
 	type::register_converter_func(
 		[](std::shared_ptr<Resource> from, bool& ok) -> std::shared_ptr<Material>
@@ -51,6 +60,18 @@ RTTR_REGISTRATION
 	//	}
 	//);
 
+}
+
+void MMMEngine::Material::SetSurfaceType(SurfaceType type)
+{
+	m_surfaceType = type;
+
+	// Alpha clip defaults based on surface type
+	const float useAlphaClip = (m_surfaceType == SurfaceType::Transparent) ? 0.0f : 1.0f;
+	AddProperty(L"mUseAlphaClip", useAlphaClip);
+
+	if (m_surfaceType == SurfaceType::Opaque)
+		AddProperty(L"mAlphaClip", 0.5f);
 }
 
 
@@ -137,6 +158,18 @@ void MMMEngine::Material::LoadTexture(const std::wstring& _propertyName, const s
 bool MMMEngine::Material::LoadFromFilePath(const std::wstring& _filePath)
 {
 	std::filesystem::path fPath{ _filePath };
+
+	if (fPath.has_extension())
+	{
+		std::wstring ext = fPath.extension().wstring();
+		std::transform(ext.begin(), ext.end(), ext.begin(),
+			[](wchar_t c) { return static_cast<wchar_t>(towlower(c)); });
+		if (ext != L".material")
+		{
+			std::cout << "Material::Invalid file extension: " << Utility::StringHelper::WStringToString(_filePath) << std::endl;
+			return false;
+		}
+	}
 
 	if (!std::filesystem::exists(fPath)) {
 		std::cout << "Material::Files does not exist!!" << std::endl;

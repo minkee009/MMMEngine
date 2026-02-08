@@ -40,15 +40,25 @@ void MMMEngine::Light::SetLightIntensity(const float& _intensity)
 
 void MMMEngine::Light::SetLightColor(DirectX::SimpleMath::Vector3& _color)
 {
-	float r = std::max(0.0f, std::min(255.0f, _color.x));
-	float g = std::max(0.0f, std::min(255.0f, _color.y));;
-	float b = std::max(0.0f, std::min(255.0f, _color.z));;
+	Vector3 color = _color;
+	const float maxComp = std::max(color.x, std::max(color.y, color.z));
+	if (maxComp <= 1.0f + 1e-4f)
+	{
+		color *= 255.0f;
+	}
+
+	float r = std::max(0.0f, std::min(255.0f, color.x));
+	float g = std::max(0.0f, std::min(255.0f, color.y));
+	float b = std::max(0.0f, std::min(255.0f, color.z));
 
 	m_lightColor = { r, g, b };
 }
 
 DirectX::SimpleMath::Vector3 MMMEngine::Light::GetNormalizedColor()
 {
+	const float maxComp = std::max(m_lightColor.x, std::max(m_lightColor.y, m_lightColor.z));
+	if (maxComp <= 1.0f + 1e-4f)
+		return m_lightColor;
 	return m_lightColor / 255.0f;
 }
 

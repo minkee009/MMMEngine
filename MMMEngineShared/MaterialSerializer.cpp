@@ -1,4 +1,4 @@
-﻿#include "MaterialSerializer.h"
+#include "MaterialSerializer.h"
 #include <rttr/type>
 #include <fstream>
 
@@ -10,6 +10,18 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 DEFINE_SINGLETON(MMMEngine::MaterialSerializer);
+
+namespace
+{
+	inline bool IsGlobalMaterialProperty(const std::wstring& name)
+	{
+		return name == L"mLightDir" ||
+			name == L"mLightColor" ||
+			name == L"mIntensity" ||
+			name == L"mLightPos" ||
+			name == L"mLightPadding";
+	}
+}
 
 MMMEngine::PropertyValue MMMEngine::MaterialSerializer::property_from_json(const nlohmann::json& j)
 {
@@ -86,6 +98,9 @@ std::filesystem::path MMMEngine::MaterialSerializer::Serialize(Material* _materi
 	json props = json::object();
 	for (auto& [key, val] : _material->GetProperties())
 	{
+		if (IsGlobalMaterialProperty(key))
+			continue;
+
 		std::string skey(Utility::StringHelper::WStringToString(key));
 		to_json(props[skey], val);
 	}
@@ -99,6 +114,10 @@ std::filesystem::path MMMEngine::MaterialSerializer::Serialize(Material* _materi
 		snapshot["pshader"] = { {"file", Utility::StringHelper::WStringToString(_material->GetPShader()->GetFilePath()) } };
 	else
 		snapshot["pshader"] = { {"file", ""} };
+
+	auto surfaceType = _material->GetSurfaceType();
+	snapshot["surfaceType"] = (surfaceType == Material::SurfaceType::Transparent) ? "Transparent" : "Opaque";
+	snapshot["twoSided"] = _material->IsTwoSided();
 	
 	
 	//std::vector<uint8_t> v = json::to_msgpack(snapshot);
@@ -164,6 +183,8 @@ void MMMEngine::MaterialSerializer::DeSerialize(Material* _material, std::wstrin
 	if (snapshot.contains("properties")) {
 		for (auto& [key, val] : snapshot["properties"].items()) {
 			std::wstring wkey(key.begin(), key.end());
+			if (IsGlobalMaterialProperty(wkey))
+				continue;
 			PropertyValue pv = property_from_json(val);
 			_material->AddProperty(wkey, pv);
 		}
@@ -181,5 +202,17 @@ void MMMEngine::MaterialSerializer::DeSerialize(Material* _material, std::wstrin
 		std::wstring ws = Utility::StringHelper::StringToWString(snapshot["pshader"]["file"].get<std::string>());
 		auto ps = ResourceManager::Get().Load<PShader>(ws);
 		_material->SetPShader(ps);
+	}
+
+	if (snapshot.contains("surfaceType")) {
+		const std::string type = snapshot["surfaceType"].get<std::string>();
+		if (type == "Transparent")
+			_material->SetSurfaceType(Material::SurfaceType::Transparent);
+		else
+			_material->SetSurfaceType(Material::SurfaceType::Opaque);
+	}
+
+	if (snapshot.contains("twoSided")) {
+		_material->SetTwoSided(snapshot["twoSided"].get<bool>());
 	}
 }
