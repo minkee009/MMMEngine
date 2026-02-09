@@ -7,6 +7,7 @@
 #include <MeshRenderer.h>
 #include <SkinRenderer.h>
 #include <ParticleRenderer.h>
+#include <TrailRenderer.h>
 #include <Light.h>
 #include <SkyRenderer.h>
 #include <BoxColliderComponent.h>

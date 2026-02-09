@@ -206,6 +206,17 @@ namespace MMMEngine {
 					baseColor.w *= cmd.particleAlpha;
 					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mBaseColor", &baseColor);
 				}
+				
+				// Per-renderer receiveShadow flag: bind/unbind shadow map SRV explicitly.
+				PropertyInfo shadowPropInfo{};
+				const int shadowSlot = ShaderInfo::Get().PropertyToIdx(sType, L"_shadowmap", &shadowPropInfo);
+				if (shadowSlot >= 0 && shadowPropInfo.propertyType == PropertyType::Texture)
+				{
+					ID3D11ShaderResourceView* shadowSrv = nullptr;
+					if (cmd.receiveShadow && m_pShadowSRV)
+						shadowSrv = m_pShadowSRV->m_pSRV.Get();
+					m_pDeviceContext->PSSetShaderResources(shadowSlot, 1, &shadowSrv);
+				}
 
 				// 상수버퍼 일렬업데이트
 				ShaderInfo::Get().UpdateCBuffers(sType);
