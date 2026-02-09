@@ -112,6 +112,9 @@ namespace MMMEngine
 			bool includeTrigger = false,
 			physx::PxQueryFlags flags = physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::eDYNAMIC,
 			float inflation = 0.0f);
+
+		MMMEngine::RigidBodyComponent* GetOwnerRigid(MMMEngine::ColliderComponent* col) const;
+
 	private:
 		PhysSceneDesc m_desc;
 

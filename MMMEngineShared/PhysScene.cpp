@@ -768,3 +768,10 @@ bool MMMEngine::PhysScene::Sweep(const physx::PxGeometry& geom, const physx::PxT
 	}
 	return false;
 }
+
+MMMEngine::RigidBodyComponent* MMMEngine::PhysScene::GetOwnerRigid(MMMEngine::ColliderComponent* col) const
+{
+	if (!col) return nullptr;
+	auto it = m_ownerByCollider.find(col);
+	return (it != m_ownerByCollider.end()) ? it->second : nullptr;
+}

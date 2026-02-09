@@ -26,6 +26,8 @@ namespace MMMEngine
 
 		bool UpdateShapeGeometry() override;
 
+		bool SetPhysicsActive(bool enable);
+
 		DebugColliderShapeDesc GetDebugShapeDesc() const override { return {}; }
 
 		bool RebuildForRigidType(MMMEngine::RigidBodyComponent::Type type);

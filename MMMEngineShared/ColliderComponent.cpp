@@ -49,6 +49,21 @@ void MMMEngine::ColliderComponent::SetTriggerQueryEnabled(bool on)
     ApplySceneQueryFlag();
 }
 
+bool MMMEngine::ColliderComponent::SetPhysicsActive(bool enable)
+{
+    if (enable)
+    {
+        if (!m_Shape) return false;
+        if (!m_IsRegistered) RegisterToPhysics();
+        return true;
+    }
+    else
+    {
+        UnregisterFromPhysics(PhysicsUnregisterReason::Disable);
+        return true;
+    }
+}
+
 void MMMEngine::ColliderComponent::RegisterToPhysics()
 {
     if (m_IsRegistered || !m_Shape) return;
@@ -58,12 +73,24 @@ void MMMEngine::ColliderComponent::RegisterToPhysics()
     m_IsRegistered = true;
 }
 
-void MMMEngine::ColliderComponent::UnregisterFromPhysics()
+void MMMEngine::ColliderComponent::UnregisterFromPhysics(PhysicsUnregisterReason reason)
 {
-    if (!m_IsRegistered) return;
+    if (!m_IsRegistered && reason == PhysicsUnregisterReason::Disable)
+        return;
+
     GetGameObject()->GetTransform()->onUpdateTransformTree
         .RemoveListener<ColliderComponent, &ColliderComponent::NoticeCompoundCollider>(this);
-    MMMEngine::PhysxManager::Get().NotifyColliderRemoved(this);
+
+    //파괴와 떼는거 분리
+    if (reason == PhysicsUnregisterReason::Disable)
+    {
+        MMMEngine::PhysxManager::Get().NotifyColliderDisabled(this); // detach만
+    }
+    else
+    {
+        MMMEngine::PhysxManager::Get().NotifyColliderRemoved(this);  // destroy 전용
+    }
+
     m_IsRegistered = false;
 }
 
@@ -394,7 +421,13 @@ void MMMEngine::ColliderComponent::ApplyAll()
 
 void MMMEngine::ColliderComponent::Initialize()
 {
-	// 
+	//
+    if (auto& obj = GetGameObject(); obj.IsValid())
+    {
+        obj->onActiveInHierarchyChanged.AddListener<ColliderComponent, &ColliderComponent::OnOwnerActiveInHierarchyChanged>(this);
+    }
+
+
 	auto& physics = MMMEngine::PhysicX::Get().GetPhysics();
 	EnsureMaterial();
 	physx::PxMaterial* mat = m_Material ? m_Material : MMMEngine::PhysicX::Get().GetDefaultMaterial();
@@ -408,14 +441,20 @@ void MMMEngine::ColliderComponent::Initialize()
         }
 	}
 
-    RegisterToPhysics();
+    if (GetGameObject()->IsActiveInHierarchy())
+        RegisterToPhysics();
 }
 
 void MMMEngine::ColliderComponent::UnInitialize()
 {
+    if (auto& obj = GetGameObject(); obj.IsValid())
+    {
+        obj->onActiveInHierarchyChanged.RemoveListener<ColliderComponent, &ColliderComponent::OnOwnerActiveInHierarchyChanged>(this);
+    }
+
     if(GetGameObject().IsValid())
     {
-        UnregisterFromPhysics();
+        UnregisterFromPhysics(PhysicsUnregisterReason::Destroy);
     }
 
     //PhysxManager::Get().NotifyColliderRemoved(this);
@@ -458,3 +497,13 @@ void MMMEngine::ColliderComponent::AttachShapeFromActor(physx::PxRigidActor* Act
     return;
 }
 
+
+void MMMEngine::ColliderComponent::OnOwnerActiveInHierarchyChanged()
+{
+    if (!GetGameObject().IsValid()) return;
+
+    if (GetGameObject()->IsActiveInHierarchy())
+        SetPhysicsActive(true);   // RegisterToPhysics 내부 호출
+    else
+        SetPhysicsActive(false);  // UnregisterFromPhysics 내부 호출
+}

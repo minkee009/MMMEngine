@@ -205,7 +205,7 @@ bool MMMEngine::MeshColliderComponent::RebuildForRigidType(MMMEngine::RigidBodyC
     const bool wasRegistered = m_IsRegistered;
 
     if (wasRegistered)
-        UnregisterFromPhysics();
+        UnregisterFromPhysics(PhysicsUnregisterReason::Disable);
 
     // 기존 shape/mesh 정리
     if (m_Shape) { m_Shape->release(); m_Shape = nullptr; }
@@ -362,4 +362,12 @@ bool MMMEngine::MeshColliderComponent::IsDynamicTarget()
 
     if (last) return last->GetType() == RigidBodyComponent::Type::Dynamic;
     return true; // 못 찾으면 Dynamic(=Convex)으로 가정
+}
+
+
+bool MMMEngine::MeshColliderComponent::SetPhysicsActive(bool enable)
+{
+    if (enable) return TryBuildAndRegister();
+    UnregisterFromPhysics(PhysicsUnregisterReason::Disable);
+    return true;
 }

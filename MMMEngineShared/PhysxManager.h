@@ -86,6 +86,10 @@ namespace MMMEngine
 		// 타입 변경
 		void NotifyRigidTypeChanged(RigidBodyComponent* rb);
 
+		// shape만 actor에서 제거용도
+		void NotifyColliderDisabled(MMMEngine::ColliderComponent* col);
+
+
 		void UnbindScene();
 		
 		void DispatchPhysicsEvents();

@@ -30,6 +30,12 @@ namespace MMMEngine
 			Disabled      // 아무것도 안 함(임시로 끄기용)
 		};
 
+		enum class PhysicsUnregisterReason
+		{
+			Disable,
+			Destroy
+		};
+
 		// 콜라이더 종류별로 shape 만드는 가상함수
 		virtual bool BuildShape(physx::PxPhysics* physics, physx::PxMaterial* material) = 0;
 
@@ -117,6 +123,11 @@ namespace MMMEngine
 		ObjPtr<Transform> m_parent;
 
 		void SetTriggerQueryEnabled(bool on);
+
+		bool SetPhysicsActive(bool enable);
+
+		void OnOwnerActiveInHierarchyChanged();
+
 
 	protected:
 		// 파생 클래스가 shape 생성 후 반드시 호출
@@ -209,6 +220,6 @@ namespace MMMEngine
 		
 		void RegisterToPhysics();
 
-		void UnregisterFromPhysics();
+		void UnregisterFromPhysics(PhysicsUnregisterReason reason = PhysicsUnregisterReason::Disable);
 	};
 }

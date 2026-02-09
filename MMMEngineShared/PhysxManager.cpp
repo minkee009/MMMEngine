@@ -648,6 +648,30 @@ void MMMEngine::PhysxManager::NotifyRigidTypeChanged(RigidBodyComponent* rb)
     RequestChangeRigidType(rb); // 내부 커맨드 큐 적재
 }
 
+void MMMEngine::PhysxManager::NotifyColliderDisabled(MMMEngine::ColliderComponent* col)
+{
+    if (!col) return;
+
+    // pending attach/rebuild 등 정리
+    EraseCommandsForCollider(col);
+    m_DirtyColliders.erase(col);
+    m_FilterDirtyColliders.erase(col);
+
+    // owner를 찾아 detach 요청
+    RigidBodyComponent* rb = m_PhysScene.GetOwnerRigid(col);
+    if (!rb)
+    {
+        if (auto* shape = col->GetPxShape())
+        {
+            if (auto* actor = shape->getActor())
+                rb = static_cast<RigidBodyComponent*>(actor->userData);
+        }
+    }
+
+    if (rb)
+        RequestDetachCollider(rb, col);
+}
+
 void MMMEngine::PhysxManager::UnbindScene()
 {
     m_Commands.clear();
