@@ -158,6 +158,29 @@ namespace MMMEngine::Editor
             }
         }
 
+        static void ExtractDependenciesFromType(const std::string& typeName, ScriptInfo& info)
+        {
+            static const std::set<std::string> kIgnored = {
+                "const", "volatile", "signed", "unsigned",
+                "short", "long", "int", "float", "double",
+                "char", "bool", "void", "class", "struct", "enum",
+                "auto", "typename", "template"
+            };
+
+            std::regex tokenRegex(R"re([A-Za-z_][A-Za-z0-9_]*)re");
+            auto begin = std::sregex_iterator(typeName.begin(), typeName.end(), tokenRegex);
+            auto end = std::sregex_iterator();
+            for (auto it = begin; it != end; ++it)
+            {
+                const std::string token = (*it)[0].str();
+                if (token == info.className)
+                    continue;
+                if (kIgnored.count(token))
+                    continue;
+                info.dependencies.insert(token);
+            }
+        }
+
         static int64_t ToStampTime(const fs::file_time_type& time)
         {
             return static_cast<int64_t>(time.time_since_epoch().count());
@@ -894,6 +917,8 @@ namespace MMMEngine::Editor
                     mi.messageName = cppName;
                     mi.cppName = cppName;
                     mi.paramTypes = ParseParameterTypes(params);
+                    for (const auto& t : mi.paramTypes)
+                        ExtractDependenciesFromType(t, info);
                     info.messages.push_back(std::move(mi));
                 }
             }
@@ -915,6 +940,8 @@ namespace MMMEngine::Editor
                     mi.messageName = messageName;
                     mi.cppName = cppName;
                     mi.paramTypes = ParseParameterTypes(params);
+                    for (const auto& t : mi.paramTypes)
+                        ExtractDependenciesFromType(t, info);
                     info.messages.push_back(std::move(mi));
                 }
             }
@@ -938,6 +965,8 @@ namespace MMMEngine::Editor
                     mi.messageName = cppName;
                     mi.cppName = cppName;
                     mi.paramTypes = std::move(paramTypes);
+                    for (const auto& t : mi.paramTypes)
+                        ExtractDependenciesFromType(t, info);
                     info.messages.push_back(std::move(mi));
                 }
             }
@@ -952,6 +981,7 @@ namespace MMMEngine::Editor
                     PropertyInfo pi;
                     pi.type = NormalizeType((*it)[1].str());
                     pi.name = (*it)[2].str();
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
@@ -967,6 +997,7 @@ namespace MMMEngine::Editor
                     pi.inspectorChain = (*it)[1].str();
                     pi.type = NormalizeType((*it)[2].str());
                     pi.name = (*it)[3].str();
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
@@ -982,6 +1013,7 @@ namespace MMMEngine::Editor
                     pi.range = (*it)[1].str();
                     pi.type = NormalizeType((*it)[2].str());
                     pi.name = (*it)[3].str();
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
@@ -997,6 +1029,7 @@ namespace MMMEngine::Editor
                     pi.type = NormalizeType((*it)[1].str());
                     pi.name = (*it)[2].str();
                     pi.inspectorHidden = true;
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
@@ -1082,14 +1115,15 @@ namespace MMMEngine::Editor
             os << "#include \"rttr/registration\"\n";
             os << "#include \"rttr/detail/policies/ctor_policies.h\"\n\n";
 
+            std::set<std::string> includedHeaders;
             for (const auto* s : toGen)
             {
                 // gen.cpp 가 Scripts/ 안에 있으므로, 같은 폴더 기준 상대 경로만 사용 (Scripts/ 접두어 없음)
                 std::string incPath = s->headerPath.generic_string();
                 std::replace(incPath.begin(), incPath.end(), '\\', '/');
+                includedHeaders.insert(incPath);
                 os << "#include \"" << incPath << "\"\n";
             }
-            os << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
 
             std::set<std::string> extraIncludes;
             for (const auto* s : toGen) {
@@ -1103,8 +1137,11 @@ namespace MMMEngine::Editor
             }
 
             for (const auto& inc : extraIncludes) {
-                os << "#include \"" << inc << "\"\n";
+                if (includedHeaders.insert(inc).second)
+                    os << "#include \"" << inc << "\"\n";
             }
+
+            os << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
 
             for (const auto& s : toGen)
             {
@@ -1321,6 +1358,7 @@ namespace MMMEngine::Editor
             for (ScriptInfo& info : infos) 
             {
                 info.headerPath = fs::relative(headerPath, scriptsDir);
+                scriptDB.emplace(info.className, info.headerPath);
                 allScripts.push_back(std::move(info));
             }
         }
