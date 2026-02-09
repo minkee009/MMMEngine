@@ -2,6 +2,15 @@
 
 DEFINE_SINGLETON(MMMEngine::BehaviourManager)
 
+namespace
+{
+	bool ContainsBehaviour(const std::vector<MMMEngine::ObjPtr<MMMEngine::Behaviour>>& container,
+		const MMMEngine::ObjPtr<MMMEngine::Behaviour>& behaviour)
+	{
+		return std::find(container.begin(), container.end(), behaviour) != container.end();
+	}
+}
+
 void MMMEngine::BehaviourManager::CheckAndSortBehaviours()
 {
 	if (m_needSort)
@@ -36,12 +45,17 @@ void MMMEngine::BehaviourManager::RegisterBehaviour(ObjPtr<Behaviour> behaviour)
 {
 	if (m_isInitializingPhase || m_isCollecting)
 	{
-		m_pendingRegister.push_back(behaviour);
+		if (!ContainsBehaviour(m_pendingRegister, behaviour))
+			m_pendingRegister.push_back(behaviour);
 		m_firstCallBehaviours.insert(behaviour);
 		return;
 	}
 
-	m_inactiveBehaviours.push_back(behaviour);
+	if (!ContainsBehaviour(m_inactiveBehaviours, behaviour) &&
+		!ContainsBehaviour(m_activeBehaviours, behaviour))
+	{
+		m_inactiveBehaviours.push_back(behaviour);
+	}
 	m_firstCallBehaviours.insert(behaviour);
 	m_needSort = true; // Behaviour 정렬이 필요함을 표시
 }
@@ -51,19 +65,12 @@ void MMMEngine::BehaviourManager::UnRegisterBehaviour(ObjPtr<Behaviour> behaviou
 	if (!behaviour.IsValid())
 		return;
 
-	auto it = std::find(m_activeBehaviours.begin(), m_activeBehaviours.end(), behaviour);
-	if (it != m_activeBehaviours.end())
-	{
-		m_activeBehaviours.erase(it);
-	}
-	else
-	{
-		it = std::find(m_inactiveBehaviours.begin(), m_inactiveBehaviours.end(), behaviour);
-		if (it != m_inactiveBehaviours.end())
-		{
-			m_inactiveBehaviours.erase(it);
-		}
-	}
+	m_activeBehaviours.erase(
+		std::remove(m_activeBehaviours.begin(), m_activeBehaviours.end(), behaviour),
+		m_activeBehaviours.end());
+	m_inactiveBehaviours.erase(
+		std::remove(m_inactiveBehaviours.begin(), m_inactiveBehaviours.end(), behaviour),
+		m_inactiveBehaviours.end());
 
 	if (std::find(m_pendingDestroy.begin(), m_pendingDestroy.end(), behaviour) == m_pendingDestroy.end())
 		m_pendingDestroy.push_back(behaviour);
@@ -137,7 +144,8 @@ void MMMEngine::BehaviourManager::InitializeBehaviours()
 
 		if (currentBehaviour->IsActiveAndEnabled())
 		{
-			m_activeBehaviours.push_back(currentBehaviour);
+			if (!ContainsBehaviour(m_activeBehaviours, currentBehaviour))
+				m_activeBehaviours.push_back(currentBehaviour);
 			changedBehavioursSet.insert(currentBehaviour); // OnEnable 호출을 위해 추가
 
 			// m_firstCallBehaviours에서 찾고, newBehavioursSet에 추가 및 m_firstCallBehaviours에서 제거
@@ -183,7 +191,7 @@ void MMMEngine::BehaviourManager::ExecuteAwake()
 	{
 		if (!behaviour.IsValid() || behaviour->IsDestroyed())
 			continue;
-		if (m_pendingAwake.count(behaviour) > 0)
+		if (m_pendingAwake.erase(behaviour) > 0)
 			behaviour->CallMessage("Awake");
 	}
 }
@@ -197,7 +205,7 @@ void MMMEngine::BehaviourManager::ExecuteStart()
 	{
 		if (!behaviour.IsValid() || behaviour->IsDestroyed())
 			continue;
-		if (m_pendingStart.count(behaviour) > 0)
+		if (m_pendingStart.erase(behaviour) > 0)
 			behaviour->CallMessage("Start");
 	}
 }
@@ -211,7 +219,7 @@ void MMMEngine::BehaviourManager::ExecuteOnEnable()
 	{
 		if (!behaviour.IsValid() || behaviour->IsDestroyed())
 			continue;
-		if (m_pendingOnEnable.count(behaviour) > 0)
+		if (m_pendingOnEnable.erase(behaviour) > 0)
 			behaviour->CallMessage("OnEnable");
 	}
 }
@@ -228,7 +236,13 @@ void MMMEngine::BehaviourManager::ClearInitializeCache()
 	if (!m_pendingRegister.empty())
 	{
 		for (auto& behaviour : m_pendingRegister)
-			m_inactiveBehaviours.push_back(behaviour);
+		{
+			if (!ContainsBehaviour(m_inactiveBehaviours, behaviour) &&
+				!ContainsBehaviour(m_activeBehaviours, behaviour))
+			{
+				m_inactiveBehaviours.push_back(behaviour);
+			}
+		}
 		m_pendingRegister.clear();
 		m_needSort = true;
 	}

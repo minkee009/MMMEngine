@@ -19,6 +19,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="MaterialSerializer.cpp" />
     <ClCompile Include="MeshRenderer.cpp" />
+    <ClCompile Include="ParticleRenderer.cpp" />
     <ClCompile Include="MissingScriptBehaviour.cpp" />
     <ClCompile Include="MUID.cpp" />
     <ClCompile Include="Object.cpp" />
@@ -127,6 +128,9 @@
     <ClCompile Include="MeshRenderer.cpp">
       <Filter>소스 파일\Core\Render API\Component</Filter>
     </ClCompile>
+    <ClCompile Include="ParticleRenderer.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
     <ClCompile Include="PhysicsSettings.cpp">
       <Filter>소스 파일\Core\Physcis API</Filter>
     </ClCompile>
@@ -175,6 +179,30 @@
     <ClCompile Include="Font.cpp">
       <Filter>소스 파일\Core\Render API\UI</Filter>
     </ClCompile>
+    <ClCompile Include="LineRenderer.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="TrailRenderer.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="UIMask.cpp">
+      <Filter>소스 파일\Core\Render API\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioSource.cpp">
+      <Filter>소스 파일\Core\Audio API</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioClip.cpp">
+      <Filter>소스 파일\Core\Audio API</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioListener.cpp">
+      <Filter>소스 파일\Core\Audio API</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioManager.cpp">
+      <Filter>소스 파일\Core\Audio API</Filter>
+    </ClCompile>
+    <ClCompile Include="MMMMathF.cpp">
+      <Filter>소스 파일\Core\MathF API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimationClip.h" />
@@ -196,6 +224,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="MaterialSerializer.h" />
     <ClInclude Include="MeshRenderer.h" />
+    <ClInclude Include="ParticleRenderer.h" />
     <ClInclude Include="MissingScriptBehaviour.h" />
     <ClInclude Include="MMMApplication.h" />
     <ClInclude Include="MMMResources.h" />
@@ -488,6 +517,30 @@
     <ClInclude Include="Font.h">
       <Filter>헤더 파일\Core\Render API\UI</Filter>
     </ClInclude>
+    <ClInclude Include="LineRenderer.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="TrailRenderer.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioClip.h">
+      <Filter>헤더 파일\Core\Audio API</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioClipFileFormat.h">
+      <Filter>헤더 파일\Core\Audio API</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioListener.h">
+      <Filter>헤더 파일\Core\Audio API</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioManager.h">
+      <Filter>헤더 파일\Core\Audio API</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioSource.h">
+      <Filter>헤더 파일\Core\Audio API</Filter>
+    </ClInclude>
+    <ClInclude Include="UIMask.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Object.h">
@@ -605,6 +658,9 @@
       <Filter>헤더 파일\Core\Render API</Filter>
     </ClInclude>
     <ClInclude Include="MeshRenderer.h">
+      <Filter>헤더 파일\Core\Render API\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleRenderer.h">
       <Filter>헤더 파일\Core\Render API\Component</Filter>
     </ClInclude>
     <ClInclude Include="RendererTools.h">
@@ -789,6 +845,15 @@
     </Filter>
     <Filter Include="소스 파일\Core\Render API\UI\Component">
       <UniqueIdentifier>{fb82b831-5a8a-4323-a003-6e612f46404d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Core\Audio API">
+      <UniqueIdentifier>{c8d8b407-9633-47dd-b0e9-488923815bab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Audio API">
+      <UniqueIdentifier>{ce6602b9-4c4d-4aad-b66a-1835704792e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\MathF API">
+      <UniqueIdentifier>{166c15c0-5606-44a0-9727-e19d9bf09ca3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

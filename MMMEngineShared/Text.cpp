@@ -5,6 +5,7 @@
 #include "RenderManager.h"
 #include "StringHelper.h"
 #include "rttr/registration"
+#include <cmath>
 
 RTTR_REGISTRATION
 {
@@ -73,10 +74,15 @@ void MMMEngine::Text::RenderUI(RenderManager& renderer)
 		rect.x + rect.z * pivot.x,
 		rect.y + rect.w * pivot.y
 	};
+	const auto worldScale = rectTransform->GetWorldScale();
+	const DirectX::SimpleMath::Vector2 textScale = {
+		std::abs(worldScale.x * scale.x),
+		std::abs(worldScale.y * scale.y)
+	};
 	const auto rotEuler = rectTransform->GetWorldEulerRotation();
 	const float rotationRad = DirectX::XMConvertToRadians(rotEuler.z);
 
-	renderer.DrawUIText(rect, m_text, m_font, GetColor(), m_alignment, rotationRad, pivotScene);
+	renderer.DrawUIText(rect, m_text, m_font, GetColor(), m_alignment, rotationRad, pivotScene, textScale);
 }
 
 std::string MMMEngine::Text::GetTextUtf8() const

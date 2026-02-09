@@ -132,21 +132,35 @@ bool MMMEngine::FontImporter::ConvertTTFToSpriteFont(const std::wstring& inputPa
 	bool looksLikeFile = inputFs.has_extension() && std::filesystem::exists(inputFs);
 	if (looksLikeFile)
 	{
+		// Prefer file stem first so style suffixes like "R/B" are preserved.
+		std::wstring stemName = inputFs.stem().wstring();
+		if (!stemName.empty())
+		{
+			if (Font::BuildSpriteFontFromName(stemName, outputPath, m_makeSpriteFontPath, buildOptions, &outError))
+				return true;
+		}
+
 		std::wstring familyName;
 		std::wstring nameErr;
 		if (!TryGetFontFamilyNameFromFile(inputPath, familyName, nameErr))
 		{
-			outError = nameErr;
-			return false;
+			if (!outError.empty())
+				outError += L"\n";
+			outError += nameErr;
+			return Font::BuildSpriteFontFromTTF(inputPath, outputPath, m_makeSpriteFontPath, buildOptions, &outError);
 		}
 
 		if (!IsFontFamilyInstalled(familyName))
 		{
-			outError = L"폰트가 시스템에 설치되어 있지 않습니다. 설치 후 다시 시도하세요.\nFont Name: " + familyName;
-			return false;
+			if (outError.empty())
+				outError = L"폰트가 시스템에 설치되어 있지 않습니다. 파일 경로 기반 변환을 시도합니다.\nFont Name: " + familyName;
+			return Font::BuildSpriteFontFromTTF(inputPath, outputPath, m_makeSpriteFontPath, buildOptions, &outError);
 		}
 
-		return Font::BuildSpriteFontFromName(familyName, outputPath, m_makeSpriteFontPath, buildOptions, &outError);
+		if (Font::BuildSpriteFontFromName(familyName, outputPath, m_makeSpriteFontPath, buildOptions, &outError))
+			return true;
+
+		return Font::BuildSpriteFontFromTTF(inputPath, outputPath, m_makeSpriteFontPath, buildOptions, &outError);
 	}
 
 	// 입력이 파일 경로가 아니라면 폰트 이름으로 간주

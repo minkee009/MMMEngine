@@ -5,6 +5,7 @@
 #include "rttr/registration"
 #include "rttr/detail/policies/ctor_policies.h"
 #include "Component.h"
+#include <algorithm>
 
 RTTR_REGISTRATION
 {
@@ -69,16 +70,20 @@ MMMEngine::Scene::~Scene()
 
 void MMMEngine::Scene::RegisterGameObject(ObjPtr<GameObject> go)
 {
+    if (!go.IsValid() || go->IsDestroyed())
+        return;
+
+    if (std::find(m_gameObjects.begin(), m_gameObjects.end(), go) != m_gameObjects.end())
+        return;
+
     m_gameObjects.push_back(go);
 }
 
 void MMMEngine::Scene::UnRegisterGameObject(ObjPtr<GameObject> go)
 {
-    auto it = std::find(m_gameObjects.begin(), m_gameObjects.end(), go);
-    if (it != m_gameObjects.end()) {
-        *it = std::move(m_gameObjects.back()); // ������ ���Ҹ� ���
-        m_gameObjects.pop_back();
-    }
+    m_gameObjects.erase(
+        std::remove(m_gameObjects.begin(), m_gameObjects.end(), go),
+        m_gameObjects.end());
 }
 
 const std::string& MMMEngine::Scene::GetName() const

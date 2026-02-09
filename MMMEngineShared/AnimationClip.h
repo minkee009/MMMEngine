@@ -14,7 +14,7 @@ namespace MMMEngine {
 			friend class Scene;
 			friend class Animator;
 
-		void FixQuatHemisphere(std::vector<Mesh_QuatKey>& keys);
+		//void FixQuatHemisphere(std::vector<Mesh_QuatKey>& keys);
 	public:
 		std::string mName;
 

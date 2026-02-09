@@ -6,6 +6,9 @@
 #include <Camera.h>
 #include <MeshRenderer.h>
 #include <SkinRenderer.h>
+#include <ParticleRenderer.h>
+#include <LineRenderer.h>
+#include <TrailRenderer.h>
 #include <Light.h>
 #include <SkyRenderer.h>
 #include <BoxColliderComponent.h>
@@ -20,5 +23,5 @@
 #include <Gage.h>
 #include <HandleGage.h>
 #include <UIMask.h>
-//#include <AudioSource.h>
-//#include <AudioListener.h>
+#include <AudioSource.h>
+#include <AudioListener.h>

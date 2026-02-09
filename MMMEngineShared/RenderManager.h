@@ -146,6 +146,7 @@ namespace MMMEngine
 		// 카메라 관련
 		ObjPtr<Camera> m_pMainCamera;	// 메인 카메라 참조
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCambuffer = nullptr;		// 캠 버퍼
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pParticleBuffer = nullptr;	// 파티클 전용 PS 버퍼 (b10)
 
 		// 스킨드매시
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pOffsetBuffer = nullptr;		// 본 오프셋 버퍼
@@ -176,9 +177,9 @@ namespace MMMEngine
 		void ShutDown();
 
 		// 이 3개는 업데이트때마다 호출해서 관리할것
-		void SetWorldMatrix(DirectX::SimpleMath::Matrix& _world);
-		void SetViewMatrix(DirectX::SimpleMath::Matrix& _view);
-		void SetProjMatrix(DirectX::SimpleMath::Matrix& _proj);
+		void SetWorldMatrix(const DirectX::SimpleMath::Matrix& _world);
+		void SetViewMatrix(const DirectX::SimpleMath::Matrix& _view);
+		void SetProjMatrix(const DirectX::SimpleMath::Matrix& _proj);
 		void SetOrtho(bool _val) { isOrtho = _val; }
 
 		void ResizeSwapChainSize(int width, int height);
@@ -208,6 +209,7 @@ namespace MMMEngine
 
 		ObjPtr<Camera> GetCamera() { return m_pMainCamera; }
 		void SetCamera(const ObjPtr<Camera> _camera) { if(_camera) m_pMainCamera = _camera; }
+		void RefreshRenderCommands();
 		uint32_t AddRenderer(Renderer* _renderer);
 		void RemoveRenderer(int _idx);
 
@@ -248,6 +250,7 @@ namespace MMMEngine
 			const DirectX::SimpleMath::Color& color,
 			TextAlignment alignment,
 			float rotationRad,
-			const DirectX::SimpleMath::Vector2& pivotScene);
+			const DirectX::SimpleMath::Vector2& pivotScene,
+			const DirectX::SimpleMath::Vector2& textScale);
 	};
 }

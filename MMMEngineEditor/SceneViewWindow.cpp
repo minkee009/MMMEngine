@@ -6,6 +6,8 @@
 #include "RenderManager.h"
 #include "ResourceManager.h"
 #include "Renderer.h"
+#include "ParticleRenderer.h"
+#include "LineRenderer.h"
 #include "VShader.h"
 #include "PShader.h"
 #include "SceneManager.h"
@@ -17,6 +19,7 @@
 #include "RigidBodyComponent.h"
 #include "Canvas.h"
 #include "Graphic.h"
+#include "UIMask.h"
 #include "RectTransform.h"
 #include "MMMTime.h"
 #include <memory>
@@ -463,6 +466,67 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 	ImVec2 imagePos = ImGui::GetItemRectMin();
 	ImVec2 imageMax = ImGui::GetItemRectMax();
 	ImVec2 imageSize = ImVec2(imageMax.x - imagePos.x, imageMax.y - imagePos.y);
+	auto pickUiGameObjectAt = [&](float sceneX, float sceneY) -> ObjPtr<GameObject>
+	{
+		std::vector<Canvas*> sortedCanvases = RenderManager::Get().GetCanvases();
+		std::sort(sortedCanvases.begin(), sortedCanvases.end(),
+			[](Canvas* a, Canvas* b)
+			{
+				return a->GetSortOrder() < b->GetSortOrder();
+			});
+
+		for (auto canvasIt = sortedCanvases.rbegin(); canvasIt != sortedCanvases.rend(); ++canvasIt)
+		{
+			auto* canvas = *canvasIt;
+			if (!canvas || !canvas->IsActiveAndEnabled())
+				continue;
+
+			std::vector<ObjPtr<Graphic>> graphics;
+			graphics.reserve(canvas->GetGraphics().size());
+			for (auto& graphic : canvas->GetGraphics())
+			{
+				if (!graphic.IsValid() || !graphic->IsActiveAndEnabled())
+					continue;
+				graphics.push_back(graphic);
+			}
+
+			std::stable_sort(graphics.begin(), graphics.end(),
+				[](const ObjPtr<Graphic>& a, const ObjPtr<Graphic>& b)
+				{
+					return a->GetRenderOrder() < b->GetRenderOrder();
+				});
+
+			const auto canvasInfo = GetCanvasInfo(canvas, static_cast<float>(m_width), static_cast<float>(m_height));
+			for (auto graphicIt = graphics.rbegin(); graphicIt != graphics.rend(); ++graphicIt)
+			{
+				auto& graphic = *graphicIt;
+				auto go = graphic->GetGameObject();
+				if (!go.IsValid())
+					continue;
+
+				if (auto mask = go->GetComponent<UIMask>(); mask.IsValid() && !mask->GetShowGraphic())
+					continue;
+
+				auto rectTr = graphic->GetRectTransform();
+				if (!rectTr.IsValid())
+					continue;
+
+				auto rectCanvas = rectTr->GetRectInCanvas(canvasInfo.canvasSize);
+				auto rectScene = DirectX::SimpleMath::Vector4(
+					canvasInfo.sceneOffset.x + rectCanvas.x * canvasInfo.scaleToScene.x,
+					canvasInfo.sceneOffset.y + rectCanvas.y * canvasInfo.scaleToScene.y,
+					rectCanvas.z * canvasInfo.scaleToScene.x,
+					rectCanvas.w * canvasInfo.scaleToScene.y);
+
+				const auto pivot = rectTr->GetPivot();
+				const auto worldRot = rectTr->GetWorldRotation();
+				if (PointInRotatedRect(sceneX, sceneY, rectScene, pivot, worldRot))
+					return go;
+			}
+		}
+
+		return nullptr;
+	};
 	bool gizmoDrawn = false;
 	bool uiResizeHovered = false;
 	bool uiResizeUsing = false;
@@ -811,25 +875,30 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 							(mousePos.x - imagePos.x) * (sceneWidth / imageSize.x),
 							(mousePos.y - imagePos.y) * (sceneHeight / imageSize.y)
 						};
-						const DirectX::SimpleMath::Vector2 d = mouseScene - pivotPosScene;
-						const float localX = d.x * rightDir.x + d.y * rightDir.y;
-						const float localY = d.x * upDir.x + d.y * upDir.y;
-						const float u = (rectScene.z > 1e-6f) ? (localX / rectScene.z + pivot.x) : pivot.x;
-						const float v = (rectScene.w > 1e-6f) ? (localY / rectScene.w + pivot.y) : pivot.y;
-						const bool inside = (u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f);
-						if (inside)
+						const ObjPtr<GameObject> topMost = pickUiGameObjectAt(mouseScene.x, mouseScene.y);
+						const bool topIsDifferent = topMost.IsValid() && topMost != g_selectedGameObject;
+						if (!topIsDifferent)
 						{
-							s_uiDragActive = true;
-							s_uiDragTarget = rectTr;
-							s_uiDragStartMouseScene = mouseScene;
-							s_uiDragStartPivotScene = pivotPosScene;
-							DirectX::SimpleMath::Vector2 anchorCenter;
-							DirectX::SimpleMath::Vector2 anchorSpan;
-							ComputeAnchorData(rectTr, canvasInfo.canvasSize, anchorCenter, anchorSpan);
-							s_uiDragStartAnchorCenter = anchorCenter;
-							ComputeParentBasis(rectTr, s_uiDragParentRight, s_uiDragParentUp);
-							s_uiDragScaleToScene = canvasInfo.scaleToScene;
-							s_uiDragSceneOffset = canvasInfo.sceneOffset;
+							const DirectX::SimpleMath::Vector2 d = mouseScene - pivotPosScene;
+							const float localX = d.x * rightDir.x + d.y * rightDir.y;
+							const float localY = d.x * upDir.x + d.y * upDir.y;
+							const float u = (rectScene.z > 1e-6f) ? (localX / rectScene.z + pivot.x) : pivot.x;
+							const float v = (rectScene.w > 1e-6f) ? (localY / rectScene.w + pivot.y) : pivot.y;
+							const bool inside = (u >= 0.0f && u <= 1.0f && v >= 0.0f && v <= 1.0f);
+							if (inside)
+							{
+								s_uiDragActive = true;
+								s_uiDragTarget = rectTr;
+								s_uiDragStartMouseScene = mouseScene;
+								s_uiDragStartPivotScene = pivotPosScene;
+								DirectX::SimpleMath::Vector2 anchorCenter;
+								DirectX::SimpleMath::Vector2 anchorSpan;
+								ComputeAnchorData(rectTr, canvasInfo.canvasSize, anchorCenter, anchorSpan);
+								s_uiDragStartAnchorCenter = anchorCenter;
+								ComputeParentBasis(rectTr, s_uiDragParentRight, s_uiDragParentUp);
+								s_uiDragScaleToScene = canvasInfo.scaleToScene;
+								s_uiDragSceneOffset = canvasInfo.sceneOffset;
+							}
 						}
 					}
 
@@ -1483,61 +1552,7 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 
 				if (m_ui2DMode)
 				{
-					ObjPtr<GameObject> picked = nullptr;
-					bool found = false;
-					std::vector<Canvas*> sortedCanvases = RenderManager::Get().GetCanvases();
-					std::sort(sortedCanvases.begin(), sortedCanvases.end(),
-						[](Canvas* a, Canvas* b)
-						{
-							return a->GetSortOrder() < b->GetSortOrder();
-						});
-
-					for (auto canvasIt = sortedCanvases.rbegin(); canvasIt != sortedCanvases.rend() && !found; ++canvasIt)
-					{
-						auto* canvas = *canvasIt;
-						if (!canvas || !canvas->IsActiveAndEnabled())
-							continue;
-
-						std::vector<ObjPtr<Graphic>> graphics;
-						graphics.reserve(canvas->GetGraphics().size());
-						for (auto& graphic : canvas->GetGraphics())
-						{
-							if (!graphic.IsValid() || !graphic->IsActiveAndEnabled())
-								continue;
-							graphics.push_back(graphic);
-						}
-
-						std::stable_sort(graphics.begin(), graphics.end(),
-							[](const ObjPtr<Graphic>& a, const ObjPtr<Graphic>& b)
-							{
-								return a->GetRenderOrder() < b->GetRenderOrder();
-							});
-
-						const auto canvasInfo = GetCanvasInfo(canvas, static_cast<float>(m_width), static_cast<float>(m_height));
-						for (auto graphicIt = graphics.rbegin(); graphicIt != graphics.rend(); ++graphicIt)
-						{
-							auto& graphic = *graphicIt;
-							auto rectTr = graphic->GetRectTransform();
-							if (!rectTr.IsValid())
-								continue;
-
-							auto rectCanvas = rectTr->GetRectInCanvas(canvasInfo.canvasSize);
-							auto rectScene = DirectX::SimpleMath::Vector4(
-								canvasInfo.sceneOffset.x + rectCanvas.x * canvasInfo.scaleToScene.x,
-								canvasInfo.sceneOffset.y + rectCanvas.y * canvasInfo.scaleToScene.y,
-								rectCanvas.z * canvasInfo.scaleToScene.x,
-								rectCanvas.w * canvasInfo.scaleToScene.y);
-
-							const auto pivot = rectTr->GetPivot();
-							const auto worldRot = rectTr->GetWorldRotation();
-							if (PointInRotatedRect(sceneX, sceneY, rectScene, pivot, worldRot))
-							{
-								picked = graphic->GetGameObject();
-								found = true;
-								break;
-							}
-						}
-					}
+					ObjPtr<GameObject> picked = pickUiGameObjectAt(sceneX, sceneY);
 
 					g_selectedGameObject = picked;
 					if (picked.IsValid() && picked->GetTransform().IsValid() && picked->GetTransform()->GetParent() != nullptr)
@@ -1795,10 +1810,14 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	auto view = m_pCam->GetViewMatrix();
 	auto proj = m_pCam->GetProjMatrix();
 	auto ortho = m_pCam->IsOrthographic();
+	auto& renderManager = RenderManager::Get();
 
-	RenderManager::Get().SetViewMatrix(view);
-	RenderManager::Get().SetProjMatrix(proj);
-	RenderManager::Get().SetOrtho(ortho);
+	renderManager.SetViewMatrix(view);
+	renderManager.SetProjMatrix(proj);
+	renderManager.SetOrtho(ortho);
+	ParticleRenderer::BeginSceneViewRender(view);
+	LineRenderer::BeginSceneViewRender(view);
+	renderManager.RefreshRenderCommands();
 
 	// ID 텍스쳐 렌더링
 	if (m_pPickingVS && m_pPickingPS && m_pPickingIdBuffer)
@@ -1809,7 +1828,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 		context->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		context->RSSetState(m_states->CullNone());
 
-		RenderManager::Get().RenderPickingIds(
+		renderManager.RenderPickingIds(
 			m_pPickingPS->m_pPShader.Get(),
 			m_pPickingIdBuffer.Get());
 	}
@@ -1824,7 +1843,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	if (!m_ui2DMode)
 		m_pGridRenderer->Render(context, *m_pCam);
 
-	RenderManager::Get().RenderOnlyRenderer();
+	renderManager.RenderOnlyRenderer();
 
 	// 디버그 드로잉
 	if (m_enableDebugDraw)
@@ -2106,7 +2125,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 
 		if (!selectedIds.empty())
 		{
-			RenderManager::Get().RenderSelectedMask(
+			renderManager.RenderSelectedMask(
 				m_pMaskPS->m_pPShader.Get(),
 				selectedIds.data(),
 				static_cast<uint32_t>(selectedIds.size()));
@@ -2172,7 +2191,10 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	}
 
 	if (m_ui2DMode)
-		RenderManager::Get().RenderUIWithSize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
+		renderManager.RenderUIWithSize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
+
+	ParticleRenderer::EndSceneViewRender();
+	LineRenderer::EndSceneViewRender();
 
 	// 여기서 함수 끝나면 guard 소멸자에서 원래 RT/Viewport/Blend 등 자동 복원됨
 }

@@ -9,6 +9,35 @@ namespace fs = std::filesystem;
 
 DEFINE_SINGLETON(MMMEngine::ShaderInfo);
 
+void MMMEngine::ShaderInfo::EnsureCBStaging(const std::wstring& cbName, UINT cbSize)
+{
+	auto& buf = m_CBStaging[cbName];
+	if (buf.size() != cbSize)
+		buf.assign(cbSize, 0); // 0으로 초기화
+}
+
+void MMMEngine::ShaderInfo::UploadCB(ID3D11DeviceContext4* context, const std::wstring& cbName)
+{
+	auto bIt = m_CBBufferMap.find(cbName);
+	if (bIt == m_CBBufferMap.end())
+		return;
+
+	auto sIt = m_CBStaging.find(cbName);
+	if (sIt == m_CBStaging.end())
+		return;
+
+	auto& staging = sIt->second;
+	if (staging.empty())
+		return;
+
+	D3D11_MAPPED_SUBRESOURCE mapped{};
+	if (SUCCEEDED(context->Map(bIt->second.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+	{
+		memcpy(mapped.pData, staging.data(), staging.size());
+		context->Unmap(bIt->second.Get(), 0);
+	}
+}
+
 void MMMEngine::ShaderInfo::CreatePShaderReflection(std::wstring&& _filePath)
 {
 	// 타입 검색
@@ -55,6 +84,10 @@ void MMMEngine::ShaderInfo::CreatePShaderReflection(std::wstring&& _filePath)
 
 		std::wstring cbName(cbDesc.Name, cbDesc.Name + strlen(cbDesc.Name));
 
+		// CPU 버퍼에 사이즈 저장
+		m_CBSizeMap[cbName] = cbDesc.Size;
+		EnsureCBStaging(cbName, cbDesc.Size);
+
 		// 각 변수 정보 추출
 		for (UINT v = 0; v < cbDesc.Variables; v++)
 		{
@@ -99,6 +132,8 @@ void MMMEngine::ShaderInfo::StartUp()
 	// --- JSON 템플릿 ---
 	// 쉐이더 타입정보정의
 	m_typeInfoMap[L"Shader/PBR/PS/BRDFShader.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY };
+	m_typeInfoMap[L"Shader/PBR/PS/TrailUnlitPS.hlsl"] = { ShaderType::S_PBR, RenderType::R_GEOMETRY };
+	m_typeInfoMap[L"Shader/PBR/PS/LineUnlitPS.hlsl"] = { ShaderType::S_PBR, RenderType::R_PARTICLE };
 	m_typeInfoMap[L"Shader/TOON/ToonPS.hlsl"] = { ShaderType::S_TOON, RenderType::R_GEOMETRY };
 	m_typeInfoMap[L"Shader/SkyBox/SkyBoxPixelShader.hlsl"] = { ShaderType::S_SKYBOX, RenderType::R_SKYBOX };
 
@@ -189,20 +224,28 @@ void MMMEngine::ShaderInfo::StartUp()
 
 	m_pShadowPS = ResourceManager::Get().Load<PShader>(L"Shader/Shadow/ShadowPS.hlsl");
 	// --- JSON 템플릿 ---
-
+	
 	// Json 읽기
 	DeSerialize();
 }
 
 void MMMEngine::ShaderInfo::ShutDown()
 {
+	m_pDefaultVShader.reset();
+	m_pSkeletalVShader.reset();
 	m_pDefaultPShader.reset();
-	m_pDefaultPShader.reset();
+	m_pFullScreenVS.reset();
+	m_pFullScreenPS.reset();
+	m_pShadowPS.reset();
 
 	m_typeInfoMap.clear();
 	m_propertyInfoMap.clear();
 	m_CBPropertyMap.clear();
 	m_CBBufferMap.clear();
+	m_CBStaging.clear();
+	m_CBSizeMap.clear();
+	m_globalPropMap.clear();
+	m_typeBufferMap.clear();
 }
 
 MMMEngine::ResPtr<MMMEngine::VShader> MMMEngine::ShaderInfo::GetDefaultVShader()
@@ -281,14 +324,25 @@ void MMMEngine::ShaderInfo::UpdateProperty(ID3D11DeviceContext4* context,
 
 				auto buffer = bufIt->second;
 
-				D3D11_MAPPED_SUBRESOURCE mapped;
-				if (SUCCEEDED(context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &mapped)))
+				// staging 확보
+				auto szIt = m_CBSizeMap.find(cbInfo.bufferName);
+				if (szIt == m_CBSizeMap.end()) return;
+				EnsureCBStaging(cbInfo.bufferName, szIt->second);
+
+				auto& staging = m_CBStaging[cbInfo.bufferName];
+
+				// 해당 영역을 0으로 한번 밀고(패딩/정렬 이슈 대비)
+				if (cbInfo.offset + cbInfo.size <= staging.size())
 				{
-					// gval이 std::variant라면 std::visit으로 꺼내서 memcpy
+					memset(staging.data() + cbInfo.offset, 0, cbInfo.size);
+
 					std::visit([&](auto&& arg) {
-						memcpy((BYTE*)mapped.pData + cbInfo.offset, &arg, cbInfo.size);
+						const size_t copySize = std::min<size_t>(sizeof(arg), cbInfo.size);
+						memcpy(staging.data() + cbInfo.offset, &arg, copySize);
 						}, gval);
-					context->Unmap(buffer.Get(), 0);
+
+					// CB 전체 업로드 (WRITE_DISCARD)
+					UploadCB(context, cbInfo.bufferName);
 				}
 				return;
 			}
@@ -335,11 +389,19 @@ void MMMEngine::ShaderInfo::UpdateProperty(ID3D11DeviceContext4* context,
 
 		auto buffer = bufIt->second;
 
-		D3D11_MAPPED_SUBRESOURCE mapped;
-		if (SUCCEEDED(context->Map(buffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &mapped)))
+		auto szIt = m_CBSizeMap.find(cbInfo.bufferName);
+		if (szIt == m_CBSizeMap.end()) return;
+		EnsureCBStaging(cbInfo.bufferName, szIt->second);
+
+		auto& staging = m_CBStaging[cbInfo.bufferName];
+
+		if (cbInfo.offset + cbInfo.size <= staging.size())
 		{
-			memcpy((BYTE*)mapped.pData + cbInfo.offset, data, cbInfo.size);
-			context->Unmap(buffer.Get(), 0);
+			// 해당 영역을 0으로 밀고 복사 (패딩 대비)
+			memset(staging.data() + cbInfo.offset, 0, cbInfo.size);
+			memcpy(staging.data() + cbInfo.offset, data, cbInfo.size);
+
+			UploadCB(context, cbInfo.bufferName);
 		}
 	}
 	else if (pinfo.propertyType == PropertyType::Texture)

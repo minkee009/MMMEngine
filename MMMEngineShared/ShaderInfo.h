@@ -151,6 +151,13 @@ namespace MMMEngine {
 		//// 텍스쳐 버퍼인덱스 주는 맵 <propertyName, index> (int == shader tN)
 		//std::unordered_map<ShaderType, std::unordered_map<std::wstring, int>> m_texPropertyMap;
 		
+		// 상수버퍼 staging(전체 CB를 CPU에서 유지)
+		std::unordered_map<std::wstring, std::vector<uint8_t>> m_CBStaging;
+		// 상수버퍼 크기 저장
+		std::unordered_map<std::wstring, UINT> m_CBSizeMap;
+
+		void EnsureCBStaging(const std::wstring& cbName, UINT cbSize);
+		void UploadCB(ID3D11DeviceContext4* context, const std::wstring& cbName);
 		
 		void CreatePShaderReflection(std::wstring&& _filePath);
 		void ClearWorldPropertyDatas() { m_globalPropMap.clear(); }

@@ -5,6 +5,8 @@
 #include <sstream>
 #include <regex>
 #include <algorithm>
+#include <cctype>
+#include <cstring>
 #include <set>
 #include <unordered_map>
 #include <filesystem>
@@ -111,6 +113,13 @@ namespace MMMEngine::Editor
             std::string range;
         };
 
+        struct EnumInfo
+        {
+            std::string name;
+            bool isScoped = false;
+            std::vector<std::string> values;
+        };
+
         struct FileStamp {
             long long writeTime = 0;
             long long fileSize = 0;
@@ -123,6 +132,7 @@ namespace MMMEngine::Editor
             bool dontAutogen = false;
             std::vector<MessageInfo> messages;
             std::vector<PropertyInfo> properties;
+            std::vector<EnumInfo> enums;
             std::set<std::string> dependencies; // ObjPtr<T> 등에서 추출된 의존 클래스 이름
         };
 
@@ -145,6 +155,29 @@ namespace MMMEngine::Editor
                 {
                     info.dependencies.insert(tType);
                 }
+            }
+        }
+
+        static void ExtractDependenciesFromType(const std::string& typeName, ScriptInfo& info)
+        {
+            static const std::set<std::string> kIgnored = {
+                "const", "volatile", "signed", "unsigned",
+                "short", "long", "int", "float", "double",
+                "char", "bool", "void", "class", "struct", "enum",
+                "auto", "typename", "template"
+            };
+
+            std::regex tokenRegex(R"re([A-Za-z_][A-Za-z0-9_]*)re");
+            auto begin = std::sregex_iterator(typeName.begin(), typeName.end(), tokenRegex);
+            auto end = std::sregex_iterator();
+            for (auto it = begin; it != end; ++it)
+            {
+                const std::string token = (*it)[0].str();
+                if (token == info.className)
+                    continue;
+                if (kIgnored.count(token))
+                    continue;
+                info.dependencies.insert(token);
             }
         }
 
@@ -282,7 +315,7 @@ namespace MMMEngine::Editor
             size_t i = 0;
             while (i < s.size())
             {
-                if (s.compare(i, 5, "const") == 0 && (i + 5 >= s.size() || !isalnum(static_cast<unsigned char>(s[i + 5]))))
+                if (s.compare(i, 5, "const") == 0 && (i + 5 >= s.size() || !std::isalnum(static_cast<unsigned char>(s[i + 5]))))
                 {
                     s.erase(i, 5);
                     while (i < s.size() && (s[i] == ' ' || s[i] == '\t'))
@@ -301,6 +334,448 @@ namespace MMMEngine::Editor
             while (!s.empty() && (s.back() == ' ' || s.back() == '\t'))
                 s.pop_back();
             return s;
+        }
+
+        static std::string TrimCopy(std::string s)
+        {
+            while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+                s.pop_back();
+            size_t start = 0;
+            while (start < s.size() && std::isspace(static_cast<unsigned char>(s[start])))
+                ++start;
+            return s.substr(start);
+        }
+
+        static bool IsIdentifierChar(char c)
+        {
+            const unsigned char uc = static_cast<unsigned char>(c);
+            return (std::isalnum(uc) != 0) || c == '_';
+        }
+
+        static bool StartsWithKeyword(const std::string& text, size_t pos, const char* keyword)
+        {
+            const size_t kwLen = std::strlen(keyword);
+            if (pos + kwLen > text.size())
+                return false;
+            if (text.compare(pos, kwLen, keyword) != 0)
+                return false;
+            if (pos > 0 && IsIdentifierChar(text[pos - 1]))
+                return false;
+            if (pos + kwLen < text.size() && IsIdentifierChar(text[pos + kwLen]))
+                return false;
+            return true;
+        }
+
+        static void SkipWhitespaceAndComments(const std::string& text, size_t& pos)
+        {
+            while (pos < text.size())
+            {
+                if (std::isspace(static_cast<unsigned char>(text[pos])))
+                {
+                    ++pos;
+                    continue;
+                }
+
+                if (text[pos] == '/' && (pos + 1) < text.size())
+                {
+                    if (text[pos + 1] == '/')
+                    {
+                        pos += 2;
+                        while (pos < text.size() && text[pos] != '\n')
+                            ++pos;
+                        continue;
+                    }
+                    if (text[pos + 1] == '*')
+                    {
+                        pos += 2;
+                        while ((pos + 1) < text.size() && !(text[pos] == '*' && text[pos + 1] == '/'))
+                            ++pos;
+                        if ((pos + 1) < text.size())
+                            pos += 2;
+                        continue;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        static bool ReadIdentifier(const std::string& text, size_t& pos, std::string& outIdentifier)
+        {
+            if (pos >= text.size())
+                return false;
+
+            const unsigned char first = static_cast<unsigned char>(text[pos]);
+            if (!(std::isalpha(first) || text[pos] == '_'))
+                return false;
+
+            const size_t begin = pos;
+            ++pos;
+            while (pos < text.size())
+            {
+                const unsigned char c = static_cast<unsigned char>(text[pos]);
+                if (!(std::isalnum(c) || text[pos] == '_'))
+                    break;
+                ++pos;
+            }
+
+            outIdentifier = text.substr(begin, pos - begin);
+            return true;
+        }
+
+        static size_t FindMatchingBracket(const std::string& text, size_t openPos, char openChar, char closeChar)
+        {
+            if (openPos >= text.size() || text[openPos] != openChar)
+                return std::string::npos;
+
+            int depth = 0;
+            char stringDelim = '\0';
+            for (size_t i = openPos; i < text.size(); ++i)
+            {
+                const char c = text[i];
+
+                if (stringDelim != '\0')
+                {
+                    if (c == '\\')
+                    {
+                        ++i;
+                        continue;
+                    }
+                    if (c == stringDelim)
+                        stringDelim = '\0';
+                    continue;
+                }
+
+                if (c == '"' || c == '\'')
+                {
+                    stringDelim = c;
+                    continue;
+                }
+
+                if (c == '/' && (i + 1) < text.size())
+                {
+                    if (text[i + 1] == '/')
+                    {
+                        i += 2;
+                        while (i < text.size() && text[i] != '\n')
+                            ++i;
+                        continue;
+                    }
+                    if (text[i + 1] == '*')
+                    {
+                        i += 2;
+                        while ((i + 1) < text.size() && !(text[i] == '*' && text[i + 1] == '/'))
+                            ++i;
+                        if ((i + 1) < text.size())
+                            ++i;
+                        continue;
+                    }
+                }
+
+                if (c == openChar)
+                {
+                    ++depth;
+                }
+                else if (c == closeChar)
+                {
+                    --depth;
+                    if (depth == 0)
+                        return i;
+                }
+            }
+
+            return std::string::npos;
+        }
+
+        static std::vector<std::string> SplitTopLevelByComma(const std::string& text)
+        {
+            std::vector<std::string> out;
+            size_t tokenStart = 0;
+            int parenDepth = 0;
+            int bracketDepth = 0;
+            int braceDepth = 0;
+            int angleDepth = 0;
+            char stringDelim = '\0';
+
+            for (size_t i = 0; i < text.size(); ++i)
+            {
+                const char c = text[i];
+
+                if (stringDelim != '\0')
+                {
+                    if (c == '\\')
+                    {
+                        ++i;
+                        continue;
+                    }
+                    if (c == stringDelim)
+                        stringDelim = '\0';
+                    continue;
+                }
+
+                if (c == '"' || c == '\'')
+                {
+                    stringDelim = c;
+                    continue;
+                }
+
+                if (c == '/' && (i + 1) < text.size())
+                {
+                    if (text[i + 1] == '/')
+                    {
+                        i += 2;
+                        while (i < text.size() && text[i] != '\n')
+                            ++i;
+                        continue;
+                    }
+                    if (text[i + 1] == '*')
+                    {
+                        i += 2;
+                        while ((i + 1) < text.size() && !(text[i] == '*' && text[i + 1] == '/'))
+                            ++i;
+                        if ((i + 1) < text.size())
+                            ++i;
+                        continue;
+                    }
+                }
+
+                switch (c)
+                {
+                case '(': ++parenDepth; break;
+                case ')': if (parenDepth > 0) --parenDepth; break;
+                case '[': ++bracketDepth; break;
+                case ']': if (bracketDepth > 0) --bracketDepth; break;
+                case '{': ++braceDepth; break;
+                case '}': if (braceDepth > 0) --braceDepth; break;
+                case '<': ++angleDepth; break;
+                case '>': if (angleDepth > 0) --angleDepth; break;
+                case ',':
+                    if (parenDepth == 0 && bracketDepth == 0 && braceDepth == 0 && angleDepth == 0)
+                    {
+                        out.push_back(text.substr(tokenStart, i - tokenStart));
+                        tokenStart = i + 1;
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            if (tokenStart <= text.size())
+                out.push_back(text.substr(tokenStart));
+
+            return out;
+        }
+
+        static size_t FindTopLevelChar(const std::string& text, char target)
+        {
+            int parenDepth = 0;
+            int bracketDepth = 0;
+            int braceDepth = 0;
+            int angleDepth = 0;
+            char stringDelim = '\0';
+
+            for (size_t i = 0; i < text.size(); ++i)
+            {
+                const char c = text[i];
+
+                if (stringDelim != '\0')
+                {
+                    if (c == '\\')
+                    {
+                        ++i;
+                        continue;
+                    }
+                    if (c == stringDelim)
+                        stringDelim = '\0';
+                    continue;
+                }
+
+                if (c == '"' || c == '\'')
+                {
+                    stringDelim = c;
+                    continue;
+                }
+
+                if (c == '/' && (i + 1) < text.size())
+                {
+                    if (text[i + 1] == '/')
+                    {
+                        i += 2;
+                        while (i < text.size() && text[i] != '\n')
+                            ++i;
+                        continue;
+                    }
+                    if (text[i + 1] == '*')
+                    {
+                        i += 2;
+                        while ((i + 1) < text.size() && !(text[i] == '*' && text[i + 1] == '/'))
+                            ++i;
+                        if ((i + 1) < text.size())
+                            ++i;
+                        continue;
+                    }
+                }
+
+                switch (c)
+                {
+                case '(': ++parenDepth; break;
+                case ')': if (parenDepth > 0) --parenDepth; break;
+                case '[': ++bracketDepth; break;
+                case ']': if (bracketDepth > 0) --bracketDepth; break;
+                case '{': ++braceDepth; break;
+                case '}': if (braceDepth > 0) --braceDepth; break;
+                case '<': ++angleDepth; break;
+                case '>': if (angleDepth > 0) --angleDepth; break;
+                default:
+                    break;
+                }
+
+                if (c == target && parenDepth == 0 && bracketDepth == 0 && braceDepth == 0 && angleDepth == 0)
+                    return i;
+            }
+
+            return std::string::npos;
+        }
+
+        static std::string ParseEnumeratorName(const std::string& rawEntry)
+        {
+            std::string entry = TrimCopy(rawEntry);
+            if (entry.empty())
+                return {};
+
+            const size_t assignPos = FindTopLevelChar(entry, '=');
+            if (assignPos != std::string::npos)
+                entry = entry.substr(0, assignPos);
+            entry = TrimCopy(entry);
+            if (entry.empty())
+                return {};
+
+            size_t pos = 0;
+            SkipWhitespaceAndComments(entry, pos);
+            std::string identifier;
+            if (!ReadIdentifier(entry, pos, identifier))
+                return {};
+            return identifier;
+        }
+
+        static std::vector<std::string> ParseEnumeratorNames(const std::string& enumBody)
+        {
+            std::vector<std::string> values;
+            std::set<std::string> dedup;
+            const std::vector<std::string> entries = SplitTopLevelByComma(enumBody);
+            for (const std::string& raw : entries)
+            {
+                const std::string name = ParseEnumeratorName(raw);
+                if (name.empty())
+                    continue;
+                if (!dedup.insert(name).second)
+                    continue;
+                values.push_back(name);
+            }
+            return values;
+        }
+
+        static void ParseEnums(const std::string& classBody, ScriptInfo& info)
+        {
+            std::set<std::string> registeredEnums;
+            size_t searchPos = 0;
+            while (true)
+            {
+                const size_t macroPos = classBody.find("USCRIPT_ENUM", searchPos);
+                if (macroPos == std::string::npos)
+                    break;
+
+                searchPos = macroPos + std::strlen("USCRIPT_ENUM");
+                size_t openParen = classBody.find('(', searchPos);
+                if (openParen == std::string::npos)
+                    break;
+                const size_t closeParen = FindMatchingBracket(classBody, openParen, '(', ')');
+                if (closeParen == std::string::npos)
+                    continue;
+
+                size_t cursor = closeParen + 1;
+                SkipWhitespaceAndComments(classBody, cursor);
+                if (!StartsWithKeyword(classBody, cursor, "enum"))
+                {
+                    searchPos = closeParen + 1;
+                    continue;
+                }
+                cursor += 4; // "enum"
+                SkipWhitespaceAndComments(classBody, cursor);
+
+                bool isScoped = false;
+                if (StartsWithKeyword(classBody, cursor, "class"))
+                {
+                    isScoped = true;
+                    cursor += 5;
+                    SkipWhitespaceAndComments(classBody, cursor);
+                }
+                else if (StartsWithKeyword(classBody, cursor, "struct"))
+                {
+                    isScoped = true;
+                    cursor += 6;
+                    SkipWhitespaceAndComments(classBody, cursor);
+                }
+
+                std::string enumName;
+                if (!ReadIdentifier(classBody, cursor, enumName))
+                {
+                    searchPos = closeParen + 1;
+                    continue;
+                }
+
+                while (cursor < classBody.size())
+                {
+                    if (classBody[cursor] == '{')
+                        break;
+
+                    if (classBody[cursor] == '/' && (cursor + 1) < classBody.size())
+                    {
+                        if (classBody[cursor + 1] == '/')
+                        {
+                            cursor += 2;
+                            while (cursor < classBody.size() && classBody[cursor] != '\n')
+                                ++cursor;
+                            continue;
+                        }
+                        if (classBody[cursor + 1] == '*')
+                        {
+                            cursor += 2;
+                            while ((cursor + 1) < classBody.size() && !(classBody[cursor] == '*' && classBody[cursor + 1] == '/'))
+                                ++cursor;
+                            if ((cursor + 1) < classBody.size())
+                                cursor += 2;
+                            continue;
+                        }
+                    }
+                    ++cursor;
+                }
+
+                if (cursor >= classBody.size() || classBody[cursor] != '{')
+                {
+                    searchPos = closeParen + 1;
+                    continue;
+                }
+
+                const size_t bodyOpen = cursor;
+                const size_t bodyClose = FindMatchingBracket(classBody, bodyOpen, '{', '}');
+                if (bodyClose == std::string::npos)
+                {
+                    searchPos = closeParen + 1;
+                    continue;
+                }
+
+                EnumInfo enumInfo;
+                enumInfo.name = enumName;
+                enumInfo.isScoped = isScoped;
+                enumInfo.values = ParseEnumeratorNames(classBody.substr(bodyOpen + 1, bodyClose - bodyOpen - 1));
+
+                if (!enumInfo.values.empty() && registeredEnums.insert(enumInfo.name).second)
+                    info.enums.push_back(std::move(enumInfo));
+
+                searchPos = bodyClose + 1;
+            }
         }
 
         // 파라미터 문자열 파싱: "int a, const CollisionInfo& e" -> ["int", "CollisionInfo"]
@@ -442,6 +917,8 @@ namespace MMMEngine::Editor
                     mi.messageName = cppName;
                     mi.cppName = cppName;
                     mi.paramTypes = ParseParameterTypes(params);
+                    for (const auto& t : mi.paramTypes)
+                        ExtractDependenciesFromType(t, info);
                     info.messages.push_back(std::move(mi));
                 }
             }
@@ -463,6 +940,8 @@ namespace MMMEngine::Editor
                     mi.messageName = messageName;
                     mi.cppName = cppName;
                     mi.paramTypes = ParseParameterTypes(params);
+                    for (const auto& t : mi.paramTypes)
+                        ExtractDependenciesFromType(t, info);
                     info.messages.push_back(std::move(mi));
                 }
             }
@@ -486,6 +965,8 @@ namespace MMMEngine::Editor
                     mi.messageName = cppName;
                     mi.cppName = cppName;
                     mi.paramTypes = std::move(paramTypes);
+                    for (const auto& t : mi.paramTypes)
+                        ExtractDependenciesFromType(t, info);
                     info.messages.push_back(std::move(mi));
                 }
             }
@@ -500,6 +981,7 @@ namespace MMMEngine::Editor
                     PropertyInfo pi;
                     pi.type = NormalizeType((*it)[1].str());
                     pi.name = (*it)[2].str();
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
@@ -515,6 +997,7 @@ namespace MMMEngine::Editor
                     pi.inspectorChain = (*it)[1].str();
                     pi.type = NormalizeType((*it)[2].str());
                     pi.name = (*it)[3].str();
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
@@ -530,6 +1013,7 @@ namespace MMMEngine::Editor
                     pi.range = (*it)[1].str();
                     pi.type = NormalizeType((*it)[2].str());
                     pi.name = (*it)[3].str();
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
@@ -545,9 +1029,13 @@ namespace MMMEngine::Editor
                     pi.type = NormalizeType((*it)[1].str());
                     pi.name = (*it)[2].str();
                     pi.inspectorHidden = true;
+                    ExtractDependenciesFromType(pi.type, info);
                     info.properties.push_back(std::move(pi));
                 }
             }
+
+            // 8) USCRIPT_ENUM() enum class/enum ... { ... };
+            ParseEnums(classBody, info);
         }
 
         static std::vector<ScriptInfo> ParseHeaderFile(
@@ -627,14 +1115,15 @@ namespace MMMEngine::Editor
             os << "#include \"rttr/registration\"\n";
             os << "#include \"rttr/detail/policies/ctor_policies.h\"\n\n";
 
+            std::set<std::string> includedHeaders;
             for (const auto* s : toGen)
             {
                 // gen.cpp 가 Scripts/ 안에 있으므로, 같은 폴더 기준 상대 경로만 사용 (Scripts/ 접두어 없음)
                 std::string incPath = s->headerPath.generic_string();
                 std::replace(incPath.begin(), incPath.end(), '\\', '/');
+                includedHeaders.insert(incPath);
                 os << "#include \"" << incPath << "\"\n";
             }
-            os << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
 
             std::set<std::string> extraIncludes;
             for (const auto* s : toGen) {
@@ -648,11 +1137,35 @@ namespace MMMEngine::Editor
             }
 
             for (const auto& inc : extraIncludes) {
-                os << "#include \"" << inc << "\"\n";
+                if (includedHeaders.insert(inc).second)
+                    os << "#include \"" << inc << "\"\n";
             }
+
+            os << "\nusing namespace rttr;\nusing namespace MMMEngine;\n\nRTTR_PLUGIN_REGISTRATION\n{\n";
 
             for (const auto& s : toGen)
             {
+                for (const auto& e : s->enums)
+                {
+                    os << "\tregistration::enumeration<" << s->className << "::" << e.name << ">(\""
+                       << s->className << "::" << e.name << "\")\n";
+                    os << "\t\t(\n";
+                    for (size_t i = 0; i < e.values.size(); ++i)
+                    {
+                        const std::string& valueName = e.values[i];
+                        os << "\t\t\trttr::value(\"" << valueName << "\", ";
+                        if (e.isScoped)
+                            os << s->className << "::" << e.name << "::" << valueName;
+                        else
+                            os << s->className << "::" << valueName;
+                        os << ")";
+                        if ((i + 1) < e.values.size())
+                            os << ",";
+                        os << "\n";
+                    }
+                    os << "\t\t);\n\n";
+                }
+
                 os << "\tregistration::class_<" << s->className << ">(\"" << s->className << "\")\n";
                 os << "\t\t(rttr::metadata(\"wrapper_type_name\", \"ObjPtr<" << s->className << ">\"))";
                 for (const auto& p : s->properties)
@@ -845,6 +1358,7 @@ namespace MMMEngine::Editor
             for (ScriptInfo& info : infos) 
             {
                 info.headerPath = fs::relative(headerPath, scriptsDir);
+                scriptDB.emplace(info.className, info.headerPath);
                 allScripts.push_back(std::move(info));
             }
         }

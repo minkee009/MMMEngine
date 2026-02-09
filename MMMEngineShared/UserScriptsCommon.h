@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifdef USERSCRIPTS_EXPORT
 #define USERSCRIPTS __declspec(dllexport)
@@ -37,6 +37,7 @@
 
 /// 프로퍼티이지만 자동 등록 대상에서 제외 (빌드툴 스킵용)
 #define USCRIPT_PROPERTY_HIDDEN()
+#define USCRIPT_ENUM(...)
 
 /// 이 클래스는 빌드툴 자동 생성 스킵 (리플렉션/생성자 등 직접 작성 시)
 #define USCRIPT_DONT_AUTOGEN()

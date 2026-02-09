@@ -15,6 +15,7 @@
 #include "ObjectManager.h"
 #include "ProjectManager.h"
 #include "PhysxManager.h"
+#include "AudioManager.h"
 
 #include "StringHelper.h"
 #include "ImGuiEditorContext.h"
@@ -55,6 +56,8 @@ void AfterProjectLoaded()
 	fs::path dllPath = DLLHotLoadHelper::CopyDllForHotReload(originDll, hotDir);
 
 	BehaviourManager::Get().StartUp(dllPath.u8string());
+
+	AudioManager::Get().StartUp();
 
 	// 리소스 매니저 부팅
 	ResourceManager::Get().StartUp(projectPath.generic_wstring() + L"/");
@@ -132,6 +135,11 @@ void Update()
 	const bool isPlaying = EditorRegistry::g_editor_scene_playing;
 	const bool playStoppedThisFrame = (EditorRegistry::g_editor_scene_was_playing && !isPlaying);
 	EditorRegistry::g_editor_scene_was_playing = isPlaying;
+
+	if (playStoppedThisFrame)
+		AudioManager::Get().StopAll();
+
+	AudioManager::Get().SetPaused(isPlaying && EditorRegistry::g_editor_scene_pause);
 
 	GlobalRegistry::g_runtimeActive = (isPlaying
 		&& !EditorRegistry::g_editor_scene_pause);
@@ -222,6 +230,7 @@ void Update()
 		PhysxManager::Get().ApplyInterpolation(TimeManager::Get().GetInterpolationAlpha());
 		BehaviourManager::Get().BroadCastBehaviourMessage("Update");
 		BehaviourManager::Get().BroadCastBehaviourMessage("LateUpdate");
+		AudioManager::Get().Update(dt);
 	}
 
 	RenderManager::Get().BeginFrame();
@@ -255,6 +264,7 @@ void Release()
 	SceneManager::Get().ShutDown();
 	ObjectManager::Get().ShutDown();
 	BehaviourManager::Get().ShutDown();
+	AudioManager::Get().ShutDown();
 
 	fs::path cwd = fs::current_path();
 	DLLHotLoadHelper::CleanupHotReloadCopies(cwd);
