@@ -20,7 +20,7 @@ RTTR_REGISTRATION
         .property("SetOverLayer", &ColliderComponent::GetOverrideLayer, &ColliderComponent::SetOverrideLayer)
             (rttr::metadata("INSPECTOR_CHAIN", "true=LayerType"))
         .property("LayerType", &ColliderComponent::GetLayer, &ColliderComponent::SetLayer)
-            (rttr::metadata("RANGE", "0,7"));
+            (rttr::metadata("RANGE", "0,15"));
     registration::enumeration<ColliderComponent::ShapeMode>("ShapeMode")
         (
             rttr::value("Simulation", ColliderComponent::ShapeMode::Simulation),

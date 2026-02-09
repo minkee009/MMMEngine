@@ -1,4 +1,4 @@
-#include "PhysicsSettingsWindow.h"
+﻿#include "PhysicsSettingsWindow.h"
 #include "EditorRegistry.h"
 #include "ProjectManager.h"
 #include "PhysicsSettings.h"
@@ -101,7 +101,7 @@ void MMMEngine::Editor::PhysicsSettingsWindow::Render()
     {
         const float cellSize = 30.0f;
         const float labelWidth = 100.0f;
-        const int count = 8; // 32까지 가능하지만 UI상 8로 고정하신 듯 함
+        const int count = 16; // 32까지 가능하지만 UI상 8로 고정하신 듯 함
 
         ImVec2 startPosRel = ImGui::GetCursorPos();
 
