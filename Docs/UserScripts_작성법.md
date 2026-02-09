@@ -116,6 +116,7 @@ void HandleCustomEvent(int value);
 | `USCRIPT_PROPERTY_CHAIN("...")` | 인스펙터 체이닝 규칙 지정 (`INSPECTOR_CHAIN` 메타데이터 부여) |
 | `USCRIPT_PROPERTY_RANGE("...")` | 숫자 범위 지정 (`RANGE` 메타데이터 부여) |
 | `USCRIPT_PROPERTY_HIDDEN()` | RTTR 등록은 유지하되 **인스펙터에서 숨김** (`INSPECTOR=HIDDEN` 메타데이터 부여) |
+| `USCRIPT_ENUM()` | `enum`/`enum class` 선언 앞에 붙여 enum 값을 RTTR `registration::enumeration`으로 자동 등록 |
 
 - 인스펙터에도 저장에도 필요 없는 멤버는 **아예 매크로를 붙이지 않습니다.**
 - `USCRIPT_PROPERTY_CHAIN("값=대상1,대상2;다른값=대상3")` 형태로 체이닝 규칙을 지정합니다.
@@ -138,6 +139,14 @@ float moveSpeed = 5.0f;
 
 USCRIPT_PROPERTY_HIDDEN()
 bool debugFlag = false;
+
+USCRIPT_ENUM()
+enum class MoveState
+{
+    Idle,
+    Walk,
+    Run
+};
 ```
 
 ---
