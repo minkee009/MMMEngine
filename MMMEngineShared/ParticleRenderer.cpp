@@ -83,6 +83,7 @@ RTTR_REGISTRATION
 		.property("ParticleType", &ParticleRenderer::GetParticleType, &ParticleRenderer::SetParticleType)
 			(rttr::metadata("INSPECTOR_CHAIN", "Quad=Material,Texture,StartAngleRange;Mesh=Mesh,Material"))
 		.property("FadeMode", &ParticleRenderer::GetFadeMode, &ParticleRenderer::SetFadeMode)
+		.property("PlayOnAwake", &ParticleRenderer::GetPlayOnAwake, &ParticleRenderer::SetPlayOnAwake)
 		.property("Material", &ParticleRenderer::GetMaterial, &ParticleRenderer::SetMaterial)
 		.property("Mesh", &ParticleRenderer::GetMesh, &ParticleRenderer::SetMesh)
 		.property("Texture", &ParticleRenderer::GetTexture, &ParticleRenderer::SetTexture);
@@ -202,11 +203,36 @@ namespace MMMEngine
 	{
 		RenderManager::Get().RemoveRenderer(renderIndex);
 		m_particles.clear();
+		m_spawnAccumulator = 0.0f;
+		m_isPlaying = false;
+		m_prevRuntimeActive = false;
 		m_material.reset();
 		m_mesh.reset();
 		m_autoMaterial.reset();
 		m_quadVB.Reset();
 		m_quadIB.Reset();
+	}
+
+	void ParticleRenderer::Play()
+	{
+		m_isPlaying = true;
+	}
+
+	void ParticleRenderer::Stop()
+	{
+		m_isPlaying = false;
+		m_spawnAccumulator = 0.0f;
+		m_particles.clear();
+	}
+
+	void ParticleRenderer::Pause()
+	{
+		m_isPlaying = false;
+	}
+
+	void ParticleRenderer::Clear()
+	{
+		m_particles.clear();
 	}
 
 	void ParticleRenderer::StartPreview()
@@ -243,8 +269,24 @@ namespace MMMEngine
 			return;
 
 		const bool inSceneViewPass = g_sceneViewParticleContext.active;
+		const bool runtimeActive = GlobalRegistry::g_runtimeActive;
+		if (runtimeActive && !m_prevRuntimeActive)
+		{
+			m_spawnAccumulator = 0.0f;
+			m_particles.clear();
+			m_isPlaying = m_playOnAwake;
+		}
+		else if (!runtimeActive && m_prevRuntimeActive)
+		{
+			m_isPlaying = false;
+			m_spawnAccumulator = 0.0f;
+			if (!m_previewEnabled)
+				m_particles.clear();
+		}
+		m_prevRuntimeActive = runtimeActive;
+
 		const bool allowSim = m_previewEnabled ||
-			(GlobalRegistry::g_runtimeActive && !inSceneViewPass);
+			(runtimeActive && m_isPlaying && !inSceneViewPass);
 		const float dt = TimeManager::Get().GetDeltaTime();
 		if (allowSim && dt > 0.0f)
 			UpdateSimulation(dt, true);

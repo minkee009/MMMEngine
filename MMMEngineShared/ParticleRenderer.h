@@ -99,6 +99,9 @@ namespace MMMEngine
 		std::vector<Particle> m_particles;
 		float m_spawnAccumulator = 0.0f;
 		bool m_previewEnabled = false;
+		bool m_playOnAwake = true;
+		bool m_isPlaying = false;
+		bool m_prevRuntimeActive = false;
 		std::mt19937 m_rng;
 
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_quadVB;
@@ -193,6 +196,14 @@ namespace MMMEngine
 
 		const ResPtr<Texture2D>& GetTexture() const { return m_texture; }
 		void SetTexture(const ResPtr<Texture2D>& tex) { m_texture = tex; }
+
+		bool GetPlayOnAwake() const { return m_playOnAwake; }
+		void SetPlayOnAwake(bool v) { m_playOnAwake = v; }
+		bool IsPlaying() const { return m_isPlaying; }
+		void Play();
+		void Stop();
+		void Pause();
+		void Clear();
 
 		bool IsPreviewing() const { return m_previewEnabled; }
 		void StartPreview();
