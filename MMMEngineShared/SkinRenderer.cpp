@@ -15,6 +15,9 @@
 
 #include "SkeletalMesh.h"
 #include "rttr/registration.h"
+#include <cfloat>
+#include <cmath>
+#include <algorithm>
 
 RTTR_REGISTRATION
 {
@@ -40,6 +43,7 @@ namespace MMMEngine {
 	void SkinRenderer::SetMesh(ResPtr<SkeletalMesh> _mesh)
 	{
 		mesh = _mesh;
+		m_boundsDirty = true;
 	}
 
 	bool SkinRenderer::GetCastShadow()
@@ -93,12 +97,89 @@ namespace MMMEngine {
 		RenderManager::Get().RemoveRenderer(renderIndex);
 		mAnimator.Reset();
 		mAnimBuffer = nullptr;
+		m_boundsDirty = true;
+		m_localBoundsRadius = -1.0f;
+	}
+
+	void SkinRenderer::RebuildLocalBounds()
+	{
+		m_boundsDirty = false;
+		m_localBoundsCenter = DirectX::SimpleMath::Vector3::Zero;
+		m_localBoundsRadius = -1.0f;
+
+		if (!mesh)
+			return;
+
+		DirectX::SimpleMath::Vector3 minPos(FLT_MAX, FLT_MAX, FLT_MAX);
+		DirectX::SimpleMath::Vector3 maxPos(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+		bool hasVertex = false;
+
+		for (const auto& submesh : mesh->meshData.vertices)
+		{
+			for (const auto& v : submesh)
+			{
+				hasVertex = true;
+				minPos.x = std::min(minPos.x, v.Pos.x);
+				minPos.y = std::min(minPos.y, v.Pos.y);
+				minPos.z = std::min(minPos.z, v.Pos.z);
+				maxPos.x = std::max(maxPos.x, v.Pos.x);
+				maxPos.y = std::max(maxPos.y, v.Pos.y);
+				maxPos.z = std::max(maxPos.z, v.Pos.z);
+			}
+		}
+
+		if (!hasVertex)
+			return;
+
+		m_localBoundsCenter = (minPos + maxPos) * 0.5f;
+
+		float maxDistSq = 0.0f;
+		for (const auto& submesh : mesh->meshData.vertices)
+		{
+			for (const auto& v : submesh)
+			{
+				const auto diff = v.Pos - m_localBoundsCenter;
+				maxDistSq = std::max(maxDistSq, diff.LengthSquared());
+			}
+		}
+
+		// 애니메이션 변형 여유를 살짝 둬서 팝핑을 줄인다.
+		m_localBoundsRadius = std::sqrt(maxDistSq) * 1.2f;
+		if (m_localBoundsRadius < 0.001f)
+			m_localBoundsRadius = 0.001f;
+	}
+
+	bool SkinRenderer::IsVisibleInCurrentView()
+	{
+		if (!mesh || !GetTransform())
+			return false;
+
+		if (m_boundsDirty)
+			RebuildLocalBounds();
+
+		if (m_localBoundsRadius <= 0.0f)
+			return true;
+
+		const auto world = GetTransform()->GetWorldMatrix();
+		const auto worldCenter = DirectX::SimpleMath::Vector3::Transform(m_localBoundsCenter, world);
+
+		const DirectX::SimpleMath::Vector3 axisX(world._11, world._12, world._13);
+		const DirectX::SimpleMath::Vector3 axisY(world._21, world._22, world._23);
+		const DirectX::SimpleMath::Vector3 axisZ(world._31, world._32, world._33);
+
+		const float maxScale = std::max({ axisX.Length(), axisY.Length(), axisZ.Length() });
+		const float worldRadius = m_localBoundsRadius * std::max(maxScale, 1.0f) * 1.05f;
+
+		return RenderManager::Get().IsSphereVisible(worldCenter, worldRadius);
 	}
 
 	void SkinRenderer::Render()
 	{
 		// 유효성 확인
 		if (!mesh || !GetTransform())
+			return;
+
+		if (!IsVisibleInCurrentView())
 			return;
 
 

@@ -106,6 +106,9 @@ namespace MMMEngine
 
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_quadVB;
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_quadIB;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_quadBatchVB;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_quadBatchIB;
+		uint32_t m_quadBatchCapacity = 0;
 
 		void Initialize() override;
 		void UnInitialize() override;
@@ -120,6 +123,7 @@ namespace MMMEngine
 		DirectX::SimpleMath::Vector3 RandomUnitVector();
 		float RandomRange(float min, float max);
 		void EnsureAutoMaterial();
+		bool EnsureQuadBatchBuffers(uint32_t quadCount);
 
 	public:
 		static void BeginSceneViewRender(const DirectX::SimpleMath::Matrix& viewMatrix);

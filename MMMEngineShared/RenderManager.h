@@ -209,6 +209,7 @@ namespace MMMEngine
 
 		ObjPtr<Camera> GetCamera() { return m_pMainCamera; }
 		void SetCamera(const ObjPtr<Camera> _camera) { if(_camera) m_pMainCamera = _camera; }
+		bool IsSphereVisible(const DirectX::SimpleMath::Vector3& center, float radius) const;
 		void RefreshRenderCommands();
 		uint32_t AddRenderer(Renderer* _renderer);
 		void RemoveRenderer(int _idx);

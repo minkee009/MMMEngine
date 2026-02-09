@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "Renderer.h"
 #include "rttr/type"
+#include "SimpleMath.h"
 
 namespace MMMEngine {
 	class StaticMesh;
@@ -14,6 +15,12 @@ namespace MMMEngine {
 	private:
 		// GPU 버퍼
 		ResPtr<StaticMesh> mesh = nullptr;
+		bool m_boundsDirty = true;
+		DirectX::SimpleMath::Vector3 m_localBoundsCenter = DirectX::SimpleMath::Vector3::Zero;
+		float m_localBoundsRadius = -1.0f;
+
+		void RebuildLocalBounds();
+		bool IsVisibleInCurrentView();
 
 		void Initialize() override;
 		void UnInitialize() override;

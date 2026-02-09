@@ -1,4 +1,3 @@
-// 카메라버퍼
 cbuffer Cambuffer : register(b0)
 {
     matrix mView;
@@ -7,7 +6,6 @@ cbuffer Cambuffer : register(b0)
     matrix mInvProjection;
 }
 
-// 메시 트랜스폼 버퍼 1~4
 cbuffer Transbuffer : register(b1)
 {
     matrix mWorld;
@@ -36,9 +34,10 @@ struct VS_OUTPUT
     float3 Norm : NORMAL;
     float3 Tan : TANGENT;
     float3 BiTan : BITANGENT;
-    float2 Tex : TEXCOORD0;     // 텍스쳐 UV
-    float4 S_Pos : TEXCOORD1;   // 쉐도우 포지션
-    float4 W_Pos : TEXCOORD2;   // 월드 포지션
+    float2 Tex : TEXCOORD0;
+    float4 S_Pos : TEXCOORD1;
+    float4 W_Pos : TEXCOORD2;
+    float ParticleAlpha : TEXCOORD3;
 };
 
 struct VS_INPUT

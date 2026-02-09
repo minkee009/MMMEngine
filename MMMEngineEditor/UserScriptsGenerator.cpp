@@ -1105,7 +1105,6 @@ namespace MMMEngine::Editor
             fs::path genPath = scriptsDir / "UserScripts.gen.cpp";
             std::ostringstream os;
             os << "// Auto-generated. Do not edit.\n";
-            os << "#pragma optimize(\"\", off)\n";
             os << "#include \"Export.h\"\n";
             os << "#include \"ScriptBehaviour.h\"\n";
             os << "#include \"UserScriptsCommon.h\"\n";

@@ -45,6 +45,7 @@ VS_OUTPUT main(VS_INPUT input)
     output.Tan = normalize(mul(input.Tan, (float3x3) normalMat));
     output.BiTan = normalize(cross(output.Norm, output.Tan));
     output.Tex = input.Tex;
+    output.ParticleAlpha = input.BoneWeight.x;
     
     // 현재 위치를 ShadowMap 위치로 변환
     output.S_Pos = mul(float4(output.W_Pos.xyz, 1.0f), mShadowView);

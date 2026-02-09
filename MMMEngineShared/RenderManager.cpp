@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <exception>
 #include <filesystem>
+#include <DirectXCollision.h>
 
 DEFINE_SINGLETON(MMMEngine::RenderManager)
 
@@ -1687,6 +1688,23 @@ namespace MMMEngine {
 	void RenderManager::SetShadowMapSize(UINT _size)
 	{
 
+	}
+
+	bool RenderManager::IsSphereVisible(const Vector3& center, float radius) const
+	{
+		if (radius <= 0.0f)
+			return true;
+		if (std::abs(m_projMatrix._11) < 1e-6f || std::abs(m_projMatrix._22) < 1e-6f)
+			return true;
+
+		DirectX::BoundingFrustum frustum;
+		DirectX::BoundingFrustum::CreateFromMatrix(frustum, m_projMatrix);
+
+		const Matrix invView = m_viewMatrix.Invert();
+		frustum.Transform(frustum, invView);
+
+		DirectX::BoundingSphere sphere(center, radius);
+		return frustum.Contains(sphere) != DirectX::DISJOINT;
 	}
 
 	Renderer* RenderManager::GetRendererById(uint32_t id) const

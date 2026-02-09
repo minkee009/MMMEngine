@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <cstring>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -211,6 +212,9 @@ namespace MMMEngine
 		m_autoMaterial.reset();
 		m_quadVB.Reset();
 		m_quadIB.Reset();
+		m_quadBatchVB.Reset();
+		m_quadBatchIB.Reset();
+		m_quadBatchCapacity = 0;
 	}
 
 	void ParticleRenderer::Play()
@@ -260,6 +264,50 @@ namespace MMMEngine
 		uint32_t count = m_maxParticles;
 		for (uint32_t i = 0; i < count && m_particles.size() < m_maxParticles; ++i)
 			SpawnParticle(emitterWorld, emitterRot);
+	}
+
+	bool ParticleRenderer::EnsureQuadBatchBuffers(uint32_t quadCount)
+	{
+		if (quadCount == 0)
+			return false;
+
+		auto device = RenderManager::Get().GetDevice();
+		if (!device.Get())
+			return false;
+
+		if (m_quadBatchVB && m_quadBatchIB && quadCount <= m_quadBatchCapacity)
+			return true;
+
+		uint32_t newCapacity = (m_quadBatchCapacity > 0) ? m_quadBatchCapacity : 64u;
+		while (newCapacity < quadCount)
+			newCapacity *= 2u;
+
+		const UINT vbSize = static_cast<UINT>(sizeof(Mesh_Vertex) * newCapacity * 4u);
+		const UINT ibSize = static_cast<UINT>(sizeof(UINT) * newCapacity * 6u);
+
+		D3D11_BUFFER_DESC vbd = {};
+		vbd.Usage = D3D11_USAGE_DYNAMIC;
+		vbd.ByteWidth = vbSize;
+		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+		D3D11_BUFFER_DESC ibd = {};
+		ibd.Usage = D3D11_USAGE_DYNAMIC;
+		ibd.ByteWidth = ibSize;
+		ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		ibd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+		ComPtr<ID3D11Buffer> newVB;
+		ComPtr<ID3D11Buffer> newIB;
+		if (FAILED(device->CreateBuffer(&vbd, nullptr, newVB.GetAddressOf())))
+			return false;
+		if (FAILED(device->CreateBuffer(&ibd, nullptr, newIB.GetAddressOf())))
+			return false;
+
+		m_quadBatchVB = std::move(newVB);
+		m_quadBatchIB = std::move(newIB);
+		m_quadBatchCapacity = newCapacity;
+		return true;
 	}
 
 	void ParticleRenderer::Render()
@@ -338,6 +386,136 @@ namespace MMMEngine
 		camUp.Normalize();
 		camForward.Normalize();
 
+		if (m_particleType == ParticleType::Quad)
+		{
+			struct QuadBatchItem
+			{
+				Matrix world;
+				float camDistance = 0.0f;
+				float alpha = 1.0f;
+			};
+
+			std::vector<QuadBatchItem> batchItems;
+			batchItems.reserve(m_particles.size());
+
+			for (auto& p : m_particles)
+			{
+				float lifeT = (p.lifetime > 0.0f) ? (p.age / p.lifetime) : 1.0f;
+				lifeT = Clamp01(lifeT);
+
+				float alpha = 1.0f;
+				float scaleMul = 1.0f;
+				if (m_fadeMode == ParticleFade::Fade || m_fadeMode == ParticleFade::ShrinkFade)
+					alpha = 1.0f - lifeT;
+				if (m_fadeMode == ParticleFade::Shrink || m_fadeMode == ParticleFade::ShrinkFade)
+					scaleMul = 1.0f - lifeT;
+
+				const float finalScale = p.scale * scaleMul;
+				if (finalScale <= 0.0001f || alpha <= 0.0001f)
+					continue;
+
+				Matrix billboard = Matrix::CreateWorld(p.position, -camForward, camUp);
+				Matrix spin = Matrix::CreateRotationZ(DegToRad(p.rotationZ));
+				Matrix world = Matrix::CreateScale(finalScale) * spin * billboard;
+
+				QuadBatchItem item;
+				item.world = world;
+				item.camDistance = Vector3::Distance(camPos, p.position);
+				item.alpha = alpha;
+				batchItems.push_back(item);
+			}
+
+			if (batchItems.empty())
+				return;
+
+			std::sort(batchItems.begin(), batchItems.end(),
+				[](const QuadBatchItem& a, const QuadBatchItem& b)
+				{
+					return a.camDistance > b.camDistance;
+				});
+
+			const uint32_t quadCount = static_cast<uint32_t>(batchItems.size());
+			if (!EnsureQuadBatchBuffers(quadCount))
+				return;
+
+			std::vector<Mesh_Vertex> vertices;
+			std::vector<UINT> indices;
+			vertices.resize(static_cast<size_t>(quadCount) * 4u);
+			indices.resize(static_cast<size_t>(quadCount) * 6u);
+
+			const Vector3 localPos[4] =
+			{
+				{ -0.5f, -0.5f, 0.0f },
+				{  0.5f, -0.5f, 0.0f },
+				{  0.5f,  0.5f, 0.0f },
+				{ -0.5f,  0.5f, 0.0f }
+			};
+			const Vector2 localUV[4] =
+			{
+				{ 0.0f, 1.0f },
+				{ 1.0f, 1.0f },
+				{ 1.0f, 0.0f },
+				{ 0.0f, 0.0f }
+			};
+
+			for (uint32_t i = 0; i < quadCount; ++i)
+			{
+				const auto& item = batchItems[i];
+				const size_t vBase = static_cast<size_t>(i) * 4u;
+				const size_t iBase = static_cast<size_t>(i) * 6u;
+
+				for (uint32_t v = 0; v < 4u; ++v)
+				{
+					Mesh_Vertex vert{};
+					vert.Pos = Vector3::Transform(localPos[v], item.world);
+					vert.Normal = { 0.0f, 0.0f, 1.0f };
+					vert.Tangent = { 1.0f, 0.0f, 0.0f };
+					vert.UV = localUV[v];
+					vert.BoneIndices = { -1, -1, -1, -1 };
+					vert.BoneWeights = { item.alpha, 0.0f, 0.0f, 0.0f };
+					vertices[vBase + v] = vert;
+				}
+
+				const UINT idxOffset = static_cast<UINT>(vBase);
+				indices[iBase + 0] = idxOffset + 0;
+				indices[iBase + 1] = idxOffset + 1;
+				indices[iBase + 2] = idxOffset + 2;
+				indices[iBase + 3] = idxOffset + 0;
+				indices[iBase + 4] = idxOffset + 2;
+				indices[iBase + 5] = idxOffset + 3;
+			}
+
+			auto context = RenderManager::Get().GetContext();
+			if (!context.Get())
+				return;
+
+			D3D11_MAPPED_SUBRESOURCE mapped = {};
+			if (FAILED(context->Map(m_quadBatchVB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+				return;
+			std::memcpy(mapped.pData, vertices.data(), sizeof(Mesh_Vertex) * vertices.size());
+			context->Unmap(m_quadBatchVB.Get(), 0);
+
+			if (FAILED(context->Map(m_quadBatchIB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+				return;
+			std::memcpy(mapped.pData, indices.data(), sizeof(UINT) * indices.size());
+			context->Unmap(m_quadBatchIB.Get(), 0);
+
+			RenderCommand cmd;
+			cmd.rendererID = renderIndex;
+			cmd.castShadow = false;
+			cmd.receiveShadow = false;
+			cmd.particleAlpha = 1.0f;
+			cmd.useParticleAlpha = false;
+			cmd.camDistance = batchItems.front().camDistance;
+			cmd.vertexBuffer = m_quadBatchVB.Get();
+			cmd.indexBuffer = m_quadBatchIB.Get();
+			cmd.indiciesSize = static_cast<UINT>(indices.size());
+			cmd.material = useMaterial;
+			cmd.worldMatIndex = RenderManager::Get().AddMatrix(Matrix::Identity);
+			RenderManager::Get().AddCommand(RenderType::R_PARTICLE, std::move(cmd));
+			return;
+		}
+
 		for (auto& p : m_particles)
 		{
 			float lifeT = (p.lifetime > 0.0f) ? (p.age / p.lifetime) : 1.0f;
@@ -354,61 +532,40 @@ namespace MMMEngine
 			if (finalScale <= 0.0001f || alpha <= 0.0001f)
 				continue;
 
+			if (!m_mesh || m_mesh->gpuBuffer.vertexBuffers.empty())
+				continue;
+			if (!useMaterial)
+				continue;
+
 			RenderCommand cmd;
 			cmd.rendererID = renderIndex;
 			cmd.castShadow = false;
 			cmd.receiveShadow = false;
 			cmd.particleAlpha = alpha;
 			cmd.useParticleAlpha = (m_fadeMode == ParticleFade::Fade || m_fadeMode == ParticleFade::ShrinkFade);
-
 			cmd.camDistance = Vector3::Distance(camPos, p.position);
 
-			if (m_particleType == ParticleType::Quad)
+			Matrix world = Matrix::CreateScale(finalScale) *
+				Matrix::CreateFromQuaternion(p.rotation) *
+				Matrix::CreateTranslation(p.position);
+
+			const int worldIdx = RenderManager::Get().AddMatrix(world);
+
+			for (auto& [matIdx, meshIndices] : m_mesh->meshGroupData)
 			{
-				if (!m_quadVB.Get() || !m_quadIB.Get())
+				ResPtr<Material> mat = useMaterial;
+				if (!mat)
 					continue;
 
-				cmd.vertexBuffer = m_quadVB.Get();
-				cmd.indexBuffer = m_quadIB.Get();
-				cmd.indiciesSize = 6;
-				cmd.material = useMaterial;
-
-				Matrix billboard = Matrix::CreateWorld(p.position, -camForward, camUp);
-				Matrix spin = Matrix::CreateRotationZ(DegToRad(p.rotationZ));
-				Matrix world = Matrix::CreateScale(finalScale) * spin * billboard;
-
-				cmd.worldMatIndex = RenderManager::Get().AddMatrix(world);
-				RenderManager::Get().AddCommand(RenderType::R_PARTICLE, std::move(cmd));
-			}
-			else
-			{
-				if (!m_mesh || m_mesh->gpuBuffer.vertexBuffers.empty())
-					continue;
-				if (!useMaterial)
-					continue;
-
-				Matrix world = Matrix::CreateScale(finalScale) *
-					Matrix::CreateFromQuaternion(p.rotation) *
-					Matrix::CreateTranslation(p.position);
-
-				const int worldIdx = RenderManager::Get().AddMatrix(world);
-
-				for (auto& [matIdx, meshIndices] : m_mesh->meshGroupData)
+				for (const auto& idx : meshIndices)
 				{
-					ResPtr<Material> mat = useMaterial;
-					if (!mat)
-						continue;
-
-					for (const auto& idx : meshIndices)
-					{
-						RenderCommand meshCmd = cmd;
-						meshCmd.vertexBuffer = m_mesh->gpuBuffer.vertexBuffers[idx].Get();
-						meshCmd.indexBuffer = m_mesh->gpuBuffer.indexBuffers[idx].Get();
-						meshCmd.indiciesSize = m_mesh->indexSizes[idx];
-						meshCmd.material = mat;
-						meshCmd.worldMatIndex = worldIdx;
-						RenderManager::Get().AddCommand(RenderType::R_PARTICLE, std::move(meshCmd));
-					}
+					RenderCommand meshCmd = cmd;
+					meshCmd.vertexBuffer = m_mesh->gpuBuffer.vertexBuffers[idx].Get();
+					meshCmd.indexBuffer = m_mesh->gpuBuffer.indexBuffers[idx].Get();
+					meshCmd.indiciesSize = m_mesh->indexSizes[idx];
+					meshCmd.material = mat;
+					meshCmd.worldMatIndex = worldIdx;
+					RenderManager::Get().AddCommand(RenderType::R_PARTICLE, std::move(meshCmd));
 				}
 			}
 		}

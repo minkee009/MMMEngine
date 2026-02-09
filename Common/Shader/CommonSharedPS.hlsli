@@ -1,4 +1,3 @@
-// 공용 0~9
 Texture2D _albedo : register(t0);
 Texture2D _normal: register(t1);
 Texture2D _emissive : register(t2);
@@ -9,7 +8,6 @@ SamplerState _sp0 : register(s0);
 SamplerComparisonState _cmpsp0 : register(s1);
 SamplerState _samPoint : register(s2);
 
-// 카메라버퍼
 cbuffer Cambuffer : register(b0)
 {
     matrix mView;
@@ -18,7 +16,6 @@ cbuffer Cambuffer : register(b0)
     matrix mInvProjection;
 }
 
-// Directional Light 1~2
 cbuffer LightBuffer : register(b1)
 {
     float3 mLightDir;
@@ -30,21 +27,14 @@ cbuffer LightBuffer : register(b1)
     float4 mLightPos;
 }
 
-// PP 버퍼 10~14
-// cbuffer ToneBuffer : register(b10)
-// {
-//     float mExposure;
-//     float mBrightness;
-//     float2 _TonePadding;
-// }
-
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
     float3 Norm : NORMAL;
     float3 Tan : TANGENT;
     float3 BiTan : BITANGENT;
-    float2 Tex : TEXCOORD0;     // 텍스쳐 UV
-    float4 S_Pos : TEXCOORD1;   // 쉐도우 포지션
-    float4 W_Pos : TEXCOORD2;   // 월드 포지션
+    float2 Tex : TEXCOORD0;
+    float4 S_Pos : TEXCOORD1;
+    float4 W_Pos : TEXCOORD2;
+    float ParticleAlpha : TEXCOORD3;
 };

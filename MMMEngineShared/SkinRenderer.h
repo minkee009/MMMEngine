@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "rttr/type"
 #include "RenderShared.h"
+#include "SimpleMath.h"
 
 namespace MMMEngine {
 	class SkeletalMesh;
@@ -23,6 +24,12 @@ namespace MMMEngine {
 		ObjPtr<AnimatorController> mAnimController = nullptr;
 		Mesh_BoneBuffer* mAnimBuffer = nullptr;
 		Mesh_BoneBuffer mDefaultBoneBuffer;
+		bool m_boundsDirty = true;
+		DirectX::SimpleMath::Vector3 m_localBoundsCenter = DirectX::SimpleMath::Vector3::Zero;
+		float m_localBoundsRadius = -1.0f;
+
+		void RebuildLocalBounds();
+		bool IsVisibleInCurrentView();
 
 		void Initialize() override;
 		void UnInitialize() override;
