@@ -176,9 +176,9 @@ namespace MMMEngine
 		void ShutDown();
 
 		// 이 3개는 업데이트때마다 호출해서 관리할것
-		void SetWorldMatrix(DirectX::SimpleMath::Matrix& _world);
-		void SetViewMatrix(DirectX::SimpleMath::Matrix& _view);
-		void SetProjMatrix(DirectX::SimpleMath::Matrix& _proj);
+		void SetWorldMatrix(const DirectX::SimpleMath::Matrix& _world);
+		void SetViewMatrix(const DirectX::SimpleMath::Matrix& _view);
+		void SetProjMatrix(const DirectX::SimpleMath::Matrix& _proj);
 		void SetOrtho(bool _val) { isOrtho = _val; }
 
 		void ResizeSwapChainSize(int width, int height);
@@ -208,6 +208,7 @@ namespace MMMEngine
 
 		ObjPtr<Camera> GetCamera() { return m_pMainCamera; }
 		void SetCamera(const ObjPtr<Camera> _camera) { if(_camera) m_pMainCamera = _camera; }
+		void RefreshRenderCommands();
 		uint32_t AddRenderer(Renderer* _renderer);
 		void RemoveRenderer(int _idx);
 

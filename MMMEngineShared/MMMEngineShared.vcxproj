@@ -205,6 +205,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="MaterialSerializer.h" />
     <ClInclude Include="MeshRenderer.h" />
+    <ClInclude Include="ParticleRenderer.h" />
     <ClInclude Include="MissingScriptBehaviour.h" />
     <ClInclude Include="MMMApplication.h" />
     <ClInclude Include="MMMResources.h" />
@@ -306,6 +307,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="MaterialSerializer.cpp" />
     <ClCompile Include="MeshRenderer.cpp" />
+    <ClCompile Include="ParticleRenderer.cpp" />
     <ClCompile Include="MissingScriptBehaviour.cpp" />
     <ClCompile Include="MUID.cpp" />
     <ClCompile Include="Object.cpp" />

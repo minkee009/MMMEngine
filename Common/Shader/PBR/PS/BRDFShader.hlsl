@@ -90,6 +90,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     // 알파테스트
     float4 texColor = _albedo.Sample(_sp0, input.Tex);
     clip(texColor.a - 0.5f);
+    float4 baseColor = texColor * mBaseColor;
     
      // 필요한 변수를 모두 구하기
     float3 lightColor = mLightColor * mIntensity;
@@ -112,7 +113,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     float NdotL = saturate(dot(N, L));
     float NdotV = saturate(dot(N, V));
 
-    float4 albedo = _albedo.Sample(_sp0, input.Tex);
+    float4 albedo = baseColor;
     float metallic = _metallic.Sample(_sp0, input.Tex).r * mMetallic;
     float roughness = _roughness.Sample(_sp0, input.Tex).r * mRoughness;
     float ao = _ambientOcclusion.Sample(_sp0, input.Tex).r * 0.5f;
@@ -158,5 +159,5 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     float3 finalColor = Lo + ambient;
 
-    return float4(finalColor, 1.0f);
+    return float4(finalColor, baseColor.a);
 }
