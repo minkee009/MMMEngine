@@ -193,18 +193,12 @@ namespace MMMEngine {
 				// 상수버퍼 등록
 				auto sType = ShaderInfo::Get().GetShaderType(lastMaterial->GetPShader()->GetFilePath());
 
-				if (type == RenderType::R_PARTICLE && cmd.useParticleAlpha)
+				if (type == RenderType::R_PARTICLE && m_pParticleBuffer)
 				{
-					Vector4 baseColor = { 1.0f,1.0f,1.0f,1.0f };
-					const auto& props = lastMaterial->GetProperties();
-					auto it = props.find(L"mBaseColor");
-					if (it != props.end())
-					{
-						if (auto col = std::get_if<Vector4>(&it->second))
-							baseColor = *col;
-					}
-					baseColor.w *= cmd.particleAlpha;
-					ShaderInfo::Get().UpdateProperty(m_pDeviceContext.Get(), sType, L"mBaseColor", &baseColor);
+					const float particleAlpha = cmd.useParticleAlpha ? cmd.particleAlpha : 1.0f;
+					const Vector4 particleParams = { particleAlpha, 0.0f, 0.0f, 0.0f };
+					m_pDeviceContext->UpdateSubresource1(m_pParticleBuffer.Get(), 0, nullptr, &particleParams, 0, 0, D3D11_COPY_DISCARD);
+					m_pDeviceContext->PSSetConstantBuffers(10, 1, m_pParticleBuffer.GetAddressOf());
 				}
 				
 				// Per-renderer receiveShadow flag: bind/unbind shadow map SRV explicitly.
@@ -680,6 +674,8 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pAnimBuffer));
 		bd.ByteWidth = sizeof(Render_UIBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pUIBuffer.GetAddressOf()));
+		bd.ByteWidth = sizeof(Vector4);
+		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, m_pParticleBuffer.GetAddressOf()));
 
 		// 그림자 버퍼용
 		D3D11_TEXTURE2D_DESC1 shadowDesc = {};
@@ -825,6 +821,7 @@ namespace MMMEngine {
 		// 6) 트랜스폼/카메라/스킨/쉐도우 버퍼
 		m_pTransbuffer.Reset();
 		m_pCambuffer.Reset();
+		m_pParticleBuffer.Reset();
 
 		m_pOffsetBuffer.Reset();
 		m_pAnimBuffer.Reset();

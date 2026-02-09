@@ -146,6 +146,7 @@ namespace MMMEngine
 		// 카메라 관련
 		ObjPtr<Camera> m_pMainCamera;	// 메인 카메라 참조
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pCambuffer = nullptr;		// 캠 버퍼
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pParticleBuffer = nullptr;	// 파티클 전용 PS 버퍼 (b10)
 
 		// 스킨드매시
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pOffsetBuffer = nullptr;		// 본 오프셋 버퍼
