@@ -1100,7 +1100,13 @@ void MMMEngine::SceneSerializer::SerializeToMemory(const Scene& scene, SnapShot&
         compJson["Props"]["MUID"] = Utility::MUID::NewMUID().ToString();
 
         compArray.push_back(compJson);
-       
+
+        compJson.clear();
+        compJson["Type"] = "AudioListener";
+        compJson["Props"]["MUID"] = Utility::MUID::NewMUID().ToString();
+
+        compArray.push_back(compJson);
+
         goJson["Components"] = compArray;
         goArray.push_back(goJson);
 
