@@ -3,6 +3,7 @@
 #include "Export.h"
 #include "Behaviour.h"
 #include "SimpleMath.h"
+#include <unordered_map>
 #include <vector>
 
 namespace MMMEngine
@@ -24,6 +25,7 @@ namespace MMMEngine
 		RTTR_REGISTRATION_FRIEND
 
 		std::vector<ObjPtr<Graphic>> m_graphics;
+		std::unordered_map<ObjPtr<Graphic>, size_t> m_graphicIndex;
 		int m_sortOrder = 0;
 
 		CanvasScaleMode m_scaleMode = CanvasScaleMode::ConstantPixelSize;

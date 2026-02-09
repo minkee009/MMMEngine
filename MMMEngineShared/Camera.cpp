@@ -68,19 +68,25 @@ const DirectX::SimpleMath::Matrix& MMMEngine::Camera::GetProjMatrix()
 	return m_cachedProjMatrix;
 }
 
-DirectX::SimpleMath::Vector2 MMMEngine::Camera::WorldToScreenPoint(
-	const DirectX::SimpleMath::Vector3& worldPos,
-	float screenWidth,
-	float screenHeight)
+DirectX::SimpleMath::Vector3 MMMEngine::Camera::WorldToScreenPoint(
+	const DirectX::SimpleMath::Vector3& worldPos)
 {
 	using namespace DirectX::SimpleMath;
+	UINT w = 0, h = 0;
+	RenderManager::Get().GetSceneSize(w, h);
+	const float screenWidth = static_cast<float>(w);
+	const float screenHeight = static_cast<float>(h);
 	if (screenWidth <= 0.0f || screenHeight <= 0.0f)
-		return Vector2::Zero;
+		return Vector3::Zero;
 
-	const Matrix viewProj = GetViewMatrix() * GetProjMatrix();
+	const Matrix view = GetViewMatrix();
+	const Matrix proj = GetProjMatrix();
+
+	const Vector4 viewPos = Vector4::Transform(Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f), view);
+	const Matrix viewProj = view * proj;
 	const Vector4 clip = Vector4::Transform(Vector4(worldPos.x, worldPos.y, worldPos.z, 1.0f), viewProj);
 	if (std::abs(clip.w) < 1e-6f)
-		return Vector2::Zero;
+		return Vector3(0.0f, 0.0f, viewPos.z);
 
 	const float invW = 1.0f / clip.w;
 	const float ndcX = clip.x * invW;
@@ -88,15 +94,7 @@ DirectX::SimpleMath::Vector2 MMMEngine::Camera::WorldToScreenPoint(
 
 	const float screenX = (ndcX * 0.5f + 0.5f) * screenWidth;
 	const float screenY = (1.0f - (ndcY * 0.5f + 0.5f)) * screenHeight;
-	return { screenX, screenY };
-}
-
-DirectX::SimpleMath::Vector2 MMMEngine::Camera::WorldToScreenPoint(
-	const DirectX::SimpleMath::Vector3& worldPos)
-{
-	UINT w = 0, h = 0;
-	RenderManager::Get().GetSceneSize(w, h);
-	return WorldToScreenPoint(worldPos, static_cast<float>(w), static_cast<float>(h));
+	return { screenX, screenY, viewPos.z };
 }
 
 DirectX::SimpleMath::Vector3 MMMEngine::Camera::ScreenToWorldPoint(

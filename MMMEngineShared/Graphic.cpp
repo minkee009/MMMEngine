@@ -1,9 +1,10 @@
-#include "Graphic.h"
+﻿#include "Graphic.h"
 #include "Canvas.h"
 #include "RectTransform.h"
 #include "RenderManager.h"
 #include "Texture2D.h"
 #include "rttr/registration"
+#include <vector>
 
 RTTR_REGISTRATION
 {
@@ -30,10 +31,14 @@ void MMMEngine::Graphic::Initialize()
 		tr->onUpdateTransformTree.AddListener<Graphic, &Graphic::HandleTransformParentChanged>(this);
 
 	RefreshCanvas(tr.IsValid() ? tr->GetParent() : ObjPtr<Transform>());
+	MarkEffectiveOrderDirtyRecursive();
 }
 
 void MMMEngine::Graphic::UnInitialize()
 {
+	if (GetGameObject().IsValid() && !GetGameObject()->IsDestroyed())
+		MarkEffectiveOrderDirtyRecursive();
+
 	auto tr = GetTransform();
 	if (tr.IsValid())
 		tr->onUpdateTransformTree.RemoveListener<Graphic, &Graphic::HandleTransformParentChanged>(this);
@@ -100,6 +105,7 @@ void MMMEngine::Graphic::RefreshCanvas(ObjPtr<Transform> newParent)
 
 void MMMEngine::Graphic::HandleTransformParentChanged(ObjPtr<Transform> newParent)
 {
+	MarkEffectiveOrderDirty();
 	RefreshCanvas(newParent);
 }
 
@@ -116,6 +122,116 @@ void MMMEngine::Graphic::RefreshCanvasNow()
 {
 	auto tr = GetTransform();
 	RefreshCanvas(tr.IsValid() ? tr->GetParent() : ObjPtr<Transform>());
+}
+
+void MMMEngine::Graphic::MarkEffectiveOrderDirty()
+{
+	m_effectiveOrderDirty = true;
+}
+
+void MMMEngine::Graphic::MarkEffectiveOrderDirtyRecursive()
+{
+	MarkEffectiveOrderDirty();
+
+	auto tr = GetTransform();
+	if (!tr.IsValid() || tr->IsDestroyed())
+		return;
+
+	if (auto owner = GetGameObject(); owner.IsValid() && !owner->IsDestroyed())
+	{
+		auto graphics = owner->GetComponents<Graphic>();
+		for (auto& graphic : graphics)
+		{
+			if (graphic.IsValid() && !graphic->IsDestroyed())
+				graphic->MarkEffectiveOrderDirty();
+		}
+	}
+
+	std::vector<ObjPtr<Transform>> stack;
+	stack.reserve(tr->GetChildCount());
+	const size_t rootChildCount = tr->GetChildCount();
+	for (size_t i = 0; i < rootChildCount; ++i)
+		stack.push_back(tr->GetChild(i));
+
+	while (!stack.empty())
+	{
+		auto current = stack.back();
+		stack.pop_back();
+		if (!current.IsValid() || current->IsDestroyed())
+			continue;
+
+		auto go = current->GetGameObject();
+		if (go.IsValid() && !go->IsDestroyed())
+		{
+			auto graphics = go->GetComponents<Graphic>();
+			for (auto& graphic : graphics)
+			{
+				if (graphic.IsValid() && !graphic->IsDestroyed())
+					graphic->MarkEffectiveOrderDirty();
+			}
+		}
+
+		const size_t childCount = current->GetChildCount();
+		for (size_t i = 0; i < childCount; ++i)
+			stack.push_back(current->GetChild(i));
+	}
+}
+
+int MMMEngine::Graphic::RecalculateEffectiveRenderOrder()
+{
+	int order = m_renderOrder;
+	m_cachedRenderOrderValue = m_renderOrder;
+	m_cachedParentGraphic = nullptr;
+	m_cachedParentEffectiveOrder = 0;
+	m_hadCachedParentGraphic = false;
+
+	auto tr = GetTransform();
+	for (auto parent = tr.IsValid() ? tr->GetParent() : ObjPtr<Transform>();
+		parent.IsValid();
+		parent = parent->GetParent())
+	{
+		if (parent->IsDestroyed())
+			continue;
+
+		auto go = parent->GetGameObject();
+		if (!go.IsValid() || go->IsDestroyed())
+			continue;
+
+		auto parentGraphic = go->GetComponent<Graphic>();
+		if (parentGraphic.IsValid() && !parentGraphic->IsDestroyed())
+		{
+			m_cachedParentGraphic = parentGraphic;
+			m_cachedParentEffectiveOrder = parentGraphic->GetEffectiveRenderOrder();
+			m_hadCachedParentGraphic = true;
+			order += m_cachedParentEffectiveOrder;
+			break;
+		}
+	}
+
+	return order;
+}
+
+int MMMEngine::Graphic::GetEffectiveRenderOrder()
+{
+	int currentParentEffective = 0;
+	bool parentChanged = false;
+	if (m_cachedParentGraphic.IsValid())
+	{
+		currentParentEffective = m_cachedParentGraphic->GetEffectiveRenderOrder();
+		parentChanged = (currentParentEffective != m_cachedParentEffectiveOrder);
+	}
+	else if (m_hadCachedParentGraphic)
+	{
+		parentChanged = true;
+	}
+
+	if (m_effectiveOrderDirty || m_cachedRenderOrderValue != m_renderOrder || parentChanged)
+	{
+		m_cachedEffectiveRenderOrder = RecalculateEffectiveRenderOrder();
+		m_effectiveOrderDirty = false;
+	}
+
+	return m_cachedEffectiveRenderOrder;
 }
 
 void MMMEngine::Graphic::RenderUI(RenderManager& renderer)

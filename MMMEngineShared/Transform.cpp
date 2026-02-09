@@ -61,6 +61,24 @@ void MMMEngine::Transform::MarkDirty()
 	}
 }
 
+void MMMEngine::Transform::NotifyTransformTreeChangedRecursive()
+{
+	if (IsDestroyed())
+		return;
+
+	auto owner = GetGameObject();
+	if (owner.IsValid() && owner->IsDestroyed())
+		return;
+
+	onUpdateTransformTree.Invoke(this, m_parent);
+	for (const auto& child : m_childs)
+	{
+		if (!child.IsValid() || child->IsDestroyed())
+			continue;
+		child->NotifyTransformTreeChangedRecursive();
+	}
+}
+
 MMMEngine::Transform::Transform()
 	: m_localPosition(0.0f, 0.0f, 0.0f)
 	, m_localRotation(0.0f, 0.0f, 0.0f, 1.0f)
@@ -319,8 +337,12 @@ void MMMEngine::Transform::SetParent(ObjPtr<Transform> parent, bool worldPositio
 	const auto worldRotationBefore = GetWorldRotation();
 	const auto worldPositionBefore = GetWorldPosition();
 
+	const bool skipHierarchyEvents =
+		IsDestroyed() ||
+		(GetGameObject().IsValid() && GetGameObject()->IsDestroyed());
 
-	onUpdateTransformTree.Invoke(this, parent);   // 참조 연결 / 해제
+	if (!skipHierarchyEvents)
+		onUpdateTransformTree.Invoke(this, parent);   // 참조 연결 / 해제
 
 	// 기존 부모에서 제거
 	if (m_parent)
@@ -379,6 +401,17 @@ void MMMEngine::Transform::SetParent(ObjPtr<Transform> parent, bool worldPositio
 	onMatrixUpdate.Invoke(this);  
 	if(GetGameObject().IsValid())
 		GetGameObject()->UpdateActiveInHierarchy(); // 부모가 바뀌었으므로 Hierarchy 활성화 상태 업데이트
+
+	// 부모 체인 변경으로 인해 자식들의 참조 재계산이 필요함
+	if (!skipHierarchyEvents)
+	{
+		for (const auto& child : m_childs)
+		{
+			if (!child.IsValid() || child->IsDestroyed())
+				continue;
+			child->NotifyTransformTreeChangedRecursive();
+		}
+	}
 }
 
 MMMEngine::ObjPtr<MMMEngine::Transform> MMMEngine::Transform::Find(const std::string& path)
