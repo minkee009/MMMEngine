@@ -16,6 +16,7 @@ namespace MMMEngine::EditorRegistry
 	inline bool g_editor_window_playerBuild = false;
 	inline bool g_editor_window_assimpLoader = false;
 	inline bool g_editor_window_fontImporter = false;
+	inline bool g_editor_window_audioClipImporter = false;
 	inline ObjPtr<GameObject> g_selectedGameObject = nullptr;
 
 	// 플레이 버튼 누르기 직전의 씬 번호

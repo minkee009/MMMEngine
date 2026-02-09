@@ -1,4 +1,5 @@
 ﻿#include "Camera.h"
+#include "AudioListener.h"
 #include "Transform.h"
 #include "rttr/registration"
 #include "SceneManager.h"
@@ -253,8 +254,8 @@ MMMEngine::ObjPtr<MMMEngine::GameObject> MMMEngine::Camera::CreateMainCamera()
 	auto cameraGO = NewObject<GameObject>("MainCamera");
 	cameraGO->SetTag("MainCamera");
 	auto cam = cameraGO->AddComponent<Camera>();
-	//auto listener = cameraGO->AddComponent<AudioListener>();
-	//listener->SetAsMainListener();
+	auto listener = cameraGO->AddComponent<AudioListener>();
+	listener->SetAsMainListener();
 
 	if (!s_mainCam)
 		s_mainCam = cam;

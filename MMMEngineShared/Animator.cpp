@@ -157,7 +157,7 @@ void MMMEngine::Animator::UpdateBoneMatrix()
 	if (!mSkinComp.IsValid())
 		return;
 
-	auto& mesh = mSkinComp->GetMesh();
+	const auto& mesh = mSkinComp->GetMesh();
 	if (!mesh)
 		return;
 
@@ -533,7 +533,7 @@ void MMMEngine::Animator::StopClip()
 int MMMEngine::Animator::GetBoneIdx(std::string _boneName)
 {
 	if (mSkinComp) {
-		auto& mesh = mSkinComp->GetMesh();
+		const auto& mesh = mSkinComp->GetMesh();
 
 		auto it = mesh->boneIdxData.find(_boneName);
 		if (it != mesh->boneIdxData.end()) {

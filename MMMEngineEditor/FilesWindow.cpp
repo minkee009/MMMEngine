@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <cstring>
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 
 #include "EditorRegistry.h"
@@ -11,6 +12,7 @@
 #include "BuildManager.h"
 #include "PrefabMaker.h"
 #include "SceneManager.h"
+#include "AudioClipImporterWindow.h"
 
 using namespace MMMEngine::EditorRegistry;
 
@@ -51,6 +53,25 @@ namespace
         const std::string normalized = NormalizeToCrlf(text);
         out.write(normalized.data(), static_cast<std::streamsize>(normalized.size()));
         return static_cast<bool>(out);
+    }
+
+    static std::string ToLowerCopy(std::string s)
+    {
+        std::transform(s.begin(), s.end(), s.begin(),
+            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return s;
+    }
+
+    static bool IsAudioFileExtension(const std::string& extLower)
+    {
+        return extLower == ".wav" || extLower == ".mp3" || extLower == ".ogg" ||
+            extLower == ".flac" || extLower == ".aiff" || extLower == ".aif" ||
+            extLower == ".aac" || extLower == ".m4a";
+    }
+
+    static bool IsAudioClipExtension(const std::string& extLower)
+    {
+        return extLower == ".audioclip";
     }
 }
 
@@ -454,6 +475,9 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
 
     ImU32 iconColor;
     const char* iconGlyph;
+    std::string extLower;
+    bool isAudioFile = false;
+    bool isAudioClip = false;
 
     if (isDirectory)
     {
@@ -463,9 +487,9 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
     else
     {
         std::string ext = path.extension().string();
-        std::string extLower = ext;
-        std::transform(extLower.begin(), extLower.end(), extLower.begin(),
-            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        extLower = ToLowerCopy(ext);
+        isAudioFile = IsAudioFileExtension(extLower);
+        isAudioClip = IsAudioClipExtension(extLower);
 
         if (extLower == ".staticmesh")
         {
@@ -486,6 +510,16 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
         {
             iconColor = IM_COL32(90, 200, 210, 255); // Cyan for Material
             iconGlyph = "\xef\x87\xbc"; // Paint brush icon
+        }
+        else if (isAudioClip)
+        {
+            iconColor = IM_COL32(120, 180, 255, 255); // Blue for AudioClip
+            iconGlyph = "\xef\x80\x81"; // Music icon
+        }
+        else if (isAudioFile)
+        {
+            iconColor = IM_COL32(200, 150, 80, 255); // Orange for audio
+            iconGlyph = "\xef\x80\x81"; // Music icon
         }
         else if (extLower == ".cpp" || extLower == ".h" || extLower == ".hpp" || extLower == ".c")
         {
@@ -616,6 +650,15 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
             }
         }
 
+        if (!isDirectory && isAudioFile)
+        {
+            if (ImGui::MenuItem(u8"AudioClip 생성"))
+            {
+                g_editor_window_audioClipImporter = true;
+                AudioClipImporterWindow::Get().OpenWithPath(path);
+            }
+        }
+
         if (isDirectory)
         {
             ImGui::Separator();
@@ -647,7 +690,16 @@ void MMMEngine::Editor::FilesWindow::DrawGridItem(const fs::path& path, bool isD
     float textWidth = ImGui::CalcTextSize(displayName.c_str()).x;
     float textOffset = (cellSize - textWidth) * 0.5f;
     ImGui::SetCursorPosX(cursorPos.x + textOffset);
-    ImGui::TextWrapped(u8"%s", displayName.c_str());
+    if (isAudioClip)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(170, 210, 255, 255));
+        ImGui::TextWrapped(u8"%s", displayName.c_str());
+        ImGui::PopStyleColor();
+    }
+    else
+    {
+        ImGui::TextWrapped(u8"%s", displayName.c_str());
+    }
 
     if (ImGui::IsItemHovered() && fileName.length() > 12)
     {

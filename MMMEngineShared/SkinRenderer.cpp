@@ -11,6 +11,7 @@
 #include "Animator.h"
 #include "AnimatorController.h"
 #include "TimeManager.h"
+#include "GlobalRegistry.h"
 
 #include "SkeletalMesh.h"
 #include "rttr/registration.h"
@@ -100,13 +101,17 @@ namespace MMMEngine {
 		if (!mesh || !GetTransform())
 			return;
 
-		float dt = TimeManager::Get().GetDeltaTime();
 
-		if (mAnimator)
+		if (GlobalRegistry::g_runtimeActive)
+		{
+			float dt = TimeManager::Get().GetDeltaTime();
+
+			if (mAnimator)
 			mAnimator->Update(dt);
 
-		if (mAnimController)
-			mAnimController->Update(dt);
+			if (mAnimController)
+				mAnimController->Update(dt);
+		}
 
 		for (auto& [matIdx, meshIndices] : mesh->meshGroupData) {
 			if (mesh->materials.empty())
