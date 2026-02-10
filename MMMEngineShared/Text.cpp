@@ -82,7 +82,16 @@ void MMMEngine::Text::RenderUI(RenderManager& renderer)
 	const auto rotEuler = rectTransform->GetWorldEulerRotation();
 	const float rotationRad = DirectX::XMConvertToRadians(rotEuler.z);
 
-	renderer.DrawUIText(rect, m_text, m_font, GetColor(), m_alignment, rotationRad, pivotScene, textScale);
+	// \n 이스케이프 시퀀스를 실제 개행문자로 변환
+	std::wstring renderText = m_text;
+	size_t pos = 0;
+	while ((pos = renderText.find(L"\\n", pos)) != std::wstring::npos)
+	{
+		renderText.replace(pos, 2, L"\n");
+		pos += 1; // 변환된 \n 다음부터 검색
+	}
+
+	renderer.DrawUIText(rect, renderText, m_font, GetColor(), m_alignment, m_wrapMode, rotationRad, pivotScene, textScale);
 }
 
 std::string MMMEngine::Text::GetTextUtf8() const

@@ -200,6 +200,9 @@
     <ClCompile Include="AudioManager.cpp">
       <Filter>소스 파일\Core\Audio API</Filter>
     </ClCompile>
+    <ClCompile Include="MMMMathF.cpp">
+      <Filter>소스 파일\Core\MathF API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimationClip.h" />
@@ -848,6 +851,9 @@
     </Filter>
     <Filter Include="소스 파일\Core\Audio API">
       <UniqueIdentifier>{ce6602b9-4c4d-4aad-b66a-1835704792e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\MathF API">
+      <UniqueIdentifier>{166c15c0-5606-44a0-9727-e19d9bf09ca3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

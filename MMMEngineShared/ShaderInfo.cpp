@@ -173,6 +173,7 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_PBR][L"mRoughness"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mAoStrength"] = { PropertyType::Constant, 3, 0.5f };
 	m_propertyInfoMap[ShaderType::S_PBR][L"mEmissive"] = { PropertyType::Constant, 3 };
+	m_propertyInfoMap[ShaderType::S_PBR][L"mRoundDotClip"] = { PropertyType::Constant, 3, 0.0f };
 
 	//
 	m_propertyInfoMap[ShaderType::S_TOON][L"_albedo"] = { PropertyType::Texture, 0 };

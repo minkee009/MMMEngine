@@ -60,6 +60,8 @@ namespace MMMEngine {
 		float mRoughnessFactor = 0.0f;
 		float mAoFactor = 1.0f;
 		float mEmissiveFactor = 1.0f;
+		float mRoundDotClip = 0.0f;
+		DirectX::SimpleMath::Vector3 mPBRPadding = DirectX::SimpleMath::Vector3::Zero;
 	};
 
 	struct TOON_MaterialBuffer
