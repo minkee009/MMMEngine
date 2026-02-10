@@ -18,4 +18,7 @@ cbuffer MatBuffer : register(b3)
     float mRoughness;
     float mAoStrength;
     float mEmissive;
+
+    float mRoundDotClip;
+    float3 mPBRPadding;
 }

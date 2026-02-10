@@ -19,6 +19,7 @@
 #include "rttr/registration.h"
 #include <cmath>
 #include <algorithm>
+#include <cwctype>
 #include <exception>
 #include <filesystem>
 
@@ -64,12 +65,225 @@ namespace
 		}
 		return filtered;
 	}
+
+	float MeasureTextWidth(const DirectX::SpriteFont& spriteFont, const std::wstring& text)
+	{
+		if (text.empty())
+			return 0.0f;
+
+		return DirectX::XMVectorGetX(spriteFont.MeasureString(text.c_str(), false));
+	}
+
+	bool IsInlineWhitespace(wchar_t ch)
+	{
+		return ch != L'\n' && ch != L'\r' && std::iswspace(ch) != 0;
+	}
+
+	std::vector<std::wstring> WrapLineByCharacter(const DirectX::SpriteFont& spriteFont,
+		const std::wstring& line, float maxWidth)
+	{
+		if (line.empty())
+			return { std::wstring() };
+
+		if (maxWidth <= 0.0f)
+			return { line };
+
+		std::vector<std::wstring> wrappedLines;
+		std::wstring currentLine;
+		for (wchar_t ch : line)
+		{
+			if (ch == L'\r')
+				continue;
+
+			std::wstring candidate = currentLine;
+			candidate.push_back(ch);
+			if (!currentLine.empty() && MeasureTextWidth(spriteFont, candidate) > maxWidth)
+			{
+				wrappedLines.push_back(currentLine);
+				currentLine.assign(1, ch);
+			}
+			else
+			{
+				currentLine.push_back(ch);
+			}
+
+			// Keep rendering progress for glyphs wider than the wrap width.
+			if (currentLine.size() == 1 && MeasureTextWidth(spriteFont, currentLine) > maxWidth)
+			{
+				wrappedLines.push_back(currentLine);
+				currentLine.clear();
+			}
+		}
+
+		if (!currentLine.empty() || wrappedLines.empty())
+			wrappedLines.push_back(currentLine);
+
+		return wrappedLines;
+	}
+
+	std::vector<std::wstring> WrapLineByWord(const DirectX::SpriteFont& spriteFont,
+		const std::wstring& line, float maxWidth)
+	{
+		if (line.empty())
+			return { std::wstring() };
+
+		if (maxWidth <= 0.0f)
+			return { line };
+
+		std::vector<std::wstring> wrappedLines;
+		std::wstring currentLine;
+
+		size_t i = 0;
+		while (i < line.size())
+		{
+			if (line[i] == L'\r')
+			{
+				++i;
+				continue;
+			}
+
+			const bool whitespaceToken = IsInlineWhitespace(line[i]);
+			size_t j = i + 1;
+			while (j < line.size())
+			{
+				if (line[j] == L'\r')
+				{
+					++j;
+					continue;
+				}
+
+				if (IsInlineWhitespace(line[j]) != whitespaceToken)
+					break;
+				++j;
+			}
+
+			std::wstring token;
+			token.reserve(j - i);
+			for (size_t k = i; k < j; ++k)
+			{
+				if (line[k] != L'\r')
+					token.push_back(line[k]);
+			}
+			i = j;
+
+			if (token.empty())
+				continue;
+
+			if (whitespaceToken)
+			{
+				if (currentLine.empty())
+					continue;
+
+				std::wstring candidate = currentLine + token;
+				if (MeasureTextWidth(spriteFont, candidate) <= maxWidth)
+					currentLine = std::move(candidate);
+				else
+				{
+					wrappedLines.push_back(currentLine);
+					currentLine.clear();
+				}
+				continue;
+			}
+
+			const float tokenWidth = MeasureTextWidth(spriteFont, token);
+			if (currentLine.empty())
+			{
+				if (tokenWidth <= maxWidth)
+				{
+					currentLine = token;
+				}
+				else
+				{
+					auto brokenTokenLines = WrapLineByCharacter(spriteFont, token, maxWidth);
+					for (size_t lineIdx = 0; lineIdx < brokenTokenLines.size(); ++lineIdx)
+					{
+						if (lineIdx + 1 < brokenTokenLines.size())
+							wrappedLines.push_back(brokenTokenLines[lineIdx]);
+						else
+							currentLine = brokenTokenLines[lineIdx];
+					}
+				}
+				continue;
+			}
+
+			std::wstring candidate = currentLine + token;
+			if (MeasureTextWidth(spriteFont, candidate) <= maxWidth)
+			{
+				currentLine = std::move(candidate);
+			}
+			else
+			{
+				wrappedLines.push_back(currentLine);
+				currentLine.clear();
+
+				if (tokenWidth <= maxWidth)
+				{
+					currentLine = token;
+				}
+				else
+				{
+					auto brokenTokenLines = WrapLineByCharacter(spriteFont, token, maxWidth);
+					for (size_t lineIdx = 0; lineIdx < brokenTokenLines.size(); ++lineIdx)
+					{
+						if (lineIdx + 1 < brokenTokenLines.size())
+							wrappedLines.push_back(brokenTokenLines[lineIdx]);
+						else
+							currentLine = brokenTokenLines[lineIdx];
+					}
+				}
+			}
+		}
+
+		if (!currentLine.empty() || wrappedLines.empty())
+			wrappedLines.push_back(currentLine);
+
+		return wrappedLines;
+	}
+
+	std::wstring WrapTextToWidth(const DirectX::SpriteFont& spriteFont, const std::wstring& text,
+		MMMEngine::TextWrapMode wrapMode, float maxWidth)
+	{
+		if (text.empty() || wrapMode == MMMEngine::TextWrapMode::NoWrap || maxWidth <= 0.0f)
+			return text;
+
+		std::wstring wrappedText;
+		bool firstLine = true;
+		size_t lineStart = 0;
+		while (lineStart <= text.size())
+		{
+			const size_t lineEnd = text.find(L'\n', lineStart);
+			const std::wstring rawLine = (lineEnd == std::wstring::npos)
+				? text.substr(lineStart)
+				: text.substr(lineStart, lineEnd - lineStart);
+
+			std::vector<std::wstring> wrappedLines;
+			if (wrapMode == MMMEngine::TextWrapMode::CharacterWrap)
+				wrappedLines = WrapLineByCharacter(spriteFont, rawLine, maxWidth);
+			else
+				wrappedLines = WrapLineByWord(spriteFont, rawLine, maxWidth);
+
+			for (const auto& wrappedLine : wrappedLines)
+			{
+				if (!firstLine)
+					wrappedText.push_back(L'\n');
+				wrappedText += wrappedLine;
+				firstLine = false;
+			}
+
+			if (lineEnd == std::wstring::npos)
+				break;
+
+			lineStart = lineEnd + 1;
+		}
+
+		return wrappedText;
+	}
 }
 
 RTTR_REGISTRATION{
 	using namespace rttr;
 	using namespace MMMEngine;
-	
+
 	rttr::registration::class_<RenderManager>("RenderManager")
 		.property("maincamera", &RenderManager::GetCamera, &RenderManager::SetCamera);
 }
@@ -121,7 +335,7 @@ namespace MMMEngine {
 				if (m_pSkyboxMaterial.expired()) {
 					m_pSkyboxMaterial = commands[0].material;
 
-					if(m_pSkyboxMaterial.expired())
+					if (m_pSkyboxMaterial.expired())
 						continue;
 
 					// 공용 리소스 등록
@@ -146,7 +360,7 @@ namespace MMMEngine {
 				m_pDeviceContext->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
 			else
 				m_pDeviceContext->OMSetBlendState(m_pDefaultBS.Get(), blendFactor, 0xffffffff);
-			
+
 			if (type == RenderType::R_PARTICLE)
 				m_pDeviceContext->RSSetState(m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
 			else
@@ -173,11 +387,11 @@ namespace MMMEngine {
 				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
 				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-				
+
 				// 스킨드 메시라면 본 인덱스를 셰이더에 전달
-				if ( cmd.offsetBuffer != nullptr && lastOffset != cmd.offsetBuffer)
+				if (cmd.offsetBuffer != nullptr && lastOffset != cmd.offsetBuffer)
 				{
-					
+
 					m_pDeviceContext->UpdateSubresource1(m_pOffsetBuffer.Get(), 0, nullptr, cmd.offsetBuffer, 0, 0, D3D11_COPY_DISCARD);
 					m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pOffsetBuffer.GetAddressOf());
 					lastOffset = cmd.offsetBuffer;
@@ -200,7 +414,7 @@ namespace MMMEngine {
 					m_pDeviceContext->UpdateSubresource1(m_pParticleBuffer.Get(), 0, nullptr, &particleParams, 0, 0, D3D11_COPY_DISCARD);
 					m_pDeviceContext->PSSetConstantBuffers(10, 1, m_pParticleBuffer.GetAddressOf());
 				}
-				
+
 				// Per-renderer receiveShadow flag: bind/unbind shadow map SRV explicitly.
 				PropertyInfo shadowPropInfo{};
 				const int shadowSlot = ShaderInfo::Get().PropertyToIdx(sType, L"_shadowmap", &shadowPropInfo);
@@ -334,11 +548,11 @@ namespace MMMEngine {
 		if (!m_pUIVShader || !m_pUIPShader || !m_pUIBuffer)
 			return;
 
-	std::sort(m_canvases.begin(), m_canvases.end(), [](Canvas* a, Canvas* b) {
-		return a->GetSortOrder() < b->GetSortOrder();
-		});
+		std::sort(m_canvases.begin(), m_canvases.end(), [](Canvas* a, Canvas* b) {
+			return a->GetSortOrder() < b->GetSortOrder();
+			});
 
-	auto context = m_pDeviceContext.Get();
+		auto context = m_pDeviceContext.Get();
 
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		context->IASetInputLayout(nullptr);
@@ -351,16 +565,16 @@ namespace MMMEngine {
 		context->PSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
 		context->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
 
-	float blendFactor[4] = { 0,0,0,0 };
-	context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
-	context->OMSetDepthStencilState(m_pUIDepthState.Get(), 0);
-	context->RSSetState(m_pDefaultRS.Get());
-	m_uiActiveDepthState = m_pUIDepthState.Get();
-	m_uiStencilRef = 0;
-	m_uiMaskEnabled = false;
+		float blendFactor[4] = { 0,0,0,0 };
+		context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
+		context->OMSetDepthStencilState(m_pUIDepthState.Get(), 0);
+		context->RSSetState(m_pDefaultRS.Get());
+		m_uiActiveDepthState = m_pUIDepthState.Get();
+		m_uiStencilRef = 0;
+		m_uiMaskEnabled = false;
 
-	for (auto* canvas : m_canvases)
-	{
+		for (auto* canvas : m_canvases)
+		{
 			if (!canvas)
 				continue;
 			BeginCanvas(canvas);
@@ -483,38 +697,38 @@ namespace MMMEngine {
 		defaultRsDesc.AntialiasedLineEnable = FALSE;
 		HR_T(m_pDevice->CreateRasterizerState2(&defaultRsDesc, m_pDefaultRS.GetAddressOf()));
 
-	// 블랜드 스테이트 생성
-	D3D11_BLEND_DESC1 blendDesc = {};
-	blendDesc.AlphaToCoverageEnable = FALSE;
-	blendDesc.IndependentBlendEnable = FALSE;
-	blendDesc.RenderTarget[0].BlendEnable = FALSE;
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	HR_T(m_pDevice->CreateBlendState1(&blendDesc, m_pDefaultBS.GetAddressOf()));
-	assert(m_pDefaultBS && "RenderPipe::InitD3D : defaultBS not initialized!!");
+		// 블랜드 스테이트 생성
+		D3D11_BLEND_DESC1 blendDesc = {};
+		blendDesc.AlphaToCoverageEnable = FALSE;
+		blendDesc.IndependentBlendEnable = FALSE;
+		blendDesc.RenderTarget[0].BlendEnable = FALSE;
+		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		HR_T(m_pDevice->CreateBlendState1(&blendDesc, m_pDefaultBS.GetAddressOf()));
+		assert(m_pDefaultBS && "RenderPipe::InitD3D : defaultBS not initialized!!");
 
-	// UI 블렌드 스테이트 생성 (알파 블렌딩)
-	D3D11_BLEND_DESC1 uiBlendDesc = {};
-	uiBlendDesc.AlphaToCoverageEnable = FALSE;
-	uiBlendDesc.IndependentBlendEnable = FALSE;
-	uiBlendDesc.RenderTarget[0].BlendEnable = TRUE;
-	uiBlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	uiBlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	uiBlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	uiBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-	uiBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-	uiBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	uiBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	HR_T(m_pDevice->CreateBlendState1(&uiBlendDesc, m_pUIBlendState.GetAddressOf()));
+		// UI 블렌드 스테이트 생성 (알파 블렌딩)
+		D3D11_BLEND_DESC1 uiBlendDesc = {};
+		uiBlendDesc.AlphaToCoverageEnable = FALSE;
+		uiBlendDesc.IndependentBlendEnable = FALSE;
+		uiBlendDesc.RenderTarget[0].BlendEnable = TRUE;
+		uiBlendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		uiBlendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		uiBlendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		uiBlendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		uiBlendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		uiBlendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		uiBlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		HR_T(m_pDevice->CreateBlendState1(&uiBlendDesc, m_pUIBlendState.GetAddressOf()));
 
-	// UI 마스크용 컬러 미작성 블렌드 스테이트
-	D3D11_BLEND_DESC1 uiBlendNoColorDesc = uiBlendDesc;
-	uiBlendNoColorDesc.RenderTarget[0].RenderTargetWriteMask = 0;
-	HR_T(m_pDevice->CreateBlendState1(&uiBlendNoColorDesc, m_pUIBlendStateNoColor.GetAddressOf()));
+		// UI 마스크용 컬러 미작성 블렌드 스테이트
+		D3D11_BLEND_DESC1 uiBlendNoColorDesc = uiBlendDesc;
+		uiBlendNoColorDesc.RenderTarget[0].RenderTargetWriteMask = 0;
+		HR_T(m_pDevice->CreateBlendState1(&uiBlendNoColorDesc, m_pUIBlendStateNoColor.GetAddressOf()));
 
-	// 레스터라이저 스테이트 생성
-	D3D11_RASTERIZER_DESC2 rsDesc = {};
-	rsDesc.FillMode = D3D11_FILL_SOLID;
-	rsDesc.CullMode = D3D11_CULL_BACK;
+		// 레스터라이저 스테이트 생성
+		D3D11_RASTERIZER_DESC2 rsDesc = {};
+		rsDesc.FillMode = D3D11_FILL_SOLID;
+		rsDesc.CullMode = D3D11_CULL_BACK;
 		rsDesc.FrontCounterClockwise = FALSE;
 		rsDesc.DepthBias = 0;
 		rsDesc.DepthBiasClamp = 0.0f;
@@ -522,47 +736,47 @@ namespace MMMEngine {
 		rsDesc.DepthClipEnable = TRUE;
 		rsDesc.ScissorEnable = FALSE;
 		rsDesc.MultisampleEnable = FALSE;
-	rsDesc.AntialiasedLineEnable = FALSE;
-	HR_T(m_pDevice->CreateRasterizerState2(&rsDesc, m_pDefaultRS.GetAddressOf()));
-	assert(m_pDefaultRS && "RenderPipe::InitD3D : defaultRS not initialized!!");
+		rsDesc.AntialiasedLineEnable = FALSE;
+		HR_T(m_pDevice->CreateRasterizerState2(&rsDesc, m_pDefaultRS.GetAddressOf()));
+		assert(m_pDefaultRS && "RenderPipe::InitD3D : defaultRS not initialized!!");
 
-	// UI 전용 RS (양면 렌더)
-	D3D11_RASTERIZER_DESC2 uiRsDesc = defaultRsDesc;
-	uiRsDesc.CullMode = D3D11_CULL_NONE;
-	HR_T(m_pDevice->CreateRasterizerState2(&uiRsDesc, m_pUIRS.GetAddressOf()));
+		// UI 전용 RS (양면 렌더)
+		D3D11_RASTERIZER_DESC2 uiRsDesc = defaultRsDesc;
+		uiRsDesc.CullMode = D3D11_CULL_NONE;
+		HR_T(m_pDevice->CreateRasterizerState2(&uiRsDesc, m_pUIRS.GetAddressOf()));
 
-	// UI 깊이 스테이트 생성 (깊이 테스트/쓰기 비활성화)
-	D3D11_DEPTH_STENCIL_DESC uiDepthDesc = {};
-	uiDepthDesc.DepthEnable = FALSE;
-	uiDepthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	uiDepthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-	uiDepthDesc.StencilEnable = FALSE;
-	HR_T(m_pDevice->CreateDepthStencilState(&uiDepthDesc, m_pUIDepthState.GetAddressOf()));
+		// UI 깊이 스테이트 생성 (깊이 테스트/쓰기 비활성화)
+		D3D11_DEPTH_STENCIL_DESC uiDepthDesc = {};
+		uiDepthDesc.DepthEnable = FALSE;
+		uiDepthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		uiDepthDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		uiDepthDesc.StencilEnable = FALSE;
+		HR_T(m_pDevice->CreateDepthStencilState(&uiDepthDesc, m_pUIDepthState.GetAddressOf()));
 
-	// UI 스텐실 스테이트 생성
-	D3D11_DEPTH_STENCIL_DESC uiStencilTestDesc = uiDepthDesc;
-	uiStencilTestDesc.StencilEnable = TRUE;
-	uiStencilTestDesc.StencilReadMask = 0xFF;
-	uiStencilTestDesc.StencilWriteMask = 0x00;
-	uiStencilTestDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
-	uiStencilTestDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	uiStencilTestDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	uiStencilTestDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
-	uiStencilTestDesc.BackFace = uiStencilTestDesc.FrontFace;
-	HR_T(m_pDevice->CreateDepthStencilState(&uiStencilTestDesc, m_pUIStencilTestState.GetAddressOf()));
+		// UI 스텐실 스테이트 생성
+		D3D11_DEPTH_STENCIL_DESC uiStencilTestDesc = uiDepthDesc;
+		uiStencilTestDesc.StencilEnable = TRUE;
+		uiStencilTestDesc.StencilReadMask = 0xFF;
+		uiStencilTestDesc.StencilWriteMask = 0x00;
+		uiStencilTestDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+		uiStencilTestDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		uiStencilTestDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		uiStencilTestDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+		uiStencilTestDesc.BackFace = uiStencilTestDesc.FrontFace;
+		HR_T(m_pDevice->CreateDepthStencilState(&uiStencilTestDesc, m_pUIStencilTestState.GetAddressOf()));
 
-	D3D11_DEPTH_STENCIL_DESC uiStencilWriteDesc = uiStencilTestDesc;
-	uiStencilWriteDesc.StencilWriteMask = 0xFF;
-	uiStencilWriteDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
-	uiStencilWriteDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
-	HR_T(m_pDevice->CreateDepthStencilState(&uiStencilWriteDesc, m_pUIStencilWriteState.GetAddressOf()));
+		D3D11_DEPTH_STENCIL_DESC uiStencilWriteDesc = uiStencilTestDesc;
+		uiStencilWriteDesc.StencilWriteMask = 0xFF;
+		uiStencilWriteDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
+		uiStencilWriteDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_INCR_SAT;
+		HR_T(m_pDevice->CreateDepthStencilState(&uiStencilWriteDesc, m_pUIStencilWriteState.GetAddressOf()));
 
-	D3D11_DEPTH_STENCIL_DESC uiStencilClearDesc = uiStencilTestDesc;
-	uiStencilClearDesc.StencilWriteMask = 0xFF;
-	uiStencilClearDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
-	uiStencilClearDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
-	HR_T(m_pDevice->CreateDepthStencilState(&uiStencilClearDesc, m_pUIStencilClearState.GetAddressOf()));
-	
+		D3D11_DEPTH_STENCIL_DESC uiStencilClearDesc = uiStencilTestDesc;
+		uiStencilClearDesc.StencilWriteMask = 0xFF;
+		uiStencilClearDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
+		uiStencilClearDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_DECR_SAT;
+		HR_T(m_pDevice->CreateDepthStencilState(&uiStencilClearDesc, m_pUIStencilClearState.GetAddressOf()));
+
 		// 샘플러 만들기
 		D3D11_SAMPLER_DESC sampDesc = {};
 		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -584,8 +798,8 @@ namespace MMMEngine {
 		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pLinearWarpSampler.GetAddressOf()));
-		
-		
+
+
 		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; // 비교 필터
 		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -669,7 +883,7 @@ namespace MMMEngine {
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pTransbuffer));
 		bd.ByteWidth = sizeof(Render_ShadowBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pShadowBuffer));
- 		bd.ByteWidth = sizeof(Mesh_BoneBuffer);
+		bd.ByteWidth = sizeof(Mesh_BoneBuffer);
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pOffsetBuffer));
 		HR_T(m_pDevice->CreateBuffer(&bd, nullptr, &m_pAnimBuffer));
 		bd.ByteWidth = sizeof(Render_UIBuffer);
@@ -1015,7 +1229,7 @@ namespace MMMEngine {
 
 		// DSV 생성
 		HR_T(m_pDevice->CreateDepthStencilView(m_pSceneDSB.Get(), nullptr, m_pSceneDSV.GetAddressOf()));
-		
+
 
 		// 뷰포트 갱신
 		m_sceneViewport.Width = static_cast<float>(_sceneWidth);
@@ -1154,7 +1368,7 @@ namespace MMMEngine {
 		DirectX::XMMATRIX invView = XMMatrixInverse(nullptr, _camView);
 		DirectX::XMVECTOR camPos = invView.r[3];
 		DirectX::SimpleMath::Vector3 target = camPos;
-		
+
 		DirectX::SimpleMath::Vector3 lightPos = camPos;
 		auto offset = (-lightDir * 500.0f);
 		lightPos += offset;
@@ -1230,7 +1444,7 @@ namespace MMMEngine {
 				// 쉐도우 안그리는거는 스킵
 				continue;
 			}
-			
+
 			if (type == RenderType::R_TRANSCULANT)
 			{
 				// 투명 오브젝트: 카메라 거리 내림차순 정렬
@@ -1317,7 +1531,7 @@ namespace MMMEngine {
 				m_pDeviceContext->DrawIndexed(cmd.indiciesSize, 0, 0);
 			}
 		}
-		
+
 		// 글로벌 쉐도우맵 추가
 		ShaderInfo::Get().AddAllGlobalPropVal(L"_shadowmap", m_pShadowSRV);
 	}
@@ -1375,7 +1589,7 @@ namespace MMMEngine {
 
 		// UI 렌더링
 		RenderUI();
-		
+
 		// 씬렌더 해제
 		m_pDeviceContext->RSSetViewports(1, &m_swapViewport);
 		m_pDeviceContext->OMSetRenderTargets(1, reinterpret_cast<ID3D11RenderTargetView* const*>(m_pRenderTargetView.GetAddressOf()), nullptr);
@@ -1393,7 +1607,7 @@ namespace MMMEngine {
 
 			ID3D11ShaderResourceView* sceneSRV = m_pSceneSRV.Get();
 			m_pDeviceContext->PSSetShaderResources(0, 1, &sceneSRV);
-			
+
 			ID3D11SamplerState* samplers[] = { m_pLinearWarpSampler.Get(), m_pCompareSampler.Get(), m_pPointSampler.Get() };
 			m_pDeviceContext->PSSetSamplers(0, 3, samplers);
 
@@ -1536,7 +1750,7 @@ namespace MMMEngine {
 				UINT offset = 0;
 				m_pDeviceContext->IASetVertexBuffers(0, 1, &cmd.vertexBuffer, &stride, &offset);
 				m_pDeviceContext->IASetIndexBuffer(cmd.indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-				
+
 				auto& matVs = cmd.material->GetVShader();
 				m_pDeviceContext->VSSetShader(matVs->m_pVShader.Get(), nullptr, 0);
 				m_pDeviceContext->IASetInputLayout(matVs->m_pInputLayout.Get());
@@ -1573,14 +1787,14 @@ namespace MMMEngine {
 		// State (blend/depth/raster) is expected to be set by caller.
 
 		auto isSelected = [ids, count](uint32_t id) -> bool
-		{
-			for (uint32_t i = 0; i < count; ++i)
 			{
-				if (ids[i] == id)
-					return true;
-			}
-			return false;
-		};
+				for (uint32_t i = 0; i < count; ++i)
+				{
+					if (ids[i] == id)
+						return true;
+				}
+				return false;
+			};
 
 		for (auto& [type, commands] : m_renderCommands)
 		{
@@ -1799,19 +2013,19 @@ namespace MMMEngine {
 		data.rect = rect;
 		data.uvRect = uvRect;
 		data.color = color;
-	data.screenParams = Vector4(
-		static_cast<float>(m_sceneWidth),
-		static_cast<float>(m_sceneHeight),
-		texture ? 1.0f : 0.0f,
-		0.0f);
-	data.maskParams = Vector4(
-		m_uiMaskEnabled ? 1.0f : 0.0f,
-		m_uiMaskAlphaThreshold,
-		0.0f,
-		0.0f);
-	data.transformParams0 = Vector4(
-		pivot.x,
-		pivot.y,
+		data.screenParams = Vector4(
+			static_cast<float>(m_sceneWidth),
+			static_cast<float>(m_sceneHeight),
+			texture ? 1.0f : 0.0f,
+			0.0f);
+		data.maskParams = Vector4(
+			m_uiMaskEnabled ? 1.0f : 0.0f,
+			m_uiMaskAlphaThreshold,
+			0.0f,
+			0.0f);
+		data.transformParams0 = Vector4(
+			pivot.x,
+			pivot.y,
 			rightDir.x,
 			rightDir.y);
 		data.transformParams1 = Vector4(
@@ -1833,6 +2047,7 @@ namespace MMMEngine {
 		const ResPtr<Font>& font,
 		const Color& color,
 		TextAlignment alignment,
+		TextWrapMode wrapMode,
 		float rotationRad,
 		const Vector2& pivotScene,
 		const Vector2& textScale)
@@ -1851,47 +2066,47 @@ namespace MMMEngine {
 
 		const DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity();
 
-	ID3D11RasterizerState* uiRs = m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get();
-	ID3D11DepthStencilState* depthState = m_uiActiveDepthState ? m_uiActiveDepthState : m_pUIDepthState.Get();
-	m_uiSpriteBatch->Begin(DirectX::SpriteSortMode_Deferred,
-		m_pUIBlendState.Get(),
-		m_pLinearSampler.Get(),
-		depthState,
-		uiRs,
-		nullptr,
-		transform);
-	if (m_pDeviceContext && depthState && m_uiStencilRef != 0)
-		m_pDeviceContext->OMSetDepthStencilState(depthState, m_uiStencilRef);
+		ID3D11RasterizerState* uiRs = m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get();
+		ID3D11DepthStencilState* depthState = m_uiActiveDepthState ? m_uiActiveDepthState : m_pUIDepthState.Get();
+		m_uiSpriteBatch->Begin(DirectX::SpriteSortMode_Deferred,
+			m_pUIBlendState.Get(),
+			m_pLinearSampler.Get(),
+			depthState,
+			uiRs,
+			nullptr,
+			transform);
+		if (m_pDeviceContext && depthState && m_uiStencilRef != 0)
+			m_pDeviceContext->OMSetDepthStencilState(depthState, m_uiStencilRef);
 
 		auto endSpriteBatch = [this]()
-		{
-			m_uiSpriteBatch->End();
+			{
+				m_uiSpriteBatch->End();
 
-			// Restore UI pipeline for subsequent UI elements.
-			EnsureUIShaders();
-			if (!m_pUIVShader || !m_pUIPShader || !m_pUIBuffer)
-				return;
+				// Restore UI pipeline for subsequent UI elements.
+				EnsureUIShaders();
+				if (!m_pUIVShader || !m_pUIPShader || !m_pUIBuffer)
+					return;
 
-			auto context = m_pDeviceContext.Get();
-			context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			context->IASetInputLayout(nullptr);
-			context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-			context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
-			context->VSSetShader(m_pUIVShader->m_pVShader.Get(), nullptr, 0);
-			context->PSSetShader(m_pUIPShader->m_pPShader.Get(), nullptr, 0);
-			context->VSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
-			context->PSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
-			context->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
+				auto context = m_pDeviceContext.Get();
+				context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				context->IASetInputLayout(nullptr);
+				context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+				context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+				context->VSSetShader(m_pUIVShader->m_pVShader.Get(), nullptr, 0);
+				context->PSSetShader(m_pUIPShader->m_pPShader.Get(), nullptr, 0);
+				context->VSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
+				context->PSSetConstantBuffers(0, 1, m_pUIBuffer.GetAddressOf());
+				context->PSSetSamplers(0, 1, m_pLinearSampler.GetAddressOf());
 
-			float blendFactor[4] = { 0,0,0,0 };
-			context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
-		ID3D11DepthStencilState* restoreDepth = m_uiActiveDepthState ? m_uiActiveDepthState : m_pUIDepthState.Get();
-		context->OMSetDepthStencilState(restoreDepth, m_uiStencilRef);
-		context->RSSetState(m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
-		};
+				float blendFactor[4] = { 0,0,0,0 };
+				context->OMSetBlendState(m_pUIBlendState.Get(), blendFactor, 0xffffffff);
+				ID3D11DepthStencilState* restoreDepth = m_uiActiveDepthState ? m_uiActiveDepthState : m_pUIDepthState.Get();
+				context->OMSetDepthStencilState(restoreDepth, m_uiStencilRef);
+				context->RSSetState(m_pUIRS ? m_pUIRS.Get() : m_pDefaultRS.Get());
+			};
 
-		std::wstring renderText = text;
 		DirectX::XMVECTOR sizeVec = DirectX::XMVectorZero();
+		std::wstring renderText = text;
 		try
 		{
 			sizeVec = spriteFont->MeasureString(renderText.c_str(), false);
@@ -1921,6 +2136,30 @@ namespace MMMEngine {
 		if (scaleX <= 1e-6f) scaleX = 1.0f;
 		if (scaleY <= 1e-6f) scaleY = 1.0f;
 
+		const float unscaledWrapWidth = rect.z / scaleX;
+		if (wrapMode != TextWrapMode::NoWrap && unscaledWrapWidth > 1e-6f)
+		{
+			try
+			{
+				renderText = WrapTextToWidth(*spriteFont, renderText, wrapMode, unscaledWrapWidth);
+			}
+			catch (const std::exception&)
+			{
+				endSpriteBatch();
+				return;
+			}
+		}
+
+		try
+		{
+			sizeVec = spriteFont->MeasureString(renderText.c_str(), false);
+		}
+		catch (const std::exception&)
+		{
+			endSpriteBatch();
+			return;
+		}
+
 		const float textWidth = DirectX::XMVectorGetX(sizeVec) * scaleX;
 
 		float x = rect.x;
@@ -1933,9 +2172,6 @@ namespace MMMEngine {
 		try
 		{
 			const DirectX::XMFLOAT2 topLeft(x, y);
-			// DrawString's origin is interpreted relative to 'position'.
-			// To rotate around RectTransform pivot while preserving top-left placement,
-			// use position as pivotScene and origin as (pivot - topLeft).
 			const DirectX::XMFLOAT2 pos(pivotScene.x, pivotScene.y);
 			const float invScaleX = 1.0f / scaleX;
 			const float invScaleY = 1.0f / scaleY;

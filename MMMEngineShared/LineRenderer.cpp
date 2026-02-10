@@ -52,6 +52,7 @@ RTTR_REGISTRATION
 		.property("EndPoint", &LineRenderer::GetEndPoint, &LineRenderer::SetEndPoint)
 		.property("UseWorldSpace", &LineRenderer::GetUseWorldSpace, &LineRenderer::SetUseWorldSpace)
 		.property("CameraFacing", &LineRenderer::GetUseCameraFacing, &LineRenderer::SetUseCameraFacing)
+		.property("RoundDotClip", &LineRenderer::GetUseRoundDotClip, &LineRenderer::SetUseRoundDotClip)
 		.property("Width", &LineRenderer::GetWidth, &LineRenderer::SetWidth)(rttr::metadata("RANGE", "0.001,10.0"))
 		.property("DashLength", &LineRenderer::GetDashLength, &LineRenderer::SetDashLength)(rttr::metadata("RANGE", "0.0,100.0"))
 		.property("GapLength", &LineRenderer::GetGapLength, &LineRenderer::SetGapLength)(rttr::metadata("RANGE", "0.0,100.0"))
@@ -100,6 +101,7 @@ namespace MMMEngine
 			const ShaderType type = ShaderInfo::Get().GetShaderType(pShader->GetFilePath());
 			ShaderInfo::Get().ConvertMaterialType(type, mMaterial.get());
 		}
+		ApplyRoundDotClipToMaterial(mMaterial);
 
 	}
 
@@ -121,6 +123,13 @@ namespace MMMEngine
 			if (mIsAutoMaterial)
 				ApplyColorToMaterial(mMaterial);
 		}
+	}
+
+	void LineRenderer::SetUseRoundDotClip(bool useRoundDotClip)
+	{
+		mUseRoundDotClip = useRoundDotClip;
+		if (mMaterial)
+			ApplyRoundDotClipToMaterial(mMaterial);
 	}
 
 	void LineRenderer::Initialize()
@@ -152,6 +161,7 @@ namespace MMMEngine
 
 		if (mIsAutoMaterial)
 			ApplyColorToMaterial(mMaterial);
+		ApplyRoundDotClipToMaterial(mMaterial);
 
 		DirectX::SimpleMath::Vector3 start = mStartPoint;
 		DirectX::SimpleMath::Vector3 end = mEndPoint;
@@ -218,6 +228,7 @@ namespace MMMEngine
 		mIsAutoMaterial = true;
 
 		ApplyColorToMaterial(mMaterial);
+		ApplyRoundDotClipToMaterial(mMaterial);
 	}
 
 	void LineRenderer::ApplyColorToMaterial(const ResPtr<Material>& material) const
@@ -234,6 +245,20 @@ namespace MMMEngine
 			material->SetProperty(L"mBaseColor", colorValue);
 		else
 			material->AddProperty(L"mBaseColor", colorValue);
+	}
+
+	void LineRenderer::ApplyRoundDotClipToMaterial(const ResPtr<Material>& material) const
+	{
+		if (!material)
+			return;
+
+		const bool canUseRoundDotClip = mUseRoundDotClip && (mDashLength > kLineEpsilon) && (mGapLength > kLineEpsilon);
+		const float roundDotClipValue = canUseRoundDotClip ? 1.0f : 0.0f;
+		const auto& props = material->GetProperties();
+		if (props.find(L"mRoundDotClip") != props.end())
+			material->SetProperty(L"mRoundDotClip", roundDotClipValue);
+		else
+			material->AddProperty(L"mRoundDotClip", roundDotClipValue);
 	}
 
 	bool LineRenderer::BuildLineGeometry(
@@ -298,8 +323,9 @@ namespace MMMEngine
 
 			const DirectX::SimpleMath::Vector3 offsetStart = sideStart * halfWidth;
 			const DirectX::SimpleMath::Vector3 offsetEnd = sideEnd * halfWidth;
-			const float u0 = std::clamp(segmentStartDistance / lineLength, 0.0f, 1.0f);
-			const float u1 = std::clamp(segmentEndDistance / lineLength, 0.0f, 1.0f);
+			const bool useSegmentLocalUv = mUseRoundDotClip;
+			const float u0 = useSegmentLocalUv ? 0.0f : std::clamp(segmentStartDistance / lineLength, 0.0f, 1.0f);
+			const float u1 = useSegmentLocalUv ? 1.0f : std::clamp(segmentEndDistance / lineLength, 0.0f, 1.0f);
 
 			Mesh_Vertex v0{};
 			v0.Pos = segmentStart - offsetStart;

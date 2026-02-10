@@ -16,7 +16,8 @@ namespace MMMEngine::Editor
         const fs::path& msbuildPath,
         const fs::path& slnPath,
         const std::string& projectName,
-        BuildConfiguration config
+        BuildConfiguration config,
+        bool buildProjectReferences
     ) const
     {
         BuildOutput output;
@@ -47,6 +48,12 @@ namespace MMMEngine::Editor
         if (!engineDirStr.empty())
         {
             cmdStream << "/p:MMMENGINE_DIR=\"" << engineDirStr << "\" ";
+        }
+
+        if (!buildProjectReferences)
+        {
+            // 에디터가 로드 중인 MMMEngineShared.dll 재링크로 인한 LNK1104/LNK1168 회피
+            cmdStream << "/p:BuildProjectReferences=false ";
         }
 
         cmdStream << "/p:DebugType=none "
@@ -356,11 +363,21 @@ namespace MMMEngine::Editor
             }
 
             // 솔루션에서 MMMEnginePlayer 프로젝트만 빌드
-            // /t:MMMEnginePlayer 옵션으로 특정 프로젝트만 빌드하면 의존성도 자동으로 빌드됨
+            // 에디터 실행 중에는 MMMEngineShared.dll이 잠겨 있을 수 있으므로
+            // 의존성 재빌드를 끄고 플레이어 프로젝트만 빌드한다.
             if (m_progressCallbackString)
+            {
+                m_progressCallbackString(u8"참조 프로젝트 재빌드 비활성화(BuildProjectReferences=false)");
                 m_progressCallbackString(u8"솔루션에서 MMMEnginePlayer 프로젝트 빌드 시작...");
+            }
 
-            BuildOutput playerBuildOutput = ExecuteBuildSolution(msbuildPath, slnPath, "MMMEnginePlayer", config);
+            BuildOutput playerBuildOutput = ExecuteBuildSolution(
+                msbuildPath,
+                slnPath,
+                "MMMEnginePlayer",
+                config,
+                false
+            );
 
             if (playerBuildOutput.result != BuildResult::Success)
             {

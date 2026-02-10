@@ -34,6 +34,7 @@ namespace MMMEngine
 	class Canvas;
 	class Font;
 	enum class TextAlignment;
+	enum class TextWrapMode;
 	class VShader;
 	class PShader;
 	class Texture2D;
@@ -249,6 +250,7 @@ namespace MMMEngine
 			const ResPtr<Font>& font,
 			const DirectX::SimpleMath::Color& color,
 			TextAlignment alignment,
+			TextWrapMode wrapMode,
 			float rotationRad,
 			const DirectX::SimpleMath::Vector2& pivotScene,
 			const DirectX::SimpleMath::Vector2& textScale);

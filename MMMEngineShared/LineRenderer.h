@@ -38,6 +38,7 @@ namespace MMMEngine
 		DirectX::SimpleMath::Color mColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		bool mUseWorldSpace = false;
 		bool mUseCameraFacing = true;
+		bool mUseRoundDotClip = false;
 
 		void Initialize() override;
 		void UnInitialize() override;
@@ -45,6 +46,7 @@ namespace MMMEngine
 
 		void EnsureMaterial();
 		void ApplyColorToMaterial(const ResPtr<Material>& material) const;
+		void ApplyRoundDotClipToMaterial(const ResPtr<Material>& material) const;
 		bool BuildLineGeometry(
 			const DirectX::SimpleMath::Vector3& cameraPosition,
 			const DirectX::SimpleMath::Vector3& start,
@@ -85,6 +87,9 @@ namespace MMMEngine
 
 		void SetUseCameraFacing(bool useCameraFacing) { mUseCameraFacing = useCameraFacing; }
 		bool GetUseCameraFacing() const { return mUseCameraFacing; }
+
+		void SetUseRoundDotClip(bool useRoundDotClip);
+		bool GetUseRoundDotClip() const { return mUseRoundDotClip; }
 
 		void SetCastShadow(bool value) { castShadows = value; }
 		bool GetCastShadow() const { return castShadows; }
