@@ -18,6 +18,11 @@ namespace MMMEngine
 		RTTR_ENABLE(Graphic)
 		RTTR_REGISTRATION_FRIEND
 
+		DirectX::SimpleMath::Vector2 m_backgroundOffset = { 0.0f, 0.0f };
+		DirectX::SimpleMath::Vector2 m_backgroundScale = { 1.0f, 1.0f };
+		DirectX::SimpleMath::Vector2 m_fillOffset = { 0.0f, 0.0f };
+		DirectX::SimpleMath::Vector2 m_fillScale = { 1.0f, 1.0f };
+
 		ResPtr<Texture2D> m_backgroundTexture = nullptr;
 		ResPtr<Texture2D> m_fillTexture = nullptr;
 		ResPtr<Texture2D> m_handleTexture = nullptr;
@@ -34,6 +39,19 @@ namespace MMMEngine
 	public:
 		HandleGage() = default;
 		virtual ~HandleGage() = default;
+
+		// 배경 / 게이지 별 오프셋 & 스케일
+		const DirectX::SimpleMath::Vector2& GetBackgroundOffset() const { return m_backgroundOffset; }
+		void SetBackgroundOffset(const DirectX::SimpleMath::Vector2& v) { m_backgroundOffset = v; }
+
+		const DirectX::SimpleMath::Vector2& GetBackgroundScale() const { return m_backgroundScale; }
+		void SetBackgroundScale(const DirectX::SimpleMath::Vector2& v) { m_backgroundScale = v; }
+
+		const DirectX::SimpleMath::Vector2& GetFillOffset() const { return m_fillOffset; }
+		void SetFillOffset(const DirectX::SimpleMath::Vector2& v) { m_fillOffset = v; }
+
+		const DirectX::SimpleMath::Vector2& GetFillScale() const { return m_fillScale; }
+		void SetFillScale(const DirectX::SimpleMath::Vector2& v) { m_fillScale = v; }
 
 		const ResPtr<Texture2D>& GetBackgroundTexture() const { return m_backgroundTexture; }
 		void SetBackgroundTexture(const ResPtr<Texture2D>& tex);

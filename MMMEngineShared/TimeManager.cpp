@@ -1,4 +1,4 @@
-#include "TimeManager.h"
+ï»¿#include "TimeManager.h"
 #include <Windows.h>
 
 DEFINE_SINGLETON(MMMEngine::TimeManager)
@@ -13,7 +13,7 @@ void MMMEngine::TimeManager::BeginFrame()
     auto delta = m_currentTime - m_prevTime;
 
     m_unscaledDeltaTime = std::chrono::duration<float>(delta).count();
-    // clamp (½ºÆÄÀÌÅ© ¹æÁö)
+    // clamp (ìŠ¤íŒŒì´í¬ ë°©ì§€)
     if (m_unscaledDeltaTime > m_maximumAllowedTimestep)
         m_unscaledDeltaTime = m_maximumAllowedTimestep;
 
@@ -25,10 +25,11 @@ void MMMEngine::TimeManager::BeginFrame()
 
     m_prevTime = m_currentTime;
 
-    // fixed ½ºÄÉÁÙ¸µ
-    m_accumulator += m_unscaledDeltaTime;
+    // fixed ìŠ¤ì¼€ì¤„ë§
+    // TimeScaleì´ 0ì´ë©´ ê³ ì • ì—…ë°ì´íŠ¸(ë¬¼ë¦¬)ë„ ë©ˆì¶”ë„ë¡ ìŠ¤ì¼€ì¼ëœ ë¸íƒ€ë¥¼ ì‚¬ìš©
+    m_accumulator += m_deltaTime;
 
-    // ÀÌ¹ø ÇÁ·¹ÀÓ fixed step È½¼ö °è»ê
+    // ì´ë²ˆ í”„ë ˆìž„ fixed step íšŸìˆ˜ ê³„ì‚°
     m_fixedStepsThisFrame = 0;
     while (m_accumulator >= m_fixedDeltaTime)
     {
@@ -36,7 +37,7 @@ void MMMEngine::TimeManager::BeginFrame()
         m_fixedStepsThisFrame++;
     }
 
-    // ·»´õ º¸°£¿ë (0~1)
+    // ë Œë” ë³´ê°„ìš© (0~1)
     m_interpolationAlpha = (m_fixedDeltaTime > 0.0f)
         ? (m_accumulator / m_fixedDeltaTime)
         : 0.0f;
@@ -100,6 +101,11 @@ const float MMMEngine::TimeManager::GetInterpolationAlpha() const
 void MMMEngine::TimeManager::SetFixedDeltaTime(float fixedDelta)
 {
     m_fixedDeltaTime = fixedDelta;
+}
+
+void MMMEngine::TimeManager::SetTimeScale(float timeScale)
+{
+    m_timeScale = timeScale;
 }
 
 void MMMEngine::TimeManager::SetMaximumAllowedTimestep(float allowedTimestep)
