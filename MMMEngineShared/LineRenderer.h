@@ -9,6 +9,7 @@
 #include <SimpleMath.h>
 #include <d3d11_4.h>
 #include <wrl/client.h>
+#include <algorithm>
 #include <vector>
 
 namespace MMMEngine
@@ -32,8 +33,11 @@ namespace MMMEngine
 		DirectX::SimpleMath::Vector3 mStartPoint = { -0.5f, 0.0f, 0.0f };
 		DirectX::SimpleMath::Vector3 mEndPoint = { 0.5f, 0.0f, 0.0f };
 		float mWidth = 0.1f;
+		float mDashLength = 0.0f;
+		float mGapLength = 0.0f;
 		DirectX::SimpleMath::Color mColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		bool mUseWorldSpace = false;
+		bool mUseCameraFacing = true;
 
 		void Initialize() override;
 		void UnInitialize() override;
@@ -67,11 +71,20 @@ namespace MMMEngine
 		void SetWidth(float width);
 		float GetWidth() const { return mWidth; }
 
+		void SetDashLength(float dashLength) { mDashLength = std::max(dashLength, 0.0f); }
+		float GetDashLength() const { return mDashLength; }
+
+		void SetGapLength(float gapLength) { mGapLength = std::max(gapLength, 0.0f); }
+		float GetGapLength() const { return mGapLength; }
+
 		void SetColor(const DirectX::SimpleMath::Color& color);
 		const DirectX::SimpleMath::Color& GetColor() const { return mColor; }
 
 		void SetUseWorldSpace(bool useWorldSpace) { mUseWorldSpace = useWorldSpace; }
 		bool GetUseWorldSpace() const { return mUseWorldSpace; }
+
+		void SetUseCameraFacing(bool useCameraFacing) { mUseCameraFacing = useCameraFacing; }
+		bool GetUseCameraFacing() const { return mUseCameraFacing; }
 
 		void SetCastShadow(bool value) { castShadows = value; }
 		bool GetCastShadow() const { return castShadows; }

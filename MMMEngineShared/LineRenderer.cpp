@@ -51,7 +51,10 @@ RTTR_REGISTRATION
 		.property("StartPoint", &LineRenderer::GetStartPoint, &LineRenderer::SetStartPoint)
 		.property("EndPoint", &LineRenderer::GetEndPoint, &LineRenderer::SetEndPoint)
 		.property("UseWorldSpace", &LineRenderer::GetUseWorldSpace, &LineRenderer::SetUseWorldSpace)
+		.property("CameraFacing", &LineRenderer::GetUseCameraFacing, &LineRenderer::SetUseCameraFacing)
 		.property("Width", &LineRenderer::GetWidth, &LineRenderer::SetWidth)(rttr::metadata("RANGE", "0.001,10.0"))
+		.property("DashLength", &LineRenderer::GetDashLength, &LineRenderer::SetDashLength)(rttr::metadata("RANGE", "0.0,100.0"))
+		.property("GapLength", &LineRenderer::GetGapLength, &LineRenderer::SetGapLength)(rttr::metadata("RANGE", "0.0,100.0"))
 		.property("Color", &LineRenderer::GetColor, &LineRenderer::SetColor)
 		.property("CastShadow", &LineRenderer::GetCastShadow, &LineRenderer::SetCastShadow)
 		.property("ReceiveShadow", &LineRenderer::GetReceiveShadow, &LineRenderer::SetReceiveShadow);
@@ -246,20 +249,25 @@ namespace MMMEngine
 		if (mWidth <= 0.0f)
 			return false;
 
-		DirectX::SimpleMath::Vector3 tangent = end - start;
-		if (tangent.LengthSquared() < kLineEpsilon)
+		const DirectX::SimpleMath::Vector3 lineVector = end - start;
+		const float lineLength = lineVector.Length();
+		if (lineLength < kLineEpsilon)
 			return false;
-		tangent.Normalize();
+		const DirectX::SimpleMath::Vector3 tangent = lineVector / lineLength;
+		DirectX::SimpleMath::Vector3 fixedReference = DirectX::SimpleMath::Vector3::Up;
+		if (std::abs(tangent.Dot(fixedReference)) > 0.999f)
+			fixedReference = DirectX::SimpleMath::Vector3::Right;
 
-		DirectX::SimpleMath::Vector3 viewDirStart = cameraPosition - start;
-		if (viewDirStart.LengthSquared() < kLineEpsilon)
-			viewDirStart = DirectX::SimpleMath::Vector3::Up;
-		viewDirStart.Normalize();
+		auto buildReferenceDir = [&](const DirectX::SimpleMath::Vector3& point) {
+			if (!mUseCameraFacing)
+				return fixedReference;
 
-		DirectX::SimpleMath::Vector3 viewDirEnd = cameraPosition - end;
-		if (viewDirEnd.LengthSquared() < kLineEpsilon)
-			viewDirEnd = DirectX::SimpleMath::Vector3::Up;
-		viewDirEnd.Normalize();
+			DirectX::SimpleMath::Vector3 referenceDir = cameraPosition - point;
+			if (referenceDir.LengthSquared() < kLineEpsilon)
+				referenceDir = fixedReference;
+			referenceDir.Normalize();
+			return referenceDir;
+		};
 
 		auto buildSide = [&](const DirectX::SimpleMath::Vector3& viewDir) {
 			DirectX::SimpleMath::Vector3 side = tangent.Cross(viewDir);
@@ -273,44 +281,85 @@ namespace MMMEngine
 			return side;
 		};
 
-		DirectX::SimpleMath::Vector3 sideStart = buildSide(viewDirStart);
-		DirectX::SimpleMath::Vector3 sideEnd = buildSide(viewDirEnd);
-		if (sideStart.Dot(sideEnd) < 0.0f)
-			sideEnd = -sideEnd;
-
 		const float halfWidth = mWidth * 0.5f;
-		const DirectX::SimpleMath::Vector3 offsetStart = sideStart * halfWidth;
-		const DirectX::SimpleMath::Vector3 offsetEnd = sideEnd * halfWidth;
+		auto appendSegment = [&](float segmentStartDistance, float segmentEndDistance) {
+			if (segmentEndDistance - segmentStartDistance <= kLineEpsilon)
+				return;
 
-		Mesh_Vertex v0{};
-		v0.Pos = start - offsetStart;
-		v0.Normal = viewDirStart;
-		v0.Tangent = tangent;
-		v0.UV = { 0.0f, 0.0f };
+			const DirectX::SimpleMath::Vector3 segmentStart = start + tangent * segmentStartDistance;
+			const DirectX::SimpleMath::Vector3 segmentEnd = start + tangent * segmentEndDistance;
+			const DirectX::SimpleMath::Vector3 viewDirStart = buildReferenceDir(segmentStart);
+			const DirectX::SimpleMath::Vector3 viewDirEnd = buildReferenceDir(segmentEnd);
 
-		Mesh_Vertex v1 = v0;
-		v1.Pos = start + offsetStart;
-		v1.UV = { 0.0f, 1.0f };
+			DirectX::SimpleMath::Vector3 sideStart = buildSide(viewDirStart);
+			DirectX::SimpleMath::Vector3 sideEnd = buildSide(viewDirEnd);
+			if (sideStart.Dot(sideEnd) < 0.0f)
+				sideEnd = -sideEnd;
 
-		Mesh_Vertex v2 = v0;
-		v2.Pos = end + offsetEnd;
-		v2.Normal = viewDirEnd;
-		v2.UV = { 1.0f, 1.0f };
+			const DirectX::SimpleMath::Vector3 offsetStart = sideStart * halfWidth;
+			const DirectX::SimpleMath::Vector3 offsetEnd = sideEnd * halfWidth;
+			const float u0 = std::clamp(segmentStartDistance / lineLength, 0.0f, 1.0f);
+			const float u1 = std::clamp(segmentEndDistance / lineLength, 0.0f, 1.0f);
 
-		Mesh_Vertex v3 = v0;
-		v3.Pos = end - offsetEnd;
-		v3.Normal = viewDirEnd;
-		v3.UV = { 1.0f, 0.0f };
+			Mesh_Vertex v0{};
+			v0.Pos = segmentStart - offsetStart;
+			v0.Normal = viewDirStart;
+			v0.Tangent = tangent;
+			v0.UV = { u0, 0.0f };
 
-		outVertices.reserve(4);
-		outVertices.push_back(v0);
-		outVertices.push_back(v1);
-		outVertices.push_back(v2);
-		outVertices.push_back(v3);
+			Mesh_Vertex v1 = v0;
+			v1.Pos = segmentStart + offsetStart;
+			v1.UV = { u0, 1.0f };
 
-		outIndices = { 0, 1, 2, 0, 2, 3 };
+			Mesh_Vertex v2 = v0;
+			v2.Pos = segmentEnd + offsetEnd;
+			v2.Normal = viewDirEnd;
+			v2.UV = { u1, 1.0f };
 
-		return true;
+			Mesh_Vertex v3 = v0;
+			v3.Pos = segmentEnd - offsetEnd;
+			v3.Normal = viewDirEnd;
+			v3.UV = { u1, 0.0f };
+
+			const UINT baseIndex = static_cast<UINT>(outVertices.size());
+			outVertices.push_back(v0);
+			outVertices.push_back(v1);
+			outVertices.push_back(v2);
+			outVertices.push_back(v3);
+
+			outIndices.push_back(baseIndex + 0);
+			outIndices.push_back(baseIndex + 1);
+			outIndices.push_back(baseIndex + 2);
+			outIndices.push_back(baseIndex + 0);
+			outIndices.push_back(baseIndex + 2);
+			outIndices.push_back(baseIndex + 3);
+		};
+
+		const bool useDashedPattern = (mDashLength > kLineEpsilon) && (mGapLength > kLineEpsilon);
+		if (useDashedPattern)
+		{
+			const float cycleLength = mDashLength + mGapLength;
+			const size_t estimatedSegmentCount = static_cast<size_t>(std::ceil(lineLength / cycleLength));
+			outVertices.reserve(estimatedSegmentCount * 4);
+			outIndices.reserve(estimatedSegmentCount * 6);
+
+			float distance = 0.0f;
+			while (distance < lineLength)
+			{
+				const float dashStartDistance = distance;
+				const float dashEndDistance = std::min(distance + mDashLength, lineLength);
+				appendSegment(dashStartDistance, dashEndDistance);
+				distance += cycleLength;
+			}
+		}
+		else
+		{
+			outVertices.reserve(4);
+			outIndices.reserve(6);
+			appendSegment(0.0f, lineLength);
+		}
+
+		return !outVertices.empty() && !outIndices.empty();
 	}
 
 	bool LineRenderer::UpdateGpuBuffers(
