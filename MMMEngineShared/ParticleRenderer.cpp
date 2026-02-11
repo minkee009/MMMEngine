@@ -216,6 +216,24 @@ namespace MMMEngine
 	void ParticleRenderer::Play()
 	{
 		m_isPlaying = true;
+		m_playOneShot = false;
+		m_oneShotDuration = 0.0f;
+		m_oneShotTimer = 0.0f;
+	}
+
+	void ParticleRenderer::PlayOneShot(float duration)
+	{
+		// 0 이하 duration 이 들어오면 의미가 없으므로 무시
+		if (duration <= 0.0f)
+			return;
+
+		m_playOneShot = true;
+		m_oneShotDuration = duration;
+		m_oneShotTimer = 0.0f;
+		m_spawnAccumulator = 0.0f;
+
+		// 원샷도 기본적으로는 재생 상태에서 시작
+		m_isPlaying = true;
 	}
 
 	void ParticleRenderer::Stop()
@@ -223,6 +241,10 @@ namespace MMMEngine
 		m_isPlaying = false;
 		m_spawnAccumulator = 0.0f;
 		m_particles.clear();
+
+		m_playOneShot = false;
+		m_oneShotDuration = 0.0f;
+		m_oneShotTimer = 0.0f;
 	}
 
 	void ParticleRenderer::Pause()
@@ -416,7 +438,18 @@ namespace MMMEngine
 
 	void ParticleRenderer::UpdateSimulation(float dt, bool allowSpawn)
 	{
-		if (allowSpawn && m_spawnRate > 0.0f)
+		bool spawnThisFrame = allowSpawn;
+
+		// PlayOneShot 모드에서는 지정된 시간까지만 발사하고,
+		// 그 이후에는 파티클 업데이트만 계속 진행한다.
+		if (m_playOneShot)
+		{
+			m_oneShotTimer += dt;
+			if (m_oneShotTimer >= m_oneShotDuration)
+				spawnThisFrame = false;
+		}
+
+		if (spawnThisFrame && m_spawnRate > 0.0f)
 		{
 			m_spawnAccumulator += m_spawnRate * dt;
 			const int spawnCount = static_cast<int>(m_spawnAccumulator);
@@ -456,6 +489,17 @@ namespace MMMEngine
 			std::remove_if(m_particles.begin(), m_particles.end(),
 				[](const Particle& p) { return p.age >= p.lifetime; }),
 			m_particles.end());
+
+		// 원샷 모드에서 더 이상 살아있는 파티클이 없으면 자동으로 정지 상태로 전환
+		if (m_playOneShot &&
+			m_oneShotTimer >= m_oneShotDuration &&
+			m_particles.empty())
+		{
+			m_isPlaying = false;
+			m_playOneShot = false;
+			m_oneShotDuration = 0.0f;
+			m_oneShotTimer = 0.0f;
+		}
 	}
 
 	void ParticleRenderer::SpawnParticle(const Matrix& emitterWorld, const Quaternion& emitterRot)

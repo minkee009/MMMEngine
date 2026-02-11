@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "TimeManager.h"
 
 namespace MMMEngine::Time
@@ -11,4 +11,5 @@ namespace MMMEngine::Time
 	inline float GetUnscaledDeltaTime() { return TimeManager::Get().GetUnscaledDeltaTime(); }
 	inline float GetTimeScale() { return TimeManager::Get().GetTimeScale(); }
 	inline float GetMaximumAllowedTimestep() { return TimeManager::Get().GetMaximumAllowedTimestep(); }
+	inline void SetTimeScale(float timeScale) { TimeManager::Get().SetTimeScale(timeScale); }
 }

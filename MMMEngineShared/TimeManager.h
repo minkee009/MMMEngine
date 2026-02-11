@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 #include "ExportSingleton.hpp"
 #include <chrono>
 
-// ¾Æ·¡´Â Ç¥ÁØ¶óÀÌºê·¯¸® (std::)ÀÇ dll export°æ°í¸¦ ¾ø¾Ö±â À§ÇÑÄÚµå 
-// EngineShared´Â ABI°¡ À¯ÁöµÊÀÌ º¸ÀåµÇ±â¶§¹®¿¡ 4251°æ°í¿¡ ´ëÇØ ¾ÈÀüÇÔ
+// ì•„ë˜ëŠ” í‘œì¤€ë¼ì´ë¸ŒëŸ¬ë¦¬ (std::)ì˜ dll exportê²½ê³ ë¥¼ ì—†ì• ê¸° ìœ„í•œì½”ë“œ 
+// EngineSharedëŠ” ABIê°€ ìœ ì§€ë¨ì´ ë³´ì¥ë˜ê¸°ë•Œë¬¸ì— 4251ê²½ê³ ì— ëŒ€í•´ ì•ˆì „í•¨
 #pragma warning(push)
 #pragma warning(disable: 4251)
 
@@ -61,7 +61,7 @@ namespace MMMEngine
 	
 		void SetFixedDeltaTime(float fixedDelta);
 		void SetMaximumAllowedTimestep(float allowedTimestep);
-
+		void SetTimeScale(float timescale);
 		void SetDefaultFixedDeltaTime();
 		void SetDefaultMaximumAllowedTimestep();
 

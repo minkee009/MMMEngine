@@ -102,6 +102,11 @@ namespace MMMEngine
 		bool m_playOnAwake = true;
 		bool m_isPlaying = false;
 		bool m_prevRuntimeActive = false;
+
+		// One-shot 재생용 상태
+		bool m_playOneShot = false;
+		float m_oneShotDuration = 0.0f;
+		float m_oneShotTimer = 0.0f;
 		std::mt19937 m_rng;
 
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_quadVB;
@@ -200,7 +205,11 @@ namespace MMMEngine
 		bool GetPlayOnAwake() const { return m_playOnAwake; }
 		void SetPlayOnAwake(bool v) { m_playOnAwake = v; }
 		bool IsPlaying() const { return m_isPlaying; }
+
+		// 루프 재생
 		void Play();
+		// 지정 시간 동안만 발사하는 원샷 재생
+		void PlayOneShot(float duration);
 		void Stop();
 		void Pause();
 		void Clear();
