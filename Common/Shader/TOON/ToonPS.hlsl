@@ -49,7 +49,7 @@ float CalculateShadowPCF(float4 LightPos)
 // 3x3 PCF
     float shadow = 0.0f;
     float2 texelSize = 1.0f / 4096.0f; // Shadow Map 크기
-
+    
     for (int x = -1; x <= 1; ++x)
     {
         for (int y = -1; y <= 1; ++y)
@@ -65,12 +65,7 @@ float CalculateShadowPCF(float4 LightPos)
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
-    float3 ambient = mAoStrength * mLightColor;
-    
-    float3 normalTex = _normal.Sample(_sp0, input.Tex).xyz * 2.0f - 1.0f; // 정규화
-
-
-	
+    float3 ambient = mAoStrength * mLightColor;	
 
 	 // Normal
     float3 N = normalize(input.Norm);
@@ -111,9 +106,9 @@ float4 main(PS_INPUT input) : SV_TARGET
     float diffShadow = min(shadowLut, diffLut); // 그림자와 조명값 중 작은 값을 사용
     diffShadow = diffShadow > mLowLut ? diffShadow : (dot(N, -L) * mDiffGradientDistHalf + mDiffGradientDepth);
 
-    float3 diffuse = mDiffuseStr * mLightColor * diffShadow;
+    float3 diffuse = mDiffuseStr * mLightColor *  diffShadow;
     
-    float3 viewDir = normalize(mCamPos.xyz - input.W_Pos.xyz);
+    float3 viewDir = normalize(input.W_Pos.xyz - mCamPos.xyz);
     float3 halfDir = normalize(viewDir + L); // 스펙큘러연산을 위한 하프 벡터
     
     float specTex = _roughness.Sample(_sp0, input.Tex).r;
@@ -135,7 +130,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     // 알파가 낮으면 픽셀 폐기
     clip(baseTex.a - alphaCutoff);
 
-    float minusRimNdotL = dot(-(L * 1.25).xyz, N);
+    float minusRimNdotL = saturate(dot(-(L * 1.25).xyz, N));
 
 	// 림 라이트
     float _RimAmount = 0.716;
@@ -152,7 +147,7 @@ float4 main(PS_INPUT input) : SV_TARGET
 	
     float3 rim = rimIntensity * mLightColor * mRimLightStr;
     
-    float3 baseRGB = (specular + diffuse + ambient + rim + minusRim).rgb * baseTex.rgb + emmisive.rgb;
+    float3 baseRGB = (specular + diffuse + ambient + rim).rgb * baseTex.rgb + emmisive.rgb;
 
 	//float3 toGradientPos = gradientPos - input.WorldPos;
 	//float GradientDistance = length(toGradientPos);

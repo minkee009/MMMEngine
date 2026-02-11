@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Export.h"
 #include <Windows.h>
 #include <functional>
@@ -8,7 +8,7 @@ namespace MMMEngine
 {
     enum class KeyCode : unsigned char
     {
-        // ¾ËÆÄºª
+        // ì•ŒíŒŒë²³
         A = 'A',
         B = 'B',
         C = 'C', 
@@ -36,7 +36,7 @@ namespace MMMEngine
         Y = 'Y', 
         Z = 'Z',
 
-        // ¼ıÀÚ
+        // ìˆ«ì
         Alpha0 = '0', 
         Alpha1 = '1', 
         Alpha2 = '2', 
@@ -48,7 +48,7 @@ namespace MMMEngine
         Alpha8 = '8', 
         Alpha9 = '9',
 
-        // Æ¯¼ö Å°
+        // íŠ¹ìˆ˜ í‚¤
         Escape = VK_ESCAPE,
         Space = VK_SPACE,
         Enter = VK_RETURN,
@@ -89,12 +89,12 @@ namespace MMMEngine
         F11 = VK_F11,
         F12 = VK_F12,
 
-        // ¸¶¿ì½º ¹öÆ°
+        // ë§ˆìš°ìŠ¤ ë²„íŠ¼
         MouseLeft = VK_LBUTTON,
         MouseRight = VK_RBUTTON,
         MouseMiddle = VK_MBUTTON,
 
-        // ±âÅ¸
+        // ê¸°íƒ€
         Unknown = 255U,
     };
 }

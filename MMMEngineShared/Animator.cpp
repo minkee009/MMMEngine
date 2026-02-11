@@ -245,7 +245,9 @@ void MMMEngine::Animator::UpdateBoneMatrix()
 			{
 				if (t > clip->durationSec) {
 					t = clip->durationSec;
-					mCurrentPlayingMap.erase(clip->mName);
+					
+					// 애니메이션 종료시 재생목록 제거
+					//mCurrentPlayingMap.erase(clip->mName);
 				}
 				if (t < 0.0f) t = 0.0f;
 			}
@@ -473,9 +475,11 @@ void MMMEngine::Animator::Update(float _deltaTime)
 
 void MMMEngine::Animator::AddAnimClip(ResPtr<AnimationClip> _clip)
 {
-	int idx = mAnimClips.size();
-	mAnimClips.push_back(_clip);
-	mAnimClipIdx[_clip->mName] = idx;
+	if (_clip) {
+		int idx = mAnimClips.size();
+		mAnimClips.push_back(_clip);
+		mAnimClipIdx[_clip->mName] = idx;
+	}
 }
 
 void MMMEngine::Animator::RemoveAnimClip(ResPtr<AnimationClip> _clip)

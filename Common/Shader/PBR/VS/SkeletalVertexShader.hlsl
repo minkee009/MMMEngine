@@ -4,7 +4,7 @@ VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output = (VS_OUTPUT) 0;
 
-    float4 worldPos = float4(input.Pos, 1.0f);
+    float4 localPos = float4(input.Pos, 1.0f);
     
     float4x4 skinMat =
     {
@@ -27,28 +27,29 @@ VS_OUTPUT main(VS_INPUT input)
         skinMat += mul(input.BoneWeight.y, tempMat[1]);
         skinMat += mul(input.BoneWeight.z, tempMat[2]);
         skinMat += mul(input.BoneWeight.w, tempMat[3]);
-        
-        skinMat = mul(skinMat, mWorld);
-        output.Pos = mul(worldPos, skinMat);
     }
-   else {
-        output.Pos = mul(worldPos, skinMat);
-   }
     
-    output.W_Pos = output.Pos;
-    output.Pos = mul(output.Pos, mView);
-    output.Pos = mul(output.Pos, mProjection);
+    // --- Position: skin -> world ---
+    float4 skinnedPos = mul(localPos, skinMat);
+    float4 worldPos   = mul(skinnedPos, mWorld);
 
-    float4x4 normalMat = mul(skinMat, mNormalMatrix);
-    
-    output.Norm = normalize(mul(input.Norm, (float3x3) normalMat));
-    output.Tan = normalize(mul(input.Tan, (float3x3) normalMat));
+    output.Pos   = mul(mul(worldPos, mView), mProjection);
+    output.W_Pos = worldPos;
+
+    // --- Normal/Tangent: skin(3x3) -> world^-T ---
+    float3 n = mul(input.Norm, (float3x3)skinMat);
+    float3 t = mul(input.Tan,  (float3x3)skinMat);
+
+    n = normalize(mul(n, (float3x3)mNormalMatrix));
+    t = normalize(mul(t, (float3x3)mNormalMatrix));
+
+    output.Norm  = n;
+    output.Tan   = t;
     output.BiTan = normalize(cross(output.Norm, output.Tan));
-    output.Tex = input.Tex;
-    
-    // 현재 위치를 ShadowMap 위치로 변환
+    output.Tex   = input.Tex;
+
     output.S_Pos = mul(float4(output.W_Pos.xyz, 1.0f), mShadowView);
     output.S_Pos = mul(output.S_Pos, mShadowProjection);
-    
+
     return output;
 }

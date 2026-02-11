@@ -131,11 +131,9 @@ MMMEngine::ResPtr<MMMEngine::SkeletalMesh> MMMEngine::AssimpLoader::ConvertSkele
 		for (const auto& [sementic, ref] : mat.textures) {
 			if (!ConvertMaterial(sementic, &ref, material.get()))
 				throw std::runtime_error("AssimpLoader::MaterialMapping Failed!!");
-			material->SetPShader(ShaderInfo::Get().GetDefaultPShader());
-			material->SetVShader(ShaderInfo::Get().GetDefaultVShader());
 		}
 
-		material->SetVShader(ShaderInfo::Get().GetDefaultVShader());
+		material->SetVShader(ShaderInfo::Get().GetSkeletalVShader());
 		material->SetPShader(ShaderInfo::Get().GetDefaultPShader());
 
 		matList.push_back(material);

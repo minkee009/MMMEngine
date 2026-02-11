@@ -198,10 +198,10 @@ void MMMEngine::ShaderInfo::StartUp()
 	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffuseStr"] = { PropertyType::Constant, 3, 0.5f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mSpecularStr"] = { PropertyType::Constant, 3, 0.1f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mRoughness"] = { PropertyType::Constant, 3 };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mLowLut"] = { PropertyType::Constant, 3, 0.5f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mLowLut"] = { PropertyType::Constant, 3, 0.3f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDistHalf"] = { PropertyType::Constant, 3, 0.15625f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mDiffGradientDepth"] = { PropertyType::Constant, 3, 68.3263f };
-	m_propertyInfoMap[ShaderType::S_TOON][L"mRimLightStr"] = { PropertyType::Constant, 3, 0.5f };
+	m_propertyInfoMap[ShaderType::S_TOON][L"mRimLightStr"] = { PropertyType::Constant, 3, 0.1f };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mEmissive"] = { PropertyType::Constant, 3 };
 	m_propertyInfoMap[ShaderType::S_TOON][L"mPadding"] = { PropertyType::Constant, 3 };
 	

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Export.h"
 #include "ExportSingleton.hpp"
 #include "InputConstant.h"
@@ -13,9 +13,9 @@ namespace MMMEngine
     class MMMENGINE_API InputManager : public Utility::ExportSingleton<InputManager>
     {
     private:
-        HWND m_hWnd; // À©µµ¿ì ÇÚµé
-        POINT m_mouseClient; // ¸¶¿ì½º ÁÂÇ¥
-        POINT m_prevMouseClient;  // ÀÌÀü ÇÁ·¹ÀÓ ¸¶¿ì½º ÁÂÇ¥
+        HWND m_hWnd; // ìœˆë„ìš° í•¸ë“¤
+        POINT m_mouseClient; // ë§ˆìš°ìŠ¤ ì¢Œí‘œ
+        POINT m_prevMouseClient;  // ì´ì „ í”„ë ˆì„ ë§ˆìš°ìŠ¤ ì¢Œí‘œ
 #pragma warning(push)
 #pragma warning(disable: 4251)
         DirectX::SimpleMath::Vector2 m_mouseDelta;
@@ -25,13 +25,13 @@ namespace MMMEngine
 
         RECT m_clientRect;
 
-        //// °ÔÀÓÆĞµå °ü¸® (ÃÖ´ë 4°³)
+        //// ê²Œì„íŒ¨ë“œ ê´€ë¦¬ (ìµœëŒ€ 4ê°œ)
         //std::array<XInputGamepadDevice*, 4> m_gamepads;
-        //void InitGamepads(); // °ÔÀÓÆĞµå ÃÊ±âÈ­
-        //void CleanupGamepads(); // °ÔÀÓÆĞµå Á¤¸®
-        int m_wheelFrame = 0;   // ÀÌ¹ø ÇÁ·¹ÀÓ ÈÙ ´©Àû(120 ´ÜÀ§)
-        int m_wheelPending = 0;   // ÀÌ¹ø ÇÁ·¹ÀÓ ÈÙ ´©Àû(120 ´ÜÀ§)
-        int m_wheelDeltaAccum = 0;   // ÇÊ¿äÇÏ¸é ´©Àû¿ë(¿É¼Ç)
+        //void InitGamepads(); // ê²Œì„íŒ¨ë“œ ì´ˆê¸°í™”
+        //void CleanupGamepads(); // ê²Œì„íŒ¨ë“œ ì •ë¦¬
+        int m_wheelFrame = 0;   // ì´ë²ˆ í”„ë ˆì„ íœ  ëˆ„ì (120 ë‹¨ìœ„)
+        int m_wheelPending = 0;   // ì´ë²ˆ í”„ë ˆì„ íœ  ëˆ„ì (120 ë‹¨ìœ„)
+        int m_wheelDeltaAccum = 0;   // í•„ìš”í•˜ë©´ ëˆ„ì ìš©(ì˜µì…˜)
 
     public:
         InputManager() = default;
@@ -46,10 +46,10 @@ namespace MMMEngine
         bool GetKeyUp(KeyCode keyCode);
         DirectX::SimpleMath::Vector2 GetMouseDelta();
 
-        int  GetMouseScrollDelta();        // ÀÌ¹ø ÇÁ·¹ÀÓ µ¨Å¸ (¿¹: 120, -120, 240...)
-        float GetMouseScrollNotches();     // ÀÌ¹ø ÇÁ·¹ÀÓ ÈÙ Ä­ ¼ö (1.0, -1.0, 2.0...)
-        bool GetMouseScrollUp();           // ÀÌ¹ø ÇÁ·¹ÀÓ À§·Î ±¼¸²
-        bool GetMouseScrollDown();         // ÀÌ¹ø ÇÁ·¹ÀÓ ¾Æ·¡·Î ±¼¸²
+        int  GetMouseScrollDelta();        // ì´ë²ˆ í”„ë ˆì„ ë¸íƒ€ (ì˜ˆ: 120, -120, 240...)
+        float GetMouseScrollNotches();     // ì´ë²ˆ í”„ë ˆì„ íœ  ì¹¸ ìˆ˜ (1.0, -1.0, 2.0...)
+        bool GetMouseScrollUp();           // ì´ë²ˆ í”„ë ˆì„ ìœ„ë¡œ êµ´ë¦¼
+        bool GetMouseScrollDown();         // ì´ë²ˆ í”„ë ˆì„ ì•„ë˜ë¡œ êµ´ë¦¼
 
         void StartUp(HANDLE windowHandle);
         void ShutDown();
