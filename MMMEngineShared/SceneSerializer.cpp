@@ -1,4 +1,4 @@
-﻿#include "SceneSerializer.h"
+#include "SceneSerializer.h"
 #include "GameObject.h"
 #include "Component.h"
 #include "StringHelper.h"
@@ -440,17 +440,25 @@ void DeserializeVariant(rttr::variant& target, const json& j, type target_type)
 
     if (target_type.is_enumeration())
     {
+        rttr::enumeration enumType = target_type.get_enumeration();
         if (j.contains("EnumType") && j.contains("EnumValue"))
         {
-            std::string enumTypeName = j["EnumType"].get<std::string>();
             std::string enumValueName = j["EnumValue"].get<std::string>();
-
-            rttr::enumeration enumType = target_type.get_enumeration();
             rttr::variant enumValue = enumType.name_to_value(enumValueName);
-
             if (enumValue.is_valid())
-            {
                 target = enumValue;
+        }
+        // 구버전/정수로 저장된 enum 복원 (예: ColliderComponent Mode/Trigger)
+        else if (j.is_number_integer())
+        {
+            int rawVal = j.get<int>();
+            for (const auto& ev : enumType.get_values())
+            {
+                if (ev.is_valid() && ev.to_int() == rawVal)
+                {
+                    target = ev;
+                    break;
+                }
             }
         }
         return;
