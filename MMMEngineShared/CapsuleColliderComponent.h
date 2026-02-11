@@ -6,7 +6,7 @@ namespace MMMEngine
 	class MMMENGINE_API CapsuleColliderComponent : public ColliderComponent
 	{
 	private:
-		RTTR_ENABLE(Component)
+		RTTR_ENABLE(ColliderComponent)
 		RTTR_REGISTRATION_FRIEND
 	public:
 		void SetRadius(float radius);

@@ -9,7 +9,7 @@ namespace MMMEngine
 	{
 	private:
 		RTTR_ENABLE(ColliderComponent)
-			RTTR_REGISTRATION_FRIEND
+		RTTR_REGISTRATION_FRIEND
 	public:
 		enum class MeshMode { Auto, Triangle, Convex };
 		void SetMesh(ResPtr<StaticMesh> mesh);

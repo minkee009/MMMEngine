@@ -6,8 +6,8 @@ namespace MMMEngine
 	class MMMENGINE_API BoxColliderComponent : public ColliderComponent
 	{
 	private:
-		RTTR_ENABLE(Component)
-			RTTR_REGISTRATION_FRIEND
+		RTTR_ENABLE(ColliderComponent)
+		RTTR_REGISTRATION_FRIEND
 	public:
 		void SetHalfExtents(Vector3 he);
 		Vector3 GetHalfExtents() const;
