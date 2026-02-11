@@ -1,4 +1,4 @@
-﻿#include "ObjectSerializer.h"
+#include "ObjectSerializer.h"
 #include "GameObject.h"
 #include "Component.h"
 #include "MissingScriptBehaviour.h"
@@ -416,6 +416,17 @@ namespace MMMEngine
                     if (missingDst.IsValid())
                         missingDst->SetOriginalPropsMsgPack(missingSrc->GetOriginalPropsMsgPack());
                 }
+            }
+
+            // Clone 시에도 AddComponent 직후 Initialize()에서 기본값으로 셰이프가 생성되므로,
+            // CloneObject로 프로퍼티 복사 후 PxShape 지오메트리를 맞추기 위해 MarkGeometryDirty 호출
+            for (auto& pair : ctx.componentPairs)
+            {
+                auto& dstComp = pair.second;
+                if (!dstComp.IsValid() || dstComp->IsDestroyed())
+                    continue;
+                if (auto col = dstComp.Cast<ColliderComponent>(); col.IsValid())
+                    col->MarkGeometryDirty();
             }
 
             for (auto& go : originals)
