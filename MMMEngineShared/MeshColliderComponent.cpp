@@ -111,6 +111,14 @@ bool MMMEngine::MeshColliderComponent::BuildShape(physx::PxPhysics* physics, phy
 
 void MMMEngine::MeshColliderComponent::Initialize()
 {
+
+    if (auto& obj = GetGameObject(); obj.IsValid())
+    {
+        obj->onActiveInHierarchyChanged
+            .AddListener<ColliderComponent, &ColliderComponent::OnOwnerActiveInHierarchyChanged>(this);
+    }
+
+
     if (GetGameObject().IsValid())
     {
         auto _meshRenderer = GetComponent<MeshRenderer>();
