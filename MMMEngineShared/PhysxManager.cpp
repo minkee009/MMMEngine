@@ -333,10 +333,8 @@ void MMMEngine::PhysxManager::NotifyCompoundColliderAdded(ObjPtr<GameObject> nex
     auto selfRbPtr = child->GetComponent<RigidBodyComponent>();
     RigidBodyComponent* selfRb = selfRbPtr.IsValid()
         ? static_cast<RigidBodyComponent*>(selfRbPtr.GetRaw())
-        : nullptr;
+        : GetOrCreateRigid(child);
 
-    if (!selfRb)
-        selfRb = GetOrCreateRigid(child);
     if (!selfRb) return;
 
     RigidBodyComponent* oldRoot = curParent.IsValid() ? FindHighestRigid(curParent) : selfRb;
@@ -345,15 +343,27 @@ void MMMEngine::PhysxManager::NotifyCompoundColliderAdded(ObjPtr<GameObject> nex
 
     if (oldRoot == newRoot) return;
 
-    const bool toCompound = (newRoot != selfRb); // 자식으로 들어감
-    const bool toRoot = (newRoot == selfRb);     // 자식에서 빠져나옴
+    const bool toCompound = (newRoot != selfRb);
+    const bool toRoot = (newRoot == selfRb);
 
-    // 나올 때는 먼저 actor 생성/등록 (TransferCol 전에 있어야 함)
+    // 들어갈 때: newRoot actor 반드시 먼저 등록
+    if (toCompound && newRoot)
+    {
+        m_PendingUnreg.erase(newRoot);
+        for (auto it = m_Commands.begin(); it != m_Commands.end(); )
+        {
+            if (it->type == CmdType::UnregRigid && it->new_rb == newRoot)
+                it = m_Commands.erase(it);
+            else
+                ++it;
+        }
+        RequestRegisterRigid(newRoot);
+    }
+
+    // 나올 때: selfRb actor 먼저 등록
     if (toRoot)
     {
         m_PendingUnreg.erase(selfRb);
-
-        // 이미 큐에 들어간 UnregRigid도 제거
         for (auto it = m_Commands.begin(); it != m_Commands.end(); )
         {
             if (it->type == CmdType::UnregRigid && it->new_rb == selfRb)
@@ -373,7 +383,6 @@ void MMMEngine::PhysxManager::NotifyCompoundColliderAdded(ObjPtr<GameObject> nex
         m_Commands.push_back({ CmdType::TransferCol, newRoot, col, oldRoot });
     }
 
-    // 들어갈 때는 child actor 제거 (TransferCol 뒤에)
     if (toCompound)
         RequestUnregisterRigid(selfRb);
 }
