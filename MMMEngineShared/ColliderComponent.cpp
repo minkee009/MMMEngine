@@ -494,6 +494,12 @@ void MMMEngine::ColliderComponent::UnInitialize()
     {
         UnregisterFromPhysics(PhysicsUnregisterReason::Destroy);
     }
+    else
+    {
+        // 게임오브젝트가 이미 null이면 UnregisterFromPhysics를 못 타니 컨테이너 정리만 직접
+        MMMEngine::PhysxManager::Get().NotifyColliderRemoved(this);
+        m_IsRegistered = false;
+    }
 
     //PhysxManager::Get().NotifyColliderRemoved(this);
     if (m_Shape)
