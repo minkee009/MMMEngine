@@ -54,6 +54,7 @@ bool MMMEngine::ColliderComponent::SetPhysicsActive(bool enable)
     if (enable)
     {
         if (!m_Shape) return false;
+        ApplyGeometryIfDirty();
         if (!m_IsRegistered) RegisterToPhysics();
         return true;
     }
@@ -92,6 +93,43 @@ void MMMEngine::ColliderComponent::UnregisterFromPhysics(PhysicsUnregisterReason
     }
 
     m_IsRegistered = false;
+}
+
+//
+MMMEngine::ColliderComponent::WorldBounds MMMEngine::ColliderComponent::GetWorldBounds(float inflation) const
+{
+    WorldBounds out{};
+    if (!m_Shape) return out;
+
+    auto* actor = m_Shape->getActor();
+    if (!actor) return out;
+
+    physx::PxBounds3 b = physx::PxShapeExt::getWorldBounds(*m_Shape, *actor, inflation);
+    out.min = ToVec(b.minimum);
+    out.max = ToVec(b.maximum);
+    out.valid = true;
+    return out;
+}
+
+float MMMEngine::ColliderComponent::GetApproxRadiusXZ(float inflation) const
+{
+    auto b = GetWorldBounds(inflation);
+    if (!b.valid) return 0.0f;
+    Vector3 e = b.Extents();
+    return std::max(e.x, e.z);
+}
+
+MMMEngine::ColliderComponent::BoundingSphere MMMEngine::ColliderComponent::GetBoundingSphere(float inflation) const
+{
+    BoundingSphere s{};
+    auto b = GetWorldBounds(inflation);
+    if (!b.valid) return s;
+
+    Vector3 e = b.Extents();
+    s.center = b.Center();
+    s.radius = e.Length();
+    s.valid = true;
+    return s;
 }
 
 void MMMEngine::ColliderComponent::ApplyMaterial()

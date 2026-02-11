@@ -221,5 +221,27 @@ namespace MMMEngine
 		void RegisterToPhysics();
 
 		void UnregisterFromPhysics(PhysicsUnregisterReason reason = PhysicsUnregisterReason::Disable);
+
+	public:
+		struct WorldBounds
+		{
+			Vector3 min{ 0,0,0 };
+			Vector3 max{ 0,0,0 };
+			bool valid = false;
+
+			Vector3 Center() const { return (min + max) * 0.5f; }
+			Vector3 Extents() const { return (max - min) * 0.5f; }
+		};
+
+		struct BoundingSphere
+		{
+			Vector3 center{ 0,0,0 };
+			float radius = 0.0f;
+			bool valid = false;
+		};
+
+		WorldBounds GetWorldBounds(float inflation = 1.0f) const;
+		float GetApproxRadiusXZ(float inflation = 1.0f) const;
+		BoundingSphere GetBoundingSphere(float inflation = 1.0f) const;
 	};
 }
