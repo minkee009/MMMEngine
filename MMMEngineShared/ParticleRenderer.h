@@ -214,6 +214,8 @@ namespace MMMEngine
 		void Pause();
 		void Clear();
 
+		void StopImmediate();
+
 		bool IsPreviewing() const { return m_previewEnabled; }
 		void StartPreview();
 		void StopPreview();

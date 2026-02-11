@@ -77,6 +77,11 @@ void Initialize()
 
 void Update()
 {
+	if (MMMEngine::GlobalRegistry::g_quitRequested)
+	{
+		GlobalRegistry::g_quitRequested = false;
+		GlobalRegistry::g_pApp->Quit();
+	}
 	GlobalRegistry::g_runtimeActive = true;
 	TimeManager::Get().BeginFrame();
 	InputManager::Get().Update();

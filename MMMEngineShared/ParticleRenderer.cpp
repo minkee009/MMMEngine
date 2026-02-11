@@ -238,9 +238,12 @@ namespace MMMEngine
 
 	void ParticleRenderer::Stop()
 	{
+		// 새로 뿜는 것만 멈춘다
 		m_isPlaying = false;
 		m_spawnAccumulator = 0.0f;
-		m_particles.clear();
+
+		// 이 부분은 지운다 → 남아있는 파티클은 그대로 둠
+		// m_particles.clear();
 
 		m_playOneShot = false;
 		m_oneShotDuration = 0.0f;
@@ -255,6 +258,16 @@ namespace MMMEngine
 	void ParticleRenderer::Clear()
 	{
 		m_particles.clear();
+	}
+
+	void ParticleRenderer::StopImmediate()
+	{
+		m_isPlaying = false;
+		m_spawnAccumulator = 0.0f;
+		m_particles.clear();
+		m_playOneShot = false;
+		m_oneShotDuration = 0.0f;
+		m_oneShotTimer = 0.0f;
 	}
 
 	void ParticleRenderer::StartPreview()
@@ -307,11 +320,16 @@ namespace MMMEngine
 		}
 		m_prevRuntimeActive = runtimeActive;
 
+		// 시뮬레이션(업데이트)은 런타임 동안 계속 허용
 		const bool allowSim = m_previewEnabled ||
-			(runtimeActive && m_isPlaying && !inSceneViewPass);
+			(runtimeActive && !inSceneViewPass);
+
+		// 스폰은 m_isPlaying 으로 on/off
+		const bool allowSpawn = allowSim && m_isPlaying;
+
 		const float dt = TimeManager::Get().GetDeltaTime();
 		if (allowSim && dt > 0.0f)
-			UpdateSimulation(dt, true);
+			UpdateSimulation(dt, allowSpawn);
 
 		if (m_particles.empty())
 			return;

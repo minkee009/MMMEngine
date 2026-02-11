@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "App.h"
 #include "GlobalRegistry.h"
 #include "RenderManager.h"
@@ -7,12 +7,18 @@
 
 namespace MMMEngine::Application
 {
-	inline void Quit() { assert(GlobalRegistry::g_pApp && "±Û·Î¹ú ·¹Áö½ºÆ®¸®¿¡ ApplicationÀÌ µî·ÏµÇ¾îÀÖÁö ¾Ê½À´Ï´Ù!"); GlobalRegistry::g_pApp->Quit(); }
+	inline void Quit()
+	{
+		assert(GlobalRegistry::g_pApp && "ï¿½Û·Î¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ Applicationï¿½ï¿½ ï¿½ï¿½ÏµÇ¾ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½!");
 
-	inline void SetWindowTitle(const std::wstring& title) { assert(GlobalRegistry::g_pApp && "±Û·Î¹ú ·¹Áö½ºÆ®¸®¿¡ ApplicationÀÌ µî·ÏµÇ¾îÀÖÁö ¾Ê½À´Ï´Ù!"); GlobalRegistry::g_pApp->SetWindowTitle(title); }
+		MMMEngine::GlobalRegistry::g_quitRequested = true;
+		return;
+	}
 
-	inline void SetWindowSize(const float& width, const float& height) { assert(GlobalRegistry::g_pApp && "±Û·Î¹ú ·¹Áö½ºÆ®¸®¿¡ ApplicationÀÌ µî·ÏµÇ¾îÀÖÁö ¾Ê½À´Ï´Ù!"); GlobalRegistry::g_pApp->SetWindowSize(width, height); }
+	inline void SetWindowTitle(const std::wstring& title) { assert(GlobalRegistry::g_pApp && "ï¿½Û·Î¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ Applicationï¿½ï¿½ ï¿½ï¿½ÏµÇ¾ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½!"); GlobalRegistry::g_pApp->SetWindowTitle(title); }
 
-	// todo : ·»´õ ¸Å´ÏÀú ÀÛ¾÷ÀÚ¿¡°Ô SyncIntervalÀÌ ÇÊ¿äÇÏ´Ù°í °íÁöÇÒ°Í
+	inline void SetWindowSize(const float& width, const float& height) { assert(GlobalRegistry::g_pApp && "ï¿½Û·Î¹ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ Applicationï¿½ï¿½ ï¿½ï¿½ÏµÇ¾ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½ï¿½ï¿½Ï´ï¿½!"); GlobalRegistry::g_pApp->SetWindowSize(width, height); }
+
+	// todo : ï¿½ï¿½ï¿½ï¿½ ï¿½Å´ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½ï¿½Ú¿ï¿½ï¿½ï¿½ SyncIntervalï¿½ï¿½ ï¿½Ê¿ï¿½ï¿½Ï´Ù°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ò°ï¿½
 	//inline void SetVSyncInterval(int interval) { RenderManager::Get().SetSyncInterval(interval); }
 }
