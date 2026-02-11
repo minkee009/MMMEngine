@@ -775,3 +775,39 @@ MMMEngine::RigidBodyComponent* MMMEngine::PhysScene::GetOwnerRigid(MMMEngine::Co
 	auto it = m_ownerByCollider.find(col);
 	return (it != m_ownerByCollider.end()) ? it->second : nullptr;
 }
+
+bool MMMEngine::PhysScene::Raycast(const Vector3& origin, const Vector3& dir, float maxDist, physx::PxRaycastHit& outHit, const physx::PxFilterData& filter, const physx::PxShape* ignoreShape, const physx::PxRigidActor* ignoreActor, bool includeTrigger, physx::PxQueryFlags flags)
+{
+	if (!m_scene) return false;
+
+	physx::PxVec3 d = ToPxVec(dir);
+	if (d.isZero()) return false;
+	d.normalize();
+
+	physx::PxRaycastBuffer buf;
+	QueryFilterCB cb(ignoreShape, ignoreActor, includeTrigger);
+
+	physx::PxQueryFilterData qfd(filter, flags | physx::PxQueryFlag::ePREFILTER);
+
+	const bool hit = m_scene->raycast(
+		ToPxVec(origin), d, maxDist, buf,
+		physx::PxHitFlag::ePOSITION | physx::PxHitFlag::eNORMAL,
+		qfd, &cb);
+
+	if (hit && buf.hasBlock)
+	{
+		outHit = buf.block;
+		return true;
+	}
+	return false;
+}
+
+bool MMMEngine::PhysScene::Overlap(const physx::PxGeometry& geom, const physx::PxTransform& pose, physx::PxOverlapBuffer& outHits, const physx::PxFilterData& filter, const physx::PxShape* ignoreShape, const physx::PxRigidActor* ignoreActor, bool includeTrigger, physx::PxQueryFlags flags)
+{
+	if (!m_scene) return false;
+
+	QueryFilterCB cb(ignoreShape, ignoreActor, includeTrigger);
+	physx::PxQueryFilterData qfd(filter, flags | physx::PxQueryFlag::ePREFILTER);
+
+	return m_scene->overlap(geom, pose, outHits, qfd, &cb);
+}

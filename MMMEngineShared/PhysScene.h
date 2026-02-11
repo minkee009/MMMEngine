@@ -115,6 +115,26 @@ namespace MMMEngine
 
 		MMMEngine::RigidBodyComponent* GetOwnerRigid(MMMEngine::ColliderComponent* col) const;
 
+
+		// Raycast 함수
+		bool Raycast(const Vector3& origin, const Vector3& dir, float maxDist,
+			physx::PxRaycastHit& outHit,
+			const physx::PxFilterData& filter,
+			const physx::PxShape* ignoreShape = nullptr,
+			const physx::PxRigidActor* ignoreActor = nullptr,
+			bool includeTrigger = false,
+			physx::PxQueryFlags flags = physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::eDYNAMIC);
+
+		// Overlap 함수
+		bool Overlap(const physx::PxGeometry& geom, const physx::PxTransform& pose,
+			physx::PxOverlapBuffer& outHits,
+			const physx::PxFilterData& filter,
+			const physx::PxShape* ignoreShape = nullptr,
+			const physx::PxRigidActor* ignoreActor = nullptr,
+			bool includeTrigger = false,
+			physx::PxQueryFlags flags = physx::PxQueryFlag::eSTATIC | physx::PxQueryFlag::eDYNAMIC);
+
+
 	private:
 		PhysSceneDesc m_desc;
 

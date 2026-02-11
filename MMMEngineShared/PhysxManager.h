@@ -59,6 +59,22 @@ namespace MMMEngine
 		ObjPtr<GameObject> gameObject;
 	};
 
+	struct RaycastHit
+	{
+		bool hit = false;
+		Vector3 point{};
+		Vector3 normal{};
+		float distance = 0.f;
+		ObjPtr<ColliderComponent> collider;
+		ObjPtr<GameObject> gameObject;
+	};
+
+	struct OverlapHit
+	{
+		ObjPtr<ColliderComponent> collider;
+		ObjPtr<GameObject> gameObject;
+	};
+
 	class MMMENGINE_API PhysxManager : public Utility::ExportSingleton<PhysxManager>
 	{
 	public:
@@ -112,9 +128,24 @@ namespace MMMEngine
 		void CollectCollidersInSubtree(ObjPtr<GameObject> root, std::vector<ColliderComponent*>& out);
 
 
+		//Sweep 노출함수
 		bool SweepSphere(const Vector3& center, float radius,
 			const Vector3& dir, float maxDist,
 			SweepHit& out, uint32_t layer,
+			ObjPtr<ColliderComponent> ignoreCol = nullptr,
+			ObjPtr<RigidBodyComponent> ignoreRb = nullptr,
+			bool includeTrigger = false);
+
+		//RayCast 노출함수
+		bool Raycast(const Vector3& origin, const Vector3& dir, float maxDist,
+			RaycastHit& out, uint32_t layer,
+			ObjPtr<ColliderComponent> ignoreCol = nullptr,
+			ObjPtr<RigidBodyComponent> ignoreRb = nullptr,
+			bool includeTrigger = false);
+
+		//OverLap노출함수
+		bool OverlapSphere(const Vector3& center, float radius,
+			std::vector<OverlapHit>& out, uint32_t layer,
 			ObjPtr<ColliderComponent> ignoreCol = nullptr,
 			ObjPtr<RigidBodyComponent> ignoreRb = nullptr,
 			bool includeTrigger = false);

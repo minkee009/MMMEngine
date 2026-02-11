@@ -45,6 +45,7 @@ void MMMEngine::PhysxManager::SetStep()
     FlushCommands_PreStep();     // 등록/부착 등
     ApplyFilterConfigIfDirty();  // dirty면 정책 갱신 + 전체 재적용 지시
     FlushDirtyColliders_PreStep(); //collider의 shape가 에디터 단계에서 변형되면 내부적으로 실행
+    FlushDirtyColliderFilters_PreStep();
 }
 
 void MMMEngine::PhysxManager::StepFixed(float dt)
@@ -447,6 +448,60 @@ bool MMMEngine::PhysxManager::SweepSphere(const Vector3& center, float radius,
     out.collider = col;
     out.gameObject = col.IsValid() ? col->GetGameObject() : nullptr;
     return true;
+}
+
+bool MMMEngine::PhysxManager::Raycast(const Vector3& origin, const Vector3& dir, float maxDist, RaycastHit& out, uint32_t layer, ObjPtr<ColliderComponent> ignoreCol, ObjPtr<RigidBodyComponent> ignoreRb, bool includeTrigger)
+{
+    physx::PxRaycastHit hit{};
+    const auto filter = m_CollisionMatrix.MakeQueryFilter(layer);
+
+    const physx::PxShape* ignoreShape = ignoreCol ? ignoreCol->GetPxShape() : nullptr;
+    const physx::PxRigidActor* ignoreActor = ignoreRb ? ignoreRb->GetPxActor() : nullptr;
+
+    if (!m_PhysScene.Raycast(origin, dir, maxDist, hit, filter,
+        ignoreShape, ignoreActor, includeTrigger))
+        return false;
+
+    out.hit = true;
+    out.point = ToVec(hit.position);
+    out.normal = ToVec(hit.normal);
+    out.distance = hit.distance;
+
+    auto col = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(
+        hit.shape ? hit.shape->userData : nullptr);
+    out.collider = col;
+    out.gameObject = col.IsValid() ? col->GetGameObject() : nullptr;
+    return true;
+}
+
+bool MMMEngine::PhysxManager::OverlapSphere(const Vector3& center, float radius, std::vector<OverlapHit>& out, uint32_t layer, ObjPtr<ColliderComponent> ignoreCol, ObjPtr<RigidBodyComponent> ignoreRb, bool includeTrigger)
+{
+    out.clear();
+
+    physx::PxSphereGeometry geom(radius);
+    physx::PxTransform pose(ToPxVec(center));
+    physx::PxOverlapBufferN<64> buf;
+
+    const auto filter = m_CollisionMatrix.MakeQueryFilter(layer);
+    const physx::PxShape* ignoreShape = ignoreCol ? ignoreCol->GetPxShape() : nullptr;
+    const physx::PxRigidActor* ignoreActor = ignoreRb ? ignoreRb->GetPxActor() : nullptr;
+
+    if (!m_PhysScene.Overlap(geom, pose, buf, filter, ignoreShape, ignoreActor, includeTrigger))
+        return false;
+
+    for (physx::PxU32 i = 0; i < buf.nbTouches; ++i)
+    {
+        auto shape = buf.touches[i].shape;
+        auto col = ObjectManager::Get().GetPtrFromRaw<ColliderComponent>(
+            shape ? shape->userData : nullptr);
+        if (!col.IsValid()) continue;
+
+        OverlapHit h;
+        h.collider = col;
+        h.gameObject = col->GetGameObject();
+        out.push_back(h);
+    }
+    return !out.empty();
 }
 
 
