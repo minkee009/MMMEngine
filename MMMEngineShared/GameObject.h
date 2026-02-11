@@ -56,7 +56,7 @@ namespace MMMEngine
 		
 		void SetActive(bool active);
 		void SetTag(const std::string& tag) { m_tag = tag; }
-		void SetLayer(const uint32_t& layer) { m_layer = layer; }
+		void SetLayer(const uint32_t& layer);
 
 		bool IsActiveSelf() const { return m_active; }
 		bool IsActiveInHierarchy() const { return m_activeInHierarchy; }

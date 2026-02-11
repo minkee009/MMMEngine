@@ -7,6 +7,7 @@
 #include "RectTransform.h"
 #include "ObjectManager.h"
 #include "SceneManager.h"
+#include "ColliderComponent.h"
 #include <cmath>
 #include <algorithm>
 
@@ -250,6 +251,22 @@ void MMMEngine::GameObject::SetActive(bool active)
 	m_active = active;
 
 	UpdateActiveInHierarchy();
+}
+
+void MMMEngine::GameObject::SetLayer(const uint32_t& layer)
+{
+	if (m_layer == layer) return;
+	m_layer = layer;
+
+	// 레이어 변경에 따른 콜리더의 레이더 변경
+	for (auto& comp : m_components)
+	{
+		if (!comp.IsValid() || comp->IsDestroyed()) continue;
+		if (auto col = comp.Cast<ColliderComponent>())
+		{
+			col->MarkFilterDirty(); // -> PhysxManager에 갱신 요청
+		}
+	}
 }
 
 MMMEngine::ObjPtr<MMMEngine::Component> MMMEngine::GameObject::AddComponent(rttr::type compType)
