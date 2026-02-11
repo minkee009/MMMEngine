@@ -62,8 +62,8 @@ void Initialize()
 	ShaderInfo::Get().StartUp();
 
 	app->OnWindowSizeChanged.AddListener<RenderManager, &RenderManager::ResizeSwapChainSize>(&RenderManager::Get());
-	//app->OnWindowSizeChanged.AddListener<RenderManager, &RenderManager::ResizeSceneSize>(&RenderManager::Get());
-	RenderManager::Get().ResizeSceneSize(1920, 1080);
+	app->OnWindowSizeChanged.AddListener<RenderManager, &RenderManager::ResizeSceneSize>(&RenderManager::Get());
+	//RenderManager::Get().ResizeSceneSize(1920, 1080);
 
 	ComPtr<ID3D11Device> device = RenderManager::Get().GetDevice();
 	ComPtr<ID3D11DeviceContext> context = RenderManager::Get().GetContext();
