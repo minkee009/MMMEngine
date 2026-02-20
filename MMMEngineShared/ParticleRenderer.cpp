@@ -273,12 +273,14 @@ namespace MMMEngine
 	void ParticleRenderer::StartPreview()
 	{
 		m_previewEnabled = true;
+		m_isPlaying = true;
 		m_spawnAccumulator = 0.0f;
 	}
 
 	void ParticleRenderer::StopPreview()
 	{
 		m_previewEnabled = false;
+		m_isPlaying = false;
 		m_spawnAccumulator = 0.0f;
 		m_particles.clear();
 	}
