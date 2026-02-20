@@ -487,16 +487,21 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 			{
 				if (!graphic.IsValid() || !graphic->IsActiveAndEnabled())
 					continue;
+				// Alpha 0(투명)인 그래픽은 화면에 안 보이므로 피킹 대상에서 제외
+				if (graphic->GetColor().A() <= 0.01f)
+					continue;
 				graphics.push_back(graphic);
 			}
 
+			// 렌더 순서와 동일하게 EffectiveRenderOrder로 정렬 (앞에 그려진 것 = 높은 order = 먼저 픽)
 			std::stable_sort(graphics.begin(), graphics.end(),
 				[](const ObjPtr<Graphic>& a, const ObjPtr<Graphic>& b)
 				{
-					return a->GetRenderOrder() < b->GetRenderOrder();
+					return a->GetEffectiveRenderOrder() < b->GetEffectiveRenderOrder();
 				});
 
 			const auto canvasInfo = GetCanvasInfo(canvas, static_cast<float>(m_width), static_cast<float>(m_height));
+			// order 높은 것부터 검사 → 화면에서 제일 앞에 보이는 UI가 먼저 선택됨
 			for (auto graphicIt = graphics.rbegin(); graphicIt != graphics.rend(); ++graphicIt)
 			{
 				auto& graphic = *graphicIt;
