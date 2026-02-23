@@ -1845,10 +1845,11 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 	context->ClearRenderTargetView(rtv, clearColor);
 	context->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	if (!m_ui2DMode)
-		m_pGridRenderer->Render(context, *m_pCam);
 
 	renderManager.RenderOnlyRenderer();
+
+	if (!m_ui2DMode)
+		m_pGridRenderer->Render(context, *m_pCam);
 
 	// 디버그 드로잉
 	if (m_enableDebugDraw)

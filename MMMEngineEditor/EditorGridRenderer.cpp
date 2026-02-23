@@ -1,4 +1,4 @@
-#include "EditorGridRenderer.h"
+ï»¿#include "EditorGridRenderer.h"
 #include "EditorShader.h"
 #include "EditorCamera.h"
 #include <d3dcompiler.h>
@@ -30,14 +30,14 @@ bool MMMEngine::Editor::EditorGridRenderer::Initialize(ID3D11Device* device)
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.RenderTarget[0].BlendEnable = TRUE;
 
-    // ÄÃ·¯ È¥ÇÕ: ÃÖÁ¾»ö = (±×¸®µå»ö * ±×¸®µå¾ËÆÄ) + (¹è°æ»ö * (1 - ±×¸®µå¾ËÆÄ))
+    // ì»¬ëŸ¬ í˜¼í•©: ìµœì¢…ìƒ‰ = (ê·¸ë¦¬ë“œìƒ‰ * ê·¸ë¦¬ë“œì•ŒíŒŒ) + (ë°°ê²½ìƒ‰ * (1 - ê·¸ë¦¬ë“œì•ŒíŒŒ))
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
     blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
     blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
 
-    // ¾ËÆÄ È¥ÇÕ: ¾ËÆÄ°ª ÀÚÃ¼¸¦ ¾î¶»°Ô ½×À»Áö °áÁ¤
+    // ì•ŒíŒŒ í˜¼í•©: ì•ŒíŒŒê°’ ìžì²´ë¥¼ ì–´ë–»ê²Œ ìŒ“ì„ì§€ ê²°ì •
     blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA; // ZERO¿¡¼­ º¯°æ ±ÇÀå
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA; // ZEROì—ì„œ ë³€ê²½ ê¶Œìž¥
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 
     blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
@@ -49,7 +49,7 @@ bool MMMEngine::Editor::EditorGridRenderer::Initialize(ID3D11Device* device)
     D3D11_DEPTH_STENCIL_DESC dsDesc = {};
     dsDesc.DepthEnable = TRUE;
     dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    dsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // ±×¸®µå´Â µÚ¿¡ ±×·ÁÁöµµ·Ï
+    dsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // ê·¸ë¦¬ë“œëŠ” ë’¤ì— ê·¸ë ¤ì§€ë„ë¡
     dsDesc.StencilEnable = FALSE;
 
     hr = device->CreateDepthStencilState(&dsDesc, m_depthStencilState.GetAddressOf());
