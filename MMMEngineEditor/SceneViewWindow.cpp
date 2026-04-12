@@ -1848,7 +1848,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 
 	m_pCam->UpdateProjectionBlend();
 	if (m_isFocused && !m_blockCameraInput)
-		m_pCam->InputUpdate((int)m_guizmoOperation);
+		m_pCam->InputUpdate((int)m_guizmoOperation, m_isHovered);
 	m_pCam->UpdateState();
 	if (m_ui2DMode && m_pCam)
 	{

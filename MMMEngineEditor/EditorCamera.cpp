@@ -214,11 +214,12 @@ void MMMEngine::Editor::EditorCamera::UpdateState()
     m_hasInput = false;
 }
 
-void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
+void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp, bool isHovered)
 {
     const float rotSpeed = 0.1f;
-    const float panSpeed = 0.01f; // 팬 이동 속도 (조절 필요)
+    const float panSpeed = 0.01f; // 팬 이동 속도
 
+    // 포커스 이동 애니메이션 중일 땐 마우스 좌표만 갱신
     if (m_focusState.active)
     {
         auto mousePos = Input::GetMousePos();
@@ -231,24 +232,51 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
     float deltaX = mousePos.x - m_lastMouseX;
     float deltaY = mousePos.y - m_lastMouseY;
 
+    // 현재 사용자가 누르고 있는 마우스 버튼 상태 확인 (휠 클릭은 엔진에 맞춰 KeyCode::MouseMiddle 등을 사용하세요)
+    bool isRightClick = Input::GetKey(KeyCode::MouseRight);
+    bool isMiddleClick = Input::GetKey(KeyCode::MouseMiddle);
+    bool isLeftClick = (currentOp == 0 && Input::GetKey(KeyCode::MouseLeft));
+
+    // 아무 버튼도 눌려있지 않으면 드래그 상태 해제
+    if (!isRightClick && !isMiddleClick && !isLeftClick)
+    {
+        m_isDragging = false;
+        if (Input::GetKeyUp(KeyCode::MouseRight)) m_firstMouseUpdate = true;
+    }
+
+    // ★ 핵심 조건: 마우스가 SceneView 위에 있거나, 이미 SceneView 안에서 드래그를 시작한 상태일 때만 입력을 처리
+    bool canProcessInput = isHovered || m_isDragging;
+    float wheel = Input::GetMouseScrollNotches();
+
+    // 조작 불가능한 상태라면 마우스 좌표만 갱신하고 빠져나감
+    if (!canProcessInput)
+    {
+        m_hasInput = false;
+        m_targetMovement = Vector3::Zero;
+        m_lastMouseX = mousePos.x;
+        m_lastMouseY = mousePos.y;
+        return;
+    }
+
+    // 허용된 상태에서 버튼이 눌려있다면 드래그 중인 상태로 전환
+    if (isRightClick || isMiddleClick || isLeftClick)
+    {
+        m_isDragging = true;
+    }
+
     m_hasInput = true;
     m_targetMovement = Vector3::Zero;
 
-    float wheel = Input::GetMouseScrollNotches();
-
-    if (Input::GetKey(KeyCode::MouseRight))
+    // --- 실제 카메라 이동 로직 ---
+    if (isRightClick)
     {
-        // 마우스 회전 처리
+        // 마우스 우클릭 회전 및 WASD 이동 로직 (기존과 동일)
         if (!m_firstMouseUpdate)
         {
             if (deltaX != 0 || deltaY != 0)
             {
-                // 마우스 델타로 회전 적용
                 m_targetYaw += deltaX * rotSpeed;
-                m_targetPitch += deltaY * rotSpeed; // Y는 반대 방향
-
-                // Pitch 제한
-                //targetPitch = std::max( -89.0f, std::min(89.0f, targetPitch));
+                m_targetPitch += deltaY * rotSpeed;
             }
         }
         else
@@ -256,9 +284,7 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
             m_firstMouseUpdate = false;
         }
 
-        // 이동 처리 (더 효율적으로)
         Matrix worldMat = GetTransformMatrix();
-
         Vector3 move =
         {
             (Input::GetKey(KeyCode::A) ? -1.0f : 0.0f) + (Input::GetKey(KeyCode::D) ? 1.0f : 0.0f),
@@ -270,46 +296,38 @@ void MMMEngine::Editor::EditorCamera::InputUpdate(int currentOp)
         m_targetMovement += worldMat.Right() * move.x;
         m_targetMovement += worldMat.Up() * move.y;
     }
-    else if (wheel != 0.0f)
+    // 휠 스크롤(줌): 마우스가 화면 위에 올라가 있을 때(Hovered)만 적용
+    else if (wheel != 0.0f && isHovered)
     {
-        // 관성 제거: 휠로 움직일 때는 기존 movement 스무딩을 끊어줌
         m_smoothedMovement = Vector3::Zero;
         m_targetMovement = Vector3::Zero;
 
         if (m_isOrthographic)
         {
-            const float zoomSpeed = 1.0f; // 조절값(노치당 크기 변화)
+            const float zoomSpeed = 1.0f;
             SetOrthoSize(m_orthoSize - (wheel * zoomSpeed));
         }
         else
         {
-            // 현재 카메라의 진행방향(앞/뒤)로 이동
             Matrix worldMat = GetTransformMatrix();
-            Vector3 forward = worldMat.Backward(); // 카메라가 바라보는 방향
-
-            // 스크롤 방향/속도: 필요하면 부호만 바꿔
-            const float zoomSpeed = 2.0f; // 조절값(노치당 몇 유닛 이동)
+            Vector3 forward = worldMat.Backward();
+            const float zoomSpeed = 2.0f;
             SetPosition(GetPosition() + forward * (wheel * zoomSpeed));
         }
     }
-    else if (currentOp == 0 && Input::GetKey(KeyCode::MouseLeft))
+    // 좌클릭(currentOp == 0) 이거나 휠 드래그(가운데 버튼)일 때 패닝
+    else if (isLeftClick || isMiddleClick)
     {
         Matrix worldMat = GetTransformMatrix();
-
         m_smoothedMovement = Vector3::Zero; // 핸드 조작 시 관성 제거
         Vector3 deltaPos = (worldMat.Right() * (-deltaX * panSpeed)) + (worldMat.Up() * (deltaY * panSpeed));
         SetPosition(GetPosition() + deltaPos);
-    }
-    else
-    {
-        if (Input::GetKeyUp(KeyCode::MouseRight)) m_firstMouseUpdate = true;
     }
 
     if (m_targetMovement.LengthSquared() > 0.0f) m_targetMovement.Normalize();
     if (Input::GetKey(KeyCode::LeftShift)) m_targetMovement *= 3.0f;
 
-    // 마우스 위치 업데이트 (포커스가 아닐 때도 공통 수행)
+    // 마우스 위치 업데이트
     m_lastMouseX = mousePos.x;
     m_lastMouseY = mousePos.y;
 }
-

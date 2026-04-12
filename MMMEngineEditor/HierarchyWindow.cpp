@@ -151,10 +151,8 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 	}
 
 	ImGuiWindowClass wc;
-	// 핵심: 메인 뷰포트에 이 윈도우를 종속시킵니다.
-	// 이렇게 하면 메인 창을 클릭해도 이 창이 '메인 창의 일부'로서 취급되어 우선순위를 가집니다.
 	wc.ParentViewportId = ImGui::GetMainViewport()->ID;
-	wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing; // 필요 시 설정
+	wc.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoFocusOnAppearing;
 
 	ImGui::SetNextWindowClass(&wc);
 
@@ -165,8 +163,12 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.WindowMenuButtonPosition = ImGuiDir_None;
 
+	// 메인 하이어라키 윈도우 시작
 	ImGui::Begin(u8"\uf0ca 하이어라키", &g_editor_window_hierarchy);
 
+	// ---------------------------------------------------------
+	// [1] 상단 고정 영역: 생성 및 파괴 버튼
+	// ---------------------------------------------------------
 	auto hbuttonsize = ImVec2{ ImGui::GetContentRegionAvail().x / 2 - ImGui::GetStyle().ItemSpacing.x / 2, 0 };
 
 	if (ImGui::Button(u8"생성", hbuttonsize))
@@ -175,88 +177,105 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 	}
 	ImGui::SameLine();
 	ImGui::BeginDisabled(g_selectedGameObject == nullptr);
-	if (ImGui::Button(u8"파괴", hbuttonsize)) { Object::Destroy(g_selectedGameObject); g_selectedGameObject = nullptr; }
+	if (ImGui::Button(u8"파괴", hbuttonsize))
+	{
+		Object::Destroy(g_selectedGameObject);
+		g_selectedGameObject = nullptr;
+	}
 	ImGui::EndDisabled();
 
 	ImGui::Separator();
-	if (sceneRef.id == static_cast<size_t>(-1))
-	{
-		ImGui::End();
-		return;
-	}
-	std::string showSceneName = sceneRaw->GetName();
-	if (ImGui::CollapsingHeader(showSceneName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		const auto& gameObjects = SceneManager::Get().GetAllGameObjectInCurrentScene();
 
-		for (auto& go : gameObjects)
+	// ---------------------------------------------------------
+	// [2] 하단 스크롤 영역: 실제 트리 구조
+	// ---------------------------------------------------------
+	// ImGui::BeginChild를 통해 내부 스크롤 영역을 분리합니다.
+	if (ImGui::BeginChild("HierarchyScrollRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
+	{
+		if (sceneRef.id == static_cast<size_t>(-1))
 		{
-			if (!go->GetTransform().IsValid())
-				continue;
-
-			if (go->GetTransform()->GetParent() == nullptr)
-			{
-				DrawHierarchyMember(go, true);
-			}
+			ImGui::EndChild();
+			ImGui::End();
+			return;
 		}
 
-		if (!ddolGos.empty())
-			DrawDropLine("##drop_lastline");
-		else
+		std::string showSceneName = sceneRaw->GetName();
+		if (ImGui::CollapsingHeader(showSceneName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			float windowWidth = ImGui::GetContentRegionAvail().x;
-			windowWidth = std::max(0.01f, windowWidth);
+			const auto& gameObjects = SceneManager::Get().GetAllGameObjectInCurrentScene();
 
-			ImGui::InvisibleButton("##", { windowWidth,ImGui::GetContentRegionAvail().y });
-			MUID muid = GetMuid("gameobject_muid");
-			if (muid.IsValid())
+			for (auto& go : gameObjects)
 			{
-				g_reparentQueue.push_back({ muid, std::nullopt }); // root
-			}
-		}
-	}
+				if (!go->GetTransform().IsValid())
+					continue;
 
-
-	if (!ddolGos.empty() && ImGui::CollapsingHeader(u8"Dont Destroy On Load", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		for (auto& go : ddolGos)
-		{
-			if (go->GetTransform()->GetParent() == nullptr) DrawHierarchyMember(go, false);
-		}
-	}
-
-	// Prefab 파일 드롭 처리
-	if (ImGui::BeginDragDropTarget())
-	{
-		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
-		{
-			std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
-			std::filesystem::path droppedPath(absolutePath);
-			std::string ext = droppedPath.extension().string();
-			std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-			if (ext == ".prefab")
-			{
-				std::string relativePath = MMMEngine::Editor::ProjectManager::Get().ToProjectRelativePath(absolutePath);
-				std::wstring wRelativePath = MMMEngine::Utility::StringHelper::StringToWString(relativePath);
-
-				auto prefab = MMMEngine::ResourceManager::Get().Load<MMMEngine::Prefab>(wRelativePath);
-				if (prefab)
+				if (go->GetTransform()->GetParent() == nullptr)
 				{
-					MMMEngine::Object::Instantiate(prefab);
+					DrawHierarchyMember(go, true);
+				}
+			}
+
+			if (!ddolGos.empty())
+			{
+				DrawDropLine("##drop_lastline");
+			}
+			else
+			{
+				float windowWidth = ImGui::GetContentRegionAvail().x;
+				windowWidth = std::max(0.01f, windowWidth);
+
+				ImGui::InvisibleButton("##", { windowWidth, ImGui::GetContentRegionAvail().y });
+				MUID muid = GetMuid("gameobject_muid");
+				if (muid.IsValid())
+				{
+					g_reparentQueue.push_back({ muid, std::nullopt }); // root
 				}
 			}
 		}
-		ImGui::EndDragDropTarget();
+
+		if (!ddolGos.empty() && ImGui::CollapsingHeader(u8"Dont Destroy On Load", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			for (auto& go : ddolGos)
+			{
+				if (go->GetTransform()->GetParent() == nullptr)
+					DrawHierarchyMember(go, false);
+			}
+		}
+
+		// Prefab 파일 드롭 처리
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FILE_PATH"))
+			{
+				std::string absolutePath((const char*)payload->Data, payload->DataSize - 1);
+				std::filesystem::path droppedPath(absolutePath);
+				std::string ext = droppedPath.extension().string();
+				std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+				if (ext == ".prefab")
+				{
+					std::string relativePath = MMMEngine::Editor::ProjectManager::Get().ToProjectRelativePath(absolutePath);
+					std::wstring wRelativePath = MMMEngine::Utility::StringHelper::StringToWString(relativePath);
+
+					auto prefab = MMMEngine::ResourceManager::Get().Load<MMMEngine::Prefab>(wRelativePath);
+					if (prefab)
+					{
+						MMMEngine::Object::Instantiate(prefab);
+					}
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		ImGui::EndChild(); // HierarchyScrollRegion 종료
 	}
 
 	// 이번 프레임에만 사용한 확장 대상 정리
 	s_expandNodeMuids.clear();
 
-	// 마우스 버튼을 뗐을 때 처리 (ImGui::End() 전에 체크해야 함)
+	// 마우스 버튼을 뗐을 때 처리
 	if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 	{
-		// 현재 마우스 위치가 하이어라키 윈도우 내부인지 직접 체크
 		ImVec2 mousePos = ImGui::GetMousePos();
 		ImVec2 winMin = ImGui::GetWindowPos();
 		ImVec2 winMax = ImVec2(winMin.x + ImGui::GetWindowSize().x, winMin.y + ImGui::GetWindowSize().y);
@@ -264,18 +283,17 @@ void MMMEngine::Editor::HierarchyWindow::Render()
 		bool isMouseInWindow = (mousePos.x >= winMin.x && mousePos.x <= winMax.x &&
 			mousePos.y >= winMin.y && mousePos.y <= winMax.y);
 
-		// 마우스를 뗀 위치가 하이어라키 윈도우 내부인 경우에만 선택 적용
 		if (isMouseInWindow && g_hierarchyPendingSelection.IsValid())
 		{
 			g_selectedGameObject = g_hierarchyPendingSelection;
 		}
 
-		// 임시 선택 오브젝트 초기화
 		g_hierarchyPendingSelection = nullptr;
 	}
 
-	ImGui::End();
+	ImGui::End(); // 메인 윈도우 종료
 
+	// 부모 변경 큐 처리
 	if (!g_reparentQueue.empty())
 	{
 		for (const auto& cmd : g_reparentQueue)
