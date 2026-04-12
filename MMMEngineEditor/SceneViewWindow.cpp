@@ -1102,157 +1102,205 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 
 	bool toolbuttonHovered = false;
 	{
+		const float gizmoSize = 64.0f;
+		const float gizmoPad = 10.0f;
+		const float gizmoLeft = imageMax.x - gizmoPad - gizmoSize;
+		const float toolPadX = 10.0f;
+		const float toolPadY = 10.0f;
+
 		auto buttonsize = ImVec2(0, 0);
-		auto padding = ImVec2{ 10,10 };
-		auto handing = (int)m_guizmoOperation == 0;
-		auto moving = m_guizmoOperation == ImGuizmo::OPERATION::TRANSLATE;
-		auto rotating = m_guizmoOperation == ImGuizmo::OPERATION::ROTATE;
-		auto scaling = m_guizmoOperation == ImGuizmo::OPERATION::SCALE;
-		auto local = m_guizmoMode == ImGuizmo::MODE::LOCAL;
-		auto world = m_guizmoMode == ImGuizmo::MODE::WORLD;
+		const bool handing = (int)m_guizmoOperation == 0;
+		const bool moving = m_guizmoOperation == ImGuizmo::OPERATION::TRANSLATE;
+		const bool rotating = m_guizmoOperation == ImGuizmo::OPERATION::ROTATE;
+		const bool scaling = m_guizmoOperation == ImGuizmo::OPERATION::SCALE;
+		const bool local = m_guizmoMode == ImGuizmo::MODE::LOCAL;
+		const bool world = m_guizmoMode == ImGuizmo::MODE::WORLD;
 		const bool prev2DMode = m_ui2DMode;
 
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
 
-		ImGui::SetCursorPos(scenecornerpos + padding);
-		// Hand/Rect 버튼 (Q) - UI 편집 모드에서는 Rect 표시
-		ImGui::BeginDisabled(handing);
-		const char* handLabel = u8"\uf256 hand";
-		const char* rectLabel = u8"\uf0c8 rect";
-		const char* primaryLabel = m_ui2DMode ? rectLabel : handLabel;
-		if (ImGui::Button(primaryLabel, buttonsize)) // 폰트어썸 아이콘
-		{
-			m_guizmoOperation = (ImGuizmo::OPERATION)0;
-		}
-		if(ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-		ImGui::EndDisabled();
-		ImGui::SameLine();
-		// Move 버튼
-		ImGui::BeginDisabled(moving);
-		if (ImGui::Button(u8"\uf047 move", buttonsize))
-		{
-			m_guizmoOperation = ImGuizmo::TRANSLATE;
-		}
-		if (ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-		ImGui::EndDisabled();
+		// 버튼 너비 계산: CalcTextSize + FramePadding*2 (양쪽)
+		const ImGuiStyle& style = ImGui::GetStyle();
+		auto BtnW = [&](const char* label) -> float {
+			return ImGui::CalcTextSize(label, nullptr, true).x
+				+ style.FramePadding.x * 2.0f;
+			};
+		const float itemSpacing = style.ItemSpacing.x;
+		// 수직 separator 실제 소비 너비: separator 자체(1px) + 양쪽 ItemSpacing
+		const float sepWidth = 1.0f + itemSpacing * 2.0f;
 
-		ImGui::SameLine();
+		const char* primaryLabel = m_ui2DMode ? u8"\uf0c8 rect" : u8"\uf256 hand";
 
-		// Rotate 버튼
-		ImGui::BeginDisabled(rotating);
-		if (ImGui::Button(u8"\uf2f1 rotate", buttonsize))
-		{
-			m_guizmoOperation = ImGuizmo::ROTATE;
-		}
-		if (ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-		ImGui::EndDisabled();
+		// 그룹별 총 너비 (내부 버튼 + 그 사이 ItemSpacing, separator 미포함)
+		float wA = BtnW(primaryLabel)
+			+ itemSpacing + BtnW(u8"\uf047 move")
+			+ itemSpacing + BtnW(u8"\uf2f1 rotate")
+			+ itemSpacing + BtnW(u8"\uf31e scale");
 
-		ImGui::SameLine();
+		float wB = BtnW(u8"\uf1b2 local")
+			+ itemSpacing + BtnW(u8"\uf0ac world");
 
-		// Scale 버튼
-		ImGui::BeginDisabled(scaling);
-		if (ImGui::Button(u8"\uf31e scale", buttonsize))
-		{
-			m_guizmoOperation = ImGuizmo::SCALE;
-		}
-		if (ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-		ImGui::EndDisabled();
+		float wC = BtnW(u8"\uf065 UI");
 
-		ImGui::SameLine();
+		float wD = BtnW(u8"\uf0ad Camera Settings");
 
-		// 구분선
-		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+		// ── 배치 시작 ───────────────────────────────────────────────────────
+		ImGui::SetCursorPos(scenecornerpos + ImVec2(toolPadX, toolPadY));
+		const float rowBaseY = ImGui::GetCursorPos().y;  // 첫 행 Y 저장
+		int currentRow = 0;                              // 현재 행 번호
 
-		ImGui::SameLine();
+		// 현재 행의 왼쪽 끝 screen X (고정)
+		const float rowStartX = ImGui::GetCursorScreenPos().x;
+		// 다음에 그릴 위치의 screen X를 추적
+		float penX = rowStartX;
+		bool firstOnLine = true;
 
-		// Local 버튼
-		ImGui::BeginDisabled(local);
-		if (ImGui::Button(u8"\uf1b2 local", buttonsize))
-		{
-			m_guizmoMode = ImGuizmo::LOCAL;
-		}
-		if (ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-		ImGui::EndDisabled();
-
-		ImGui::SameLine();
-
-		// World 버튼
-		ImGui::BeginDisabled(world);
-		if (ImGui::Button(u8"\uf0ac world", buttonsize))
-		{
-			m_guizmoMode = ImGuizmo::WORLD;
-		}
-		if (ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-		ImGui::EndDisabled();
-
-		ImGui::SameLine();
-		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-		ImGui::SameLine();
-
-		const bool uiColorPushed = m_ui2DMode;
-		if (uiColorPushed)
-		{
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.7f, 0.25f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.8f, 0.35f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
-		}
-		if (ImGui::Button("UI", buttonsize))
-		{
-			m_ui2DMode = !m_ui2DMode;
-		}
-		if (ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-
-		if(uiColorPushed)
-			ImGui::PopStyleColor(3);
-
-		// --- 카메라 설정 팝업 버튼 추가 ---
-		ImGui::SameLine();
-		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-		ImGui::SameLine();
-
-		if (ImGui::Button(u8"\uf0ad Camera Settings")) // 폰트어썸 렌치(wrench) 아이콘 사용 예시
-		{
-			ImGui::OpenPopup("CameraSettingsPopup");
-		}
-		if (ImGui::IsItemHovered())
-			toolbuttonHovered = true;
-		ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 10.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
-
-		// 팝업 창 정의
-		if (ImGui::BeginPopup("CameraSettingsPopup"))
-		{
-			float fov = m_pCam->GetFOV();
-			float n = m_pCam->GetNearPlane();
-			float f = m_pCam->GetFarPlane();
-			bool ortho = m_pCam->IsOrthographicTarget();
-
-			// 컨트롤 간의 간격을 위해 ItemSpacing도 조절하고 싶다면 추가 가능
-			if (ImGui::Checkbox("Orthographic", &ortho)) m_pCam->SetOrthographic(ortho);
-			if (!ortho)
+		// 그룹을 현재 행에 배치 가능한지 확인 후 필요시 줄바꿈
+		// needsSep: 이 그룹 앞에 | separator가 있어야 하는가
+		// 반환값: 이 그룹 앞에 실제로 separator를 그려야 하면 true
+		auto TryNewLine = [&](float groupWidth, bool needsSep) -> bool
 			{
-				if (ImGui::DragFloat("FOV", &fov, 0.5f, 10.0f, 120.0f)) m_pCam->SetFOV(fov);
-			}
-			else
-			{
-				float orthoSize = m_pCam->GetOrthoSize();
-				if (ImGui::DragFloat("Ortho Size", &orthoSize, 0.1f, 0.1f, 1000.0f)) m_pCam->SetOrthoSize(orthoSize);
-			}
-			if (ImGui::DragFloat("Near", &n, 0.01f, 0.01f, 10.0f)) m_pCam->SetNearPlane(n);
-			if (ImGui::DragFloat("Far", &f, 1.0f, 10.0f, 10000.0f)) m_pCam->SetFarPlane(f);
+				if (firstOnLine)
+					return false;
 
-			ImGui::EndPopup();
+				float projEnd = penX
+					+ (needsSep ? sepWidth : itemSpacing)
+					+ groupWidth;
+
+				if (projEnd > gizmoLeft)
+				{
+					currentRow++;
+					const float lineH = ImGui::GetFrameHeight() + style.ItemSpacing.x;
+					// 절대 Y로 이동 (누적 오차 없음)
+					ImGui::SetCursorPos(ImVec2(
+						scenecornerpos.x + toolPadX,
+						rowBaseY + lineH * currentRow
+					));
+					penX = ImGui::GetCursorScreenPos().x;
+					firstOnLine = true;
+					return false;
+				}
+				return needsSep;
+			};
+
+		// 그룹 렌더 후 penX 갱신
+		auto UpdatePen = [&]()
+			{
+				// GetItemRectMax().x = 방금 그린 마지막 아이템의 오른쪽 끝 screen X
+				penX = ImGui::GetItemRectMax().x;
+				firstOnLine = false;
+			};
+
+		// ── 그룹 A ──────────────────────────────────────────────────────────
+		{
+			bool drawSep = TryNewLine(wA, false);
+			// (그룹 A는 항상 첫 줄 첫 항목이므로 drawSep == false)
+
+			ImGui::BeginDisabled(handing);
+			if (ImGui::Button(primaryLabel, buttonsize)) m_guizmoOperation = (ImGuizmo::OPERATION)0;
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+			ImGui::EndDisabled();
+
+			ImGui::SameLine();
+			ImGui::BeginDisabled(moving);
+			if (ImGui::Button(u8"\uf047 move", buttonsize)) m_guizmoOperation = ImGuizmo::TRANSLATE;
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+			ImGui::EndDisabled();
+
+			ImGui::SameLine();
+			ImGui::BeginDisabled(rotating);
+			if (ImGui::Button(u8"\uf2f1 rotate", buttonsize)) m_guizmoOperation = ImGuizmo::ROTATE;
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+			ImGui::EndDisabled();
+
+			ImGui::SameLine();
+			ImGui::BeginDisabled(scaling);
+			if (ImGui::Button(u8"\uf31e scale", buttonsize)) m_guizmoOperation = ImGuizmo::SCALE;
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+			ImGui::EndDisabled();
+
+			UpdatePen();
 		}
 
+		// ── 그룹 B ──────────────────────────────────────────────────────────
+		{
+			bool drawSep = TryNewLine(wB, true);
+			if (drawSep) { ImGui::SameLine(); ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical); ImGui::SameLine(); }
+			else if (!firstOnLine) ImGui::SameLine(); // 같은 줄, sep 없이 (발생 안 하지만 안전장치)
+
+			ImGui::BeginDisabled(local);
+			if (ImGui::Button(u8"\uf1b2 local", buttonsize)) m_guizmoMode = ImGuizmo::LOCAL;
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+			ImGui::EndDisabled();
+
+			ImGui::SameLine();
+			ImGui::BeginDisabled(world);
+			if (ImGui::Button(u8"\uf0ac world", buttonsize)) m_guizmoMode = ImGuizmo::WORLD;
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+			ImGui::EndDisabled();
+
+			UpdatePen();
+		}
+
+		// ── 그룹 C ──────────────────────────────────────────────────────────
+		{
+			bool drawSep = TryNewLine(wC, true);
+			if (drawSep) { ImGui::SameLine(); ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical); ImGui::SameLine(); }
+
+			const bool uiColorPushed = m_ui2DMode;
+			if (uiColorPushed)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.7f, 0.25f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.8f, 0.35f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+			}
+			if (ImGui::Button(u8"\uf065 UI", buttonsize)) m_ui2DMode = !m_ui2DMode;
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+			if (uiColorPushed) ImGui::PopStyleColor(3);
+
+			UpdatePen();
+		}
+
+		// ── 그룹 D ──────────────────────────────────────────────────────────
+		{
+			bool drawSep = TryNewLine(wD, true);
+			if (drawSep) { ImGui::SameLine(); ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical); ImGui::SameLine(); }
+
+			if (ImGui::Button(u8"\uf0ad Camera Settings")) ImGui::OpenPopup("CameraSettingsPopup");
+			if (ImGui::IsItemHovered()) toolbuttonHovered = true;
+
+			ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 10.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+			if (ImGui::BeginPopup("CameraSettingsPopup"))
+			{
+				float fov = m_pCam->GetFOV();
+				float n = m_pCam->GetNearPlane();
+				float f = m_pCam->GetFarPlane();
+				bool  ortho = m_pCam->IsOrthographicTarget();
+
+				if (ImGui::Checkbox("Orthographic", &ortho)) m_pCam->SetOrthographic(ortho);
+				if (!ortho)
+				{
+					if (ImGui::DragFloat("FOV", &fov, 0.5f, 10.0f, 120.0f)) m_pCam->SetFOV(fov);
+				}
+				else
+				{
+					float orthoSize = m_pCam->GetOrthoSize();
+					if (ImGui::DragFloat("Ortho Size", &orthoSize, 0.1f, 0.1f, 1000.0f))
+						m_pCam->SetOrthoSize(orthoSize);
+				}
+				if (ImGui::DragFloat("Near", &n, 0.01f, 0.01f, 10.0f))    m_pCam->SetNearPlane(n);
+				if (ImGui::DragFloat("Far", &f, 1.0f, 10.0f, 10000.0f)) m_pCam->SetFarPlane(f);
+				ImGui::EndPopup();
+			}
+			ImGui::PopStyleVar(2);
+
+			UpdatePen();
+		}
+
+		// ── 2D 모드 전환 후처리 ─────────────────────────────────────────────
 		if (prev2DMode != m_ui2DMode && m_pCam)
 		{
 			if (m_ui2DMode)
@@ -1279,8 +1327,6 @@ void MMMEngine::Editor::SceneViewWindow::Render()
 				m_pCam->SyncInputState();
 			}
 		}
-		ImGui::PopStyleVar(2);
-		// ----------------------------------
 
 		ImGui::PopStyleColor(3);
 	}
