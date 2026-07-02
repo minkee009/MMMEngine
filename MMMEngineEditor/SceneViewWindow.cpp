@@ -325,6 +325,52 @@ void MMMEngine::Editor::SceneViewWindow::Initialize(ID3D11Device* device, ID3D11
 		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		m_cachedDevice->CreateBlendState(&blendDesc, m_pOutlineBlendState.GetAddressOf());
 	}
+
+	// Scissor rasterizer state
+	{
+		D3D11_RASTERIZER_DESC rsDesc = {};
+		rsDesc.FillMode = D3D11_FILL_SOLID;
+		rsDesc.CullMode = D3D11_CULL_NONE;
+		rsDesc.ScissorEnable = TRUE;
+		device->CreateRasterizerState(&rsDesc, m_pScissorRS.GetAddressOf());
+	}
+}
+
+void MMMEngine::Editor::SceneViewWindow::ClearMaskScreenBorder(ID3D11DeviceContext* context, int borderThicknessPx)
+{
+	if (borderThicknessPx <= 0 || m_width <= 0 || m_height <= 0)
+		return;
+
+	ID3D11RenderTargetView* maskRtv = m_pMaskRTV.Get();
+	context->OMSetRenderTargets(1, &maskRtv, nullptr);
+	context->OMSetBlendState(m_states->Opaque(), nullptr, 0xffffffff); // 알파블렌드 없이 덮어쓰기
+	context->OMSetDepthStencilState(m_states->DepthNone(), 0);
+	context->RSSetState(m_pScissorRS.Get());
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->IASetInputLayout(nullptr);
+	context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+	context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+	context->VSSetShader(m_pFullScreenVS->m_pVShader.Get(), nullptr, 0);
+	context->PSSetShader(m_pMaskBorderClearPS->m_pPShader.Get(), nullptr, 0);
+
+	int t = borderThicknessPx;
+	D3D11_RECT rects[4] = {
+		{ 0, 0, m_width, t },                    // top
+		{ 0, m_height - t, m_width, m_height },  // bottom
+		{ 0, 0, t, m_height },                   // left
+		{ m_width - t, 0, m_width, m_height }    // right
+	};
+
+	for (int i = 0; i < 4; ++i)
+	{
+		context->RSSetScissorRects(1, &rects[i]);
+		context->Draw(3, 0);
+	}
+
+	// scissor 원복 (다음 패스에 영향 안 주도록)
+	D3D11_RECT fullRect = { 0, 0, m_width, m_height };
+	context->RSSetScissorRects(1, &fullRect);
+	context->RSSetState(m_states->CullNone());
 }
 
 void MMMEngine::Editor::SceneViewWindow::Render()
@@ -1839,6 +1885,8 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 			m_pFullScreenVS = ResourceManager::Get().Load<VShader>(L"Shader/PP/FullScreenVS.hlsl");
 		if (!m_pOutlinePS)
 			m_pOutlinePS = ResourceManager::Get().Load<PShader>(L"Shader/Editor/OutlinePS.hlsl");
+		if (!m_pMaskBorderClearPS)
+			m_pMaskBorderClearPS = ResourceManager::Get().Load<PShader>(L"Shader/Editor/MaskBorderClear.hlsl");
 	}
 
 	if (m_ui2DMode && m_pCam)
@@ -2201,6 +2249,13 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 		context->OMSetDepthStencilState(nullptr, 0);
 	}
 
+	// 마스크(픽킹 오브젝트 실루엣) 렌더링이 끝난 직후 여기 추가
+	if (m_pMaskBorderClearPS && m_pFullScreenVS && m_pMaskRTV && m_width > 0 && m_height > 0)
+	{
+		int borderThickness = static_cast<int>(m_outlineThickness + 1.0f);
+		ClearMaskScreenBorder(context, borderThickness);
+	}
+
 	// 아웃라인 렌더링 (씬 뷰 전용)
 	if (!m_ui2DMode && g_selectedGameObject.IsValid() && !g_selectedGameObject->IsDestroyed()
 		&& m_pOutlinePS && m_pFullScreenVS && m_pOutlineCBuffer && m_pMaskSRV)
@@ -2210,7 +2265,7 @@ void MMMEngine::Editor::SceneViewWindow::RenderSceneToTexture(ID3D11DeviceContex
 			OutlineConstants constants;
 			constants.color = { 1.0f, 0.5f, 0.0f, 1.0f };
 			constants.texelSize = { 1.0f / static_cast<float>(m_width), 1.0f / static_cast<float>(m_height) };
-			constants.thickness = 1.0f;
+			constants.thickness = m_outlineThickness;
 			constants.threshold = 0.1f;
 
 			context->UpdateSubresource(m_pOutlineCBuffer.Get(), 0, nullptr, &constants, 0, 0);

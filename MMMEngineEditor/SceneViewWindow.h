@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Singleton.hpp"
 #include "EditorCamera.h"
 #include "EditorGridRenderer.h"
@@ -51,11 +51,14 @@ namespace MMMEngine::Editor
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pStencilTestState;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pMaskDepthState;
 
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pScissorRS;
+
 		std::shared_ptr<MMMEngine::VShader> m_pPickingVS;
 		std::shared_ptr<MMMEngine::PShader> m_pPickingPS;
 		std::shared_ptr<MMMEngine::PShader> m_pMaskPS;
 		std::shared_ptr<MMMEngine::VShader> m_pFullScreenVS;
 		std::shared_ptr<MMMEngine::PShader> m_pOutlinePS;
+		std::shared_ptr<MMMEngine::PShader> m_pMaskBorderClearPS;
 
 		std::unique_ptr<EditorCamera> m_pCam;
 		std::unique_ptr<EditorGridRenderer> m_pGridRenderer;
@@ -63,8 +66,7 @@ namespace MMMEngine::Editor
 		ID3D11Device* m_cachedDevice;
 		ID3D11DeviceContext* m_cachedContext;
 
-		
-
+		float m_outlineThickness = 1.0f;
 		int m_width;
 		int m_height;
 		int m_lastWidth;
@@ -110,5 +112,6 @@ namespace MMMEngine::Editor
 		bool CreateRenderTargets(ID3D11Device* device, int width, int height);
 		void ResizeRenderTarget(ID3D11Device* device, int width, int height);
 		void RenderSceneToTexture(ID3D11DeviceContext* context);
+		void ClearMaskScreenBorder(ID3D11DeviceContext* context, int borderThicknessPx);
 	};
 }
