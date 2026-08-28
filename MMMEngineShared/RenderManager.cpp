@@ -1,4 +1,4 @@
-#include "RenderManager.h"
+﻿#include "RenderManager.h"
 
 #include "RendererTools.h"
 #include "RenderShared.h"
@@ -631,13 +631,14 @@ namespace MMMEngine {
 	{
 		// 스왑체인 속성설정 생성
 		DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
-		swapDesc.BufferCount = 2;
-		swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapDesc.Width = m_clientWidth;
 		swapDesc.Height = m_clientHeight;
-		swapDesc.SampleDesc.Count = 1;		// MSAA
-		swapDesc.SampleDesc.Quality = 0;	// MSAA 품질수준
+		swapDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		swapDesc.SampleDesc.Count = 1;
+		swapDesc.SampleDesc.Quality = 0;
+		swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		swapDesc.BufferCount = 2;
 
 		// DXGI 디바이스
 		ComPtr<IDXGIDevice> dxgiDevice;
